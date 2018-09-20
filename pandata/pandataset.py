@@ -32,7 +32,7 @@ class PanEvent:
         self.datetime=datetime
         
 class PanParam:
-    def __init__(self, id, name, shortName, param_type,source, unit=None):
+    def __init__(self, id, name, shortName, param_type, source, unit=None):
         self.id=id
         self.name=name
         self.shortName=shortName
@@ -157,13 +157,13 @@ class PanDataSet:
         # add geocode/dimension columns from Event
         if addEventColumns==True:
             if len(self.events)==1:
-                print('Adding additional GEOCODE columns')
+                # print('Adding additional GEOCODE columns')
                 self.data['Latitude']=self.events[0].latitude       
-                self.params.append(PanParam(1600,'Latitude','Latitude','numeric','geocode','deg','latitude'))
+                self.params.append(PanParam(1600,'Latitude','Latitude','numeric','geocode','deg'))
                 self.data['Longitude']=self.events[0].longitude
-                self.params.append(PanParam(1600,'Longitude','Longitude','numeric','geocode','deg','longitude'))
+                self.params.append(PanParam(1600,'Longitude','Longitude','numeric','geocode','deg'))
                 self.data['Elevation']=self.events[0].elevation
-                self.params.append(PanParam(8128,'Elevation','Elevation','numeric','geocode','m','elevation'))
+                self.params.append(PanParam(8128,'Elevation','Elevation','numeric','geocode','m'))
                 self.data['Event']=self.events[0].label
                 if 'Date/Time' not in self.data.columns:
                     self.data['Date/Time']=self.events[0].datetime
