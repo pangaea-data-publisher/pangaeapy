@@ -165,6 +165,7 @@ class PanDataSet:
                 self.data['Elevation']=self.events[0].elevation
                 self.params.append(PanParam(8128,'Elevation','Elevation','numeric','geocode','m'))
                 self.data['Event']=self.events[0].label
+                self.params.append(PanParam(1600,'Event','Event','string','data',None))
                 if 'Date/Time' not in self.data.columns:
                     self.data['Date/Time']=self.events[0].datetime
         # --- Replace Quality Flags        
@@ -204,5 +205,3 @@ class PanDataSet:
         else:
             self.error='Data set does not exist'
             print(self.error)
-            
-        
