@@ -81,9 +81,10 @@ class PanEvent:
     """
     def __init__(self, label, latitude, longitude, elevation=None, datetime=None, device=None):
         self.label=label
-        self.latitude=latitude
-        self.longitude=longitude
-        self.elevation=elevation
+        self.latitude=float(latitude)
+        self.longitude=float(longitude)
+        if elevation !=None:
+            self.elevation=float(elevation)
         self.device=device
         # -- NEED TO CARE ABOUT datetime2!!!
         self.datetime=datetime
@@ -188,7 +189,7 @@ class PanDataSet:
         indicates if this dataset is a parent data set within a collection of child data sets
         
     """
-    def __init__(self, id=None, deleteFlag=''):
+    def __init__(self, id=None,paramlist=None, deleteFlag=''):
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
         self.setID(id)
         self.ns= {'md':'http://www.pangaea.de/MetaData'}        
@@ -197,7 +198,10 @@ class PanDataSet:
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
         self.uri='' #the doi
         self.isParent=False
-        self.params=[]
+        self.params=dict()
+        self.defaultparams=['Latitude','Longitude','Event','Elevation','Date/Time']
+        self.paramlist=paramlist
+        self.paramlist_index=[]
         self.events=[]
         #allowed geocodes for netcdf generation which are used as xarray dimensions not needed in the moment
         self._geocodes={1599:'Date_Time',1600:'Latitude',1601:'Longitude',1619:'Depth water'}
@@ -211,13 +215,18 @@ class PanDataSet:
         self.allowNetCDF=True        
         self.eventInMatrix=False
         self.deleteFlag=deleteFlag
+        self.children=[]
         if self.id != None:
-            self.setMetadata()            
+            self.setMetadata()
+            self.defaultparams=[s for s in self.defaultparams if s in self.params.keys()]            
             if self.loginstatus=='unrestricted' and self.isParent!=True:
                 self.setData()
+                if self.paramlist!=None:
+                    if  len(self.paramlist)!=len(self.paramlist_index):
+                        print('PROBLEM: '+self.error)
             else:
                 print('PROBLEM: '+self.error)
-                
+    
     def setID (self, id):
         """
         Initialize the ID of a data set in case it was not defined in the constructur
@@ -251,9 +260,15 @@ class PanDataSet:
             eventDateTime=None
             if event.find('md:dateTime',self.ns)!=None:
                 eventDateTime= event.find('md:dateTime',self.ns).text
-            self.events.append(PanEvent(event.find('md:label',self.ns).text, 
-                                        event.find('md:latitude',self.ns).text, 
-                                        event.find('md:longitude',self.ns).text,
+            if event.find('md:longitude',self.ns)!=None:
+                eventLongitude= event.find('md:longitude',self.ns).text
+            if event.find('md:latitude',self.ns)!=None:
+                eventLatitude= event.find('md:latitude',self.ns).text
+            if event.find('md:label',self.ns)!=None:
+                eventLabel= event.find('md:label',self.ns).text
+            self.events.append(PanEvent(eventLabel, 
+                                        eventLatitude, 
+                                        eventLongitude,
                                         eventElevation,
                                         eventDateTime
                                         ))
@@ -284,7 +299,7 @@ class PanDataSet:
                     self.eventInMatrix=True
                 #if panparID in self.CFmapping.index:
                 #    panparCFName=self.CFmapping.at[panparID,'STDNAME']
-                self.params.append(PanParam(panparID,paramstr.find('md:name',self.ns).text,panparShortName,panparType,matrix.get('source'),panparUnit))           
+                self.params[panparShortName]=PanParam(panparID,paramstr.find('md:name',self.ns).text,panparShortName,panparType,matrix.get('source'),panparUnit)
                 if panparType=='geocode':
                     try:
                         panGeocode[panparShortName]=0
@@ -315,28 +330,38 @@ class PanDataSet:
         qc=dict()
         coln=dict()
         dim=dict()
+        # converting list of parameters` short names (from user input) to the list of parameters` indexes
+        # the list of parameters` indexes is an argument for pd.read_csv
+        if self.paramlist!=None:
+            self.paramlist+=self.defaultparams
+            for parameter in self.paramlist:
+                iter=0
+                for shortName in self.params.keys():
+                    if parameter==shortName:
+                        self.paramlist_index.append(iter)
+                    iter+=1
+            if len(self.paramlist)!=len(self.paramlist_index):
+                self.error="Error entering parameters`short names!"
+        else:
+            self.paramlist_index=None
         dataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=textfile"
         panDataTxt= requests.get(dataURL).text
         panData = re.sub(r"/\*(.*)\*/", "", panDataTxt, 1, re.DOTALL).strip() 
         #Read in PANGAEA Data    
-        self.data = pd.read_csv(io.StringIO(panData), index_col=False ,error_bad_lines=False,sep=u'\t')
-        #print(self.data.head())
-        #Rename duplicate column headers
-        for p in self.params:
-            col.append(p.shortName)          
-        self.data.columns=col
+        self.data = pd.read_csv(io.StringIO(panData), index_col=False ,error_bad_lines=False,sep=u'\t',usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
         # add geocode/dimension columns from Event
-        if addEventColumns==True:
+        #do not add columns for profile series? (otherwise - AttributeError: 'PanEvent' object has no attribute 'elevation')
+        if addEventColumns==True and self.topotype!="profile series" and self.topotype!="not specified":
             if len(self.events)==1:
                 # print('Adding additional GEOCODE columns')
                 self.data['Latitude']=self.events[0].latitude       
-                self.params.append(PanParam(1600,'Latitude','Latitude','numeric','geocode','deg'))
+                self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','geocode','deg')
                 self.data['Longitude']=self.events[0].longitude
-                self.params.append(PanParam(1600,'Longitude','Longitude','numeric','geocode','deg'))
+                self.params['Longitude']=PanParam(1600,'Longitude','Longitude','numeric','geocode','deg')
                 self.data['Elevation']=self.events[0].elevation
-                self.params.append(PanParam(8128,'Elevation','Elevation','numeric','geocode','m'))
+                self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','geocode','m')
                 self.data['Event']=self.events[0].label
-                self.params.append(PanParam(1600,'Event','Event','string','data',None))
+                self.params['Event']=PanParam(1600,'Event','Event','string','data',None)
                 if 'Date/Time' not in self.data.columns:
                     self.data['Date/Time']=self.events[0].datetime
         # -- delete values with given QC flags
@@ -351,7 +376,6 @@ class PanDataSet:
         self.data = self.data.apply(pd.to_numeric, errors='ignore')
         if 'Date/Time' in self.data.columns:
             self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y/%m/%dT%H:%M:%S')
-        #print(col)
     
     def _setCitation(self):
         citationURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=citation_text&charset=UTF-8"
@@ -381,12 +405,17 @@ class PanDataSet:
                 if hierarchyLevel.get('value')=='parent':
                     self.error='Data set is of type parent, please select one of its child datasets'
                     self.isParent=True
+                    # write list of children
+                    collectionChilds=xml.find('./md:technicalInfo/md:entry[@key="collectionChilds"]',self.ns).get('value').split(",")
+                    self.children=[re.split(r"D",child)[1] for child in collectionChilds if re.match(r"D",child)!=None]
             self.title=xml.find("./md:citation/md:title", self.ns).text
             self.year=xml.find("./md:citation/md:year", self.ns).text
             self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
             topotypeEl=xml.find("./md:extent/md:topoType", self.ns)
             if topotypeEl!=None:
                 self.topotype=topotypeEl.text
+            else:
+                self.topotype=None
             for author in xml.findall("./md:citation/md:author", self.ns):
                 lastname=None
                 firstname=None
