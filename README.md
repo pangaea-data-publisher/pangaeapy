@@ -4,7 +4,9 @@ This module allows to download and analyse metadata as well as data from tabular
 
 ## Installation
 
-Move the file pandataset.py to a folder within your PYTHON path..
+* Source code from [github](https://github.com/pangaea-data-publisher/pangaeapy)
+    * `pip install git+https://github.com/pangaea-data-publisher/pangaeapy`
+
 
 ## Usage
 ```python
