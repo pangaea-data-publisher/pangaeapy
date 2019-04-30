@@ -6,6 +6,9 @@ This module allows to download and analyse metadata as well as data from tabular
 
 * Source code from [github](https://github.com/pangaea-data-publisher/pangaeapy)
     * `pip install git+https://github.com/pangaea-data-publisher/pangaeapy`
+* Wheels for Python from [PyPI](https://pypi.org/project/pangaeapy/)
+    * `pip install pangaeapy`
+
 
 
 ## Usage
