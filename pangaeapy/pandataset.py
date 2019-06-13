@@ -239,6 +239,10 @@ class PanDataSet:
             self.id = id[16:]
         else:
             self.id = id
+    
+    def setParamManually(self, id, name, shortName, type='numeric',unit=None):
+         self.params[shortName]=PanParam(id ,name,'data',type,shortName,unit)
+         #self, id, name, shortName, param_type, source, unit=None
             
     def _getID(self,panparidstr):
         panparidstr=panparidstr[panparidstr.rfind('.')+1:]
@@ -312,6 +316,15 @@ class PanDataSet:
         if self.eventInMatrix==False:
             self.params.append()
     
+    def getEventsAsFrame(self):
+        """
+        """
+        df=pd.DataFrame()
+        try:
+            df = pd.DataFrame([ev.__dict__ for ev in self.events ])
+        except:
+            pass
+        return df
         
     def setData(self, addEventColumns=True):
         """
@@ -352,14 +365,22 @@ class PanDataSet:
         # add geocode/dimension columns from Event
         #do not add columns for profile series? (otherwise - AttributeError: 'PanEvent' object has no attribute 'elevation')
         if addEventColumns==True and self.topotype!="profile series" and self.topotype!="not specified":
+            ##REDO: Use pandas MERGE here !!
             if len(self.events)==1:
                 # print('Adding additional GEOCODE columns')
-                self.data['Latitude']=self.events[0].latitude       
-                self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','geocode','deg')
-                self.data['Longitude']=self.events[0].longitude
-                self.params['Longitude']=PanParam(1600,'Longitude','Longitude','numeric','geocode','deg')
-                self.data['Elevation']=self.events[0].elevation
-                self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','geocode','m')
+                if 'Latitude' not in self.data.columns:
+                    self.data['Latitude']=self.events[0].latitude  
+                    self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','geocode','deg')
+                if 'Longitude' not in self.data.columns:
+                    self.data['Longitude']=self.events[0].longitude
+                    self.params['Longitude']=PanParam(1600,'Longitude','Longitude','numeric','geocode','deg')
+                #raise SystemExit(0)
+                try:                    
+                    if 'Elevation' not in self.data.columns:
+                        self.data['Elevation']=self.events[0].elevation
+                        self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','geocode','m')
+                except  AttributeError:
+                    pass
                 self.data['Event']=self.events[0].label
                 self.params['Event']=PanParam(1600,'Event','Event','string','data',None)
                 if 'Date/Time' not in self.data.columns:
@@ -431,3 +452,55 @@ class PanDataSet:
         else:
             self.error='Data set does not exist'
             print(self.error)
+            
+    def getGeometry(self):
+        """
+        Sometimes the topotype attribute has not been set correctly during the curation process. 
+        This method returns the real geometry (topographic type) of the dataset based on the x,y,z and t information of the data frame content.
+        """
+        geotype=0
+        zgroup=['Latitude','Longitude']
+        tgroup=['Latitude','Longitude']
+        locgrp=['Latitude','Longitude']
+        p=pz=pt=len(self.data.groupby(locgrp))
+        t=z=None
+        
+        if 'Date/Time' in self.data.columns:
+            t='Date/Time'            
+        if 'Depth water' in self.data.columns:
+            z='Depth water'
+        elif 'Depth' in self.data.columns:
+            z='Depth'
+        elif 'Depth ice/snow' in self.data.columns:
+            z='Depth ice/snow' 
+        elif 'Depth soil' in self.data.columns:
+            z='Depth soil'
+
+        if t!=None:
+            tgroup.append(t)
+            pt=len(self.data.groupby(tgroup))
+        if z!=None:
+            zgroup.append(z)
+            pz=len(self.data.groupby(zgroup))             
+        
+        print(p)
+        print(pt)
+        print(pz)
+        if p==1:
+            if pt==1 and pz==1:
+                geotype='point'
+            elif pt>=1:
+                if pz==1 or len(self.events)==1:
+                    geotype='timeSeries'
+                else: 
+                    geotype='timeSeriesStack'
+            else:
+                geotype='profile'
+        else:
+            if p==pz:
+                geotype='trajectory'
+            elif pt>pz:
+                geotype='timeSeriesProfile'
+            else:
+                geotype='trajectoryProfile'
+        return geotype
