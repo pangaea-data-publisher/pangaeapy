@@ -138,7 +138,7 @@ class PanParam:
         self.type=param_type
         self.source=source
         self.unit=unit
-    def addSynonym(name, ns):
+    def addSynonym(self, name, ns):
         """
         Creates a new synonym for a parameter which is valid within the given name space. Synonyms are stored in the synonym attribute which is a dictionary
         
