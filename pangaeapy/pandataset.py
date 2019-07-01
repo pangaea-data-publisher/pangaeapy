@@ -14,7 +14,9 @@ import xml.etree.ElementTree as ET
 import re
 import io
 import os
+
 import operator
+import pickle
 import matplotlib.pyplot as plt
 
 class PanAuthor:
@@ -138,7 +140,7 @@ class PanParam:
         self.type=param_type
         self.source=source
         self.unit=unit
-    def addSynonym(self, name, ns):
+    def addSynonym(self,name, ns):
         """
         Creates a new synonym for a parameter which is valid within the given name space. Synonyms are stored in the synonym attribute which is a dictionary
         
@@ -162,6 +164,8 @@ class PanDataSet:
     deleteFlag : str
         in case quality flags are avialable, this parameter defines a flag for which data should not be included in the data dataFrame.
         Possible values are listed here: https://wiki.pangaea.de/wiki/Quality_flag
+    enable_cache : boolean
+        If set to True, PanDataSet objects are cached as pickle files on the local home directory within a directory called 'pangaeapy_cache' in order to avoid unnecessary downloads.
         
     Attributes
     ----------
@@ -172,7 +176,7 @@ class PanDataSet:
     title : str
         The title of the dataset
     year : int
-        The publication year of teh dataset
+        The publication year of the dataset
     authors : list of PanAuthor
         a list containing the PanAuthot objects (author info) of the dataset
     citation : str
@@ -189,13 +193,14 @@ class PanDataSet:
         indicates if this dataset is a parent data set within a collection of child data sets
         
     """
-    def __init__(self, id=None,paramlist=None, deleteFlag=''):
+    def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False):
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
         self.setID(id)
         self.ns= {'md':'http://www.pangaea.de/MetaData'}        
         # Mapping should be moved to e.g netCDF class/module??
         #moddir = os.path.dirname(os.path.abspath(__file__))
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
+        self.cache=enable_cache
         self.uri='' #the doi
         self.isParent=False
         self.params=dict()
@@ -217,15 +222,72 @@ class PanDataSet:
         self.deleteFlag=deleteFlag
         self.children=[]
         if self.id != None:
-            self.setMetadata()
-            self.defaultparams=[s for s in self.defaultparams if s in self.params.keys()]            
-            if self.loginstatus=='unrestricted' and self.isParent!=True:
-                self.setData()
-                if self.paramlist!=None:
-                    if  len(self.paramlist)!=len(self.paramlist_index):
-                        print('PROBLEM: '+self.error)
-            else:
-                print('PROBLEM: '+self.error)
+            gotData=False
+            if self.cache==True:
+                print('Caching activated..trying to load data and metadata from cache')
+                gotData=self.from_pickle()
+            if not gotData:        
+                #print('trying to load data and metadata from PANGAEA')
+                self.setMetadata()
+                self.defaultparams=[s for s in self.defaultparams if s in self.params.keys()]            
+                if self.loginstatus=='unrestricted' and self.isParent!=True:
+                    self.setData()
+                    if self.paramlist!=None:
+                        if  len(self.paramlist)!=len(self.paramlist_index):
+                            print('PROBLEM: '+self.error)
+                    if self.cache==True:
+                       self.to_pickle() 
+                else:
+                    print('PROBLEM: '+self.error)
+                
+                
+    def from_pickle(self, cachedir=''):
+        """
+        Reads a PanDataSet object from a pickle file
+        
+        Parameters
+        ----------
+        cachedir : str
+            the name of the directory
+        """
+        home = os.path.expanduser("~")
+        ret=False
+        if cachedir=='':
+            cachedir=home+'/'+'pangaeapy_cache'
+
+        if os.path.exists(cachedir+'/'+str(self.id)+'_data.pik'):
+            try:
+                f = open(cachedir+'/'+str(self.id)+'_data.pik', 'rb')
+                tmp_dict = pickle.load(f)
+                f.close()         
+                self.__dict__.update(tmp_dict)
+                ret=True
+            except:
+                ret=False
+            
+            
+        else:
+            ret=False
+        return ret
+                
+    def to_pickle(self,cachedir=''):
+        """
+        Writes a PanDataSet object to a pickle file
+        
+        Parameters
+        ----------
+        cachedir : str
+            the name of the directory
+        """
+        home = os.path.expanduser("~")
+        if cachedir=='':
+            cachedir=home+'/'+'pangaeapy_cache'
+        if not os.path.exists(cachedir):
+            os.makedirs(cachedir)
+        f = open(cachedir+'/'+str(self.id)+'_data.pik', 'wb')
+        pickle.dump(self.__dict__, f, 2)
+        f.close()
+        
     
     def setID (self, id):
         """
@@ -237,12 +299,12 @@ class PanDataSet:
         """
         if type(id) is str and id.startswith('10.1594/PANGAEA'):
             self.id = id[16:]
+        elif type(id) is str and id.startswith('doi:10.1594/PANGAEA'):
+            print(id[20:])
+            self.id = id[20:]
         else:
             self.id = id
     
-    def setParamManually(self, id, name, shortName, type='numeric',unit=None):
-         self.params[shortName]=PanParam(id ,name,'data',type,shortName,unit)
-         #self, id, name, shortName, param_type, source, unit=None
             
     def _getID(self,panparidstr):
         panparidstr=panparidstr[panparidstr.rfind('.')+1:]
@@ -278,6 +340,9 @@ class PanDataSet:
                                         ))
           
     def _setParameters(self, panXMLMatrixColumn):
+        """
+        Initializes the list of parameter objects from the metadata XML info
+        """
         col=[]
         coln=dict()
         if panXMLMatrixColumn!=None:
@@ -311,13 +376,10 @@ class PanDataSet:
                         self.allowNetCDF=False
                         self.error='Data set contains duplicate Geocodes'
                         print(self.error)
-    
-    def _addEventColumns(self):
-        if self.eventInMatrix==False:
-            self.params.append()
-    
+        
     def getEventsAsFrame(self):
         """
+        For more convenient handlicg of event info, this method returns a dataframe containing all events with their attributes as columns
         """
         df=pd.DataFrame()
         try:
@@ -426,9 +488,10 @@ class PanDataSet:
                 if hierarchyLevel.get('value')=='parent':
                     self.error='Data set is of type parent, please select one of its child datasets'
                     self.isParent=True
+                    self._setChildren()
                     # write list of children
-                    collectionChilds=xml.find('./md:technicalInfo/md:entry[@key="collectionChilds"]',self.ns).get('value').split(",")
-                    self.children=[re.split(r"D",child)[1] for child in collectionChilds if re.match(r"D",child)!=None]
+                    #collectionChilds=xml.find('./md:technicalInfo/md:entry[@key="collectionChilds"]',self.ns).get('value').split(",")
+                    #self.children=[re.split(r"D",child)[1] for child in collectionChilds if re.match(r"D",child)!=None]
             self.title=xml.find("./md:citation/md:title", self.ns).text
             self.year=xml.find("./md:citation/md:year", self.ns).text
             self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
@@ -452,11 +515,21 @@ class PanDataSet:
         else:
             self.error='Data set does not exist'
             print(self.error)
+
+    def _setChildren(self):
+        childqueryURL="https://www.pangaea.de/advanced/search.php?q=incollection:"+str(self.id)+"&count=1000"
+        r = requests.get(childqueryURL)
+        if r.status_code != 404:
+            s = r.json()
+            for p in s['results']: 
+                self.children.append(p['URI'])
+                #print(p['URI'])
             
     def getGeometry(self):
         """
         Sometimes the topotype attribute has not been set correctly during the curation process. 
         This method returns the real geometry (topographic type) of the dataset based on the x,y,z and t information of the data frame content.
+        Still a bit experimental..
         """
         geotype=0
         zgroup=['Latitude','Longitude']
