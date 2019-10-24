@@ -19,6 +19,40 @@ import operator
 import pickle
 import matplotlib.pyplot as plt
 
+class PanProject:
+    """PANGAEA Project Class
+    This class creates objects which contain the project context information for each dataset
+    
+    Parameters
+    ----------
+    acronym : str
+        The project acronym
+    title : str
+        The full title of the project
+    URL : str
+        The project website
+    awardURI : str
+        The unique identifier of the award e.g. a CORDIS URI
+    
+    
+    Attributes
+    ----------
+    acronym : str
+        The project acronym
+    title : str
+        The full title of the project
+    URL : str
+        The project website
+    awardURI : str
+        The unique identifier of the award e.g. a CORDIS URI
+    
+    """
+    def __init__(self,label, name,URL=None, awardURI=None):
+        self.label=label
+        self.name=name
+        self.URL=URL
+        self.awardURI=awardURI
+
 class PanAuthor:
     """PANGAEA Author Class.
     A simple helper class to declare 'author' objects which are associated as part of the metadata of a given PANGAEA dataset object
@@ -29,6 +63,8 @@ class PanAuthor:
         The author's first name
     firstname : str
         The authors's last name
+    ORCID : str
+        The unique ORCID identifier assigned by orcid.org
     
     Attributes
     ----------
@@ -38,11 +74,14 @@ class PanAuthor:
         The authors's last name
     fullname : str
         Combination of lastname, firstname. This attribute is created by the constructor
+    ORCID : str
+        The unique ORCID identifier assigned by orcid.org
     """
-    def __init__(self,lastname, firstname=None):
+    def __init__(self,lastname, firstname=None, orcid=None):
         self.lastname=lastname
         self.firstname=firstname
         self.fullname=self.lastname
+        self.ORCID=orcid
         if firstname!=None and  firstname!='':
             self.fullname+=', '+self.firstname
 
@@ -80,14 +119,26 @@ class PanEvent:
         The date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
     device : str
         The device which was used during the event
+    basis : str
+        The basis or platform which was used during the event e.g. a ship
+    campaign : str
+        The campaign during which the event took place, e.g. a ship cruise or observatory deployment
     """
-    def __init__(self, label, latitude, longitude, elevation=None, datetime=None, device=None):
+    def __init__(self, label, latitude=None, longitude=None, elevation=None, datetime=None, device=None, basis=None, campaign=None):
         self.label=label
-        self.latitude=float(latitude)
-        self.longitude=float(longitude)
+        if latitude !=None:
+            self.latitude=float(latitude)
+        else:
+            self.latitude=None
+        if longitude !=None:
+            self.longitude=float(longitude)
+        else:
+            self.longitude=None
         if elevation !=None:
             self.elevation=float(elevation)
         self.device=device
+        self.basis=basis
+        self.campaign=campaign
         # -- NEED TO CARE ABOUT datetime2!!!
         self.datetime=datetime
         
@@ -127,20 +178,25 @@ class PanParam:
         defines the category or source for a parameter (e.g. geocode, data, event)... very PANGAEA specific ;)
     unit : str
         the unit of measurement used with this parameter (e.g. m/s, kg etc..)
+    format: str
+        the number format string given by PANGAEA e.g ##.000 which defines the displayed precision of the number
+        
     
     
     """
-    def __init__(self, id, name, shortName, param_type, source, unit=None):
+    def __init__(self, id, name, shortName, param_type, source, unit=None, format=None):
         self.id=id
         self.name=name
         self.shortName=shortName
-        # Synonym namespace dict predefined keys are CF: CF variables (), OS:OceanSites abbreviations (TEMP, PSAL etc..)
-        ns=('CF','OS')
+        # Synonym namespace dict predefined keys are CF: CF variables (), OS:OceanSites, SD:SeaDataNet abbreviations (TEMP, PSAL etc..)
+        ns=('CF','OS','SD')
         self.synonym=dict.fromkeys(ns)
         self.type=param_type
         self.source=source
         self.unit=unit
-    def addSynonym(self,name, ns):
+        self.format=format
+
+    def addSynonym(self,ns, name, uri=None, id=None):
         """
         Creates a new synonym for a parameter which is valid within the given name space. Synonyms are stored in the synonym attribute which is a dictionary
         
@@ -148,10 +204,14 @@ class PanParam:
         ----------
         name : str
             the name of the synonym
+        id : str
+            the internal ID of the term used at its auhority ontology
+        uri : str
+            the URI (ideally actionable) leading to its auhority ontology entry/web page
         ns : str
             the namespace indicator for the sysnonym
         """
-        self.synonym[ns]=name
+        self.synonym[ns]={'name':name,'id':id, 'uri':uri}
     
 class PanDataSet:
     """ PANGAEA DataSet
@@ -184,7 +244,9 @@ class PanDataSet:
     params : list of PanParam
         a list of all PanParam objects (the parameters) used in this dataset    
     events : list of PanEvent
-        a list of all PanEvent objects (the events) used in this dataset   
+        a list of all PanEvent objects (the events) used in this dataset  
+    projects : list of PanProject
+        a list containing the PanProjects objects referenced by this dataset
     data : pandas.DataFrame
         a pandas dataframe holding all the data
     loginstatus : str
@@ -208,6 +270,7 @@ class PanDataSet:
         self.paramlist=paramlist
         self.paramlist_index=[]
         self.events=[]
+        self.projects=[]
         #allowed geocodes for netcdf generation which are used as xarray dimensions not needed in the moment
         self._geocodes={1599:'Date_Time',1600:'Latitude',1601:'Longitude',1619:'Depth water'}
         self.data =pd.DataFrame()
@@ -321,9 +384,14 @@ class PanDataSet:
         """
         for event in panXMLEvents:
             eventElevation= None
+            eventDevice=None
+            eventBasis=None
+            eventCampaign=None
+            eventDateTime=None
+            eventLatitude=None
+            eventLongitude=None
             if event.find('md:elevation',self.ns)!=None:                
                 eventElevation=event.find('md:elevation',self.ns).text
-            eventDateTime=None
             if event.find('md:dateTime',self.ns)!=None:
                 eventDateTime= event.find('md:dateTime',self.ns).text
             if event.find('md:longitude',self.ns)!=None:
@@ -332,11 +400,20 @@ class PanDataSet:
                 eventLatitude= event.find('md:latitude',self.ns).text
             if event.find('md:label',self.ns)!=None:
                 eventLabel= event.find('md:label',self.ns).text
+            if event.find('md:campaign/md:name',self.ns)!=None:
+                eventCampaign= event.find('md:campaign/md:name',self.ns).text
+            if event.find('md:basis/md:name',self.ns)!=None:
+                eventBasis= event.find('md:basis/md:name',self.ns).text
+            if event.find('md:device/md:name',self.ns)!=None:
+                eventDevice= event.find('md:device/md:name',self.ns).text
             self.events.append(PanEvent(eventLabel, 
                                         eventLatitude, 
                                         eventLongitude,
                                         eventElevation,
-                                        eventDateTime
+                                        eventDateTime,
+                                        eventDevice,
+                                        eventBasis,
+                                        eventCampaign
                                         ))
           
     def _setParameters(self, panXMLMatrixColumn):
@@ -364,11 +441,12 @@ class PanDataSet:
                 panparUnit=None
                 if(paramstr.find('md:unit',self.ns)!=None):
                     panparUnit=paramstr.find('md:unit',self.ns).text 
+                panparFormat=matrix.get('format')
                 if panparShortName=='Event':
                     self.eventInMatrix=True
                 #if panparID in self.CFmapping.index:
                 #    panparCFName=self.CFmapping.at[panparID,'STDNAME']
-                self.params[panparShortName]=PanParam(panparID,paramstr.find('md:name',self.ns).text,panparShortName,panparType,matrix.get('source'),panparUnit)
+                self.params[panparShortName]=PanParam(panparID,paramstr.find('md:name',self.ns).text,panparShortName,panparType,matrix.get('source'),panparUnit,panparFormat)
                 if panparType=='geocode':
                     try:
                         panGeocode[panparShortName]=0
@@ -376,6 +454,19 @@ class PanDataSet:
                         self.allowNetCDF=False
                         self.error='Data set contains duplicate Geocodes'
                         print(self.error)
+                        
+    def _getRnd(self,pformat):
+        """
+        Helper function to get the rounding factor based on the parameter.format information
+        """
+        print(pformat)
+        d=0
+        if pformat is not None:
+            m = re.search('\.[0]+$', pformat)
+            print(m)
+            if m!=None:
+                d=m.group(0).count('0')
+        return d
         
     def getEventsAsFrame(self):
         """
@@ -424,16 +515,17 @@ class PanDataSet:
         panData = re.sub(r"/\*(.*)\*/", "", panDataTxt, 1, re.DOTALL).strip() 
         #Read in PANGAEA Data    
         self.data = pd.read_csv(io.StringIO(panData), index_col=False ,error_bad_lines=False,sep=u'\t',usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
+
         # add geocode/dimension columns from Event
         #do not add columns for profile series? (otherwise - AttributeError: 'PanEvent' object has no attribute 'elevation')
         if addEventColumns==True and self.topotype!="profile series" and self.topotype!="not specified":
             ##REDO: Use pandas MERGE here !!
             if len(self.events)==1:
                 # print('Adding additional GEOCODE columns')
-                if 'Latitude' not in self.data.columns:
+                if 'Latitude' not in self.data.columns and self.events[0].latitude is not None:
                     self.data['Latitude']=self.events[0].latitude  
                     self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','geocode','deg')
-                if 'Longitude' not in self.data.columns:
+                if 'Longitude' not in self.data.columns and self.events[0].longitude is not None:
                     self.data['Longitude']=self.events[0].longitude
                     self.params['Longitude']=PanParam(1600,'Longitude','Longitude','numeric','geocode','deg')
                 #raise SystemExit(0)
@@ -445,7 +537,7 @@ class PanDataSet:
                     pass
                 self.data['Event']=self.events[0].label
                 self.params['Event']=PanParam(1600,'Event','Event','string','data',None)
-                if 'Date/Time' not in self.data.columns:
+                if 'Date/Time' not in self.data.columns and self.events[0].datetime is not None:
                     self.data['Date/Time']=self.events[0].datetime
         # -- delete values with given QC flags
         if self.deleteFlag!='':
@@ -503,11 +595,28 @@ class PanDataSet:
             for author in xml.findall("./md:citation/md:author", self.ns):
                 lastname=None
                 firstname=None
+                orcid=None
                 if author.find("md:lastName", self.ns)!=None:
                     lastname=author.find("md:lastName", self.ns).text
                 if author.find("md:firstName", self.ns)!=None:
                     firstname=author.find("md:firstName", self.ns).text
-                self.authors.append(PanAuthor(lastname, firstname))
+                if author.find("md:orcid", self.ns)!=None:
+                    orcid=author.find("md:orcid", self.ns).text
+                self.authors.append(PanAuthor(lastname, firstname,orcid))
+            for project in xml.findall("./md:project", self.ns):
+                label=None
+                name=None
+                URI=None
+                awardURI=None
+                if project.find("md:label", self.ns)!=None:
+                    label=project.find("md:label", self.ns)
+                if project.find("md:name", self.ns)!=None:
+                    name=project.find("md:name", self.ns)
+                if project.find("md:URI", self.ns)!=None:
+                    URI=project.find("md:URI", self.ns)
+                if project.find("md:award/md:URI", self.ns)!=None:
+                    awardURI=project.find("md:award/md:URI", self.ns)
+                self.projects.append(PanProject(label, name, URI, awardURI))
             panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
             self._setParameters(panXMLMatrixColumn)
             panXMLEvents=xml.findall("./md:event", self.ns)
@@ -556,9 +665,6 @@ class PanDataSet:
             zgroup.append(z)
             pz=len(self.data.groupby(zgroup))             
         
-        print(p)
-        print(pt)
-        print(pz)
         if p==1:
             if pt==1 and pz==1:
                 geotype='point'
