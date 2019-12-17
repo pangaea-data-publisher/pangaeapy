@@ -136,6 +136,8 @@ class PanEvent:
             self.longitude=None
         if elevation !=None:
             self.elevation=float(elevation)
+        else:
+            self.elevation=None
         self.device=device
         self.basis=basis
         self.campaign=campaign
@@ -196,7 +198,7 @@ class PanParam:
         self.unit=unit
         self.format=format
 
-    def addSynonym(self,ns, name, uri=None, id=None):
+    def addSynonym(self,ns, name, uri=None, id=None, unit=None):
         """
         Creates a new synonym for a parameter which is valid within the given name space. Synonyms are stored in the synonym attribute which is a dictionary
         
@@ -210,8 +212,10 @@ class PanParam:
             the URI (ideally actionable) leading to its auhority ontology entry/web page
         ns : str
             the namespace indicator for the sysnonym
+        unit : str
+            in case another unit expression is used for the synonym parameter within its namespace
         """
-        self.synonym[ns]={'name':name,'id':id, 'uri':uri}
+        self.synonym[ns]={'name':name,'id':id, 'uri':uri, 'unit':unit}
     
 class PanDataSet:
     """ PANGAEA DataSet
@@ -224,6 +228,8 @@ class PanDataSet:
     deleteFlag : str
         in case quality flags are avialable, this parameter defines a flag for which data should not be included in the data dataFrame.
         Possible values are listed here: https://wiki.pangaea.de/wiki/Quality_flag
+    addQC : boolean
+        adds a QC column for each parameter which contains QC flags
     enable_cache : boolean
         If set to True, PanDataSet objects are cached as pickle files on the local home directory within a directory called 'pangaeapy_cache' in order to avoid unnecessary downloads.
         
@@ -255,7 +261,7 @@ class PanDataSet:
         indicates if this dataset is a parent data set within a collection of child data sets
         
     """
-    def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False):
+    def __init__(self, id=None,paramlist=None, deleteFlag='', addQC=False, enable_cache=False):
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
         self.setID(id)
         self.ns= {'md':'http://www.pangaea.de/MetaData'}        
@@ -277,6 +283,7 @@ class PanDataSet:
         self.title=None
         self.citation=None
         self.year=None
+        self.date=None
         self.authors=[]
         self.error=None
         self.loginstatus='unrestricted';
@@ -294,7 +301,7 @@ class PanDataSet:
                 self.setMetadata()
                 self.defaultparams=[s for s in self.defaultparams if s in self.params.keys()]            
                 if self.loginstatus=='unrestricted' and self.isParent!=True:
-                    self.setData()
+                    self.setData(addQC=addQC)
                     if self.paramlist!=None:
                         if  len(self.paramlist)!=len(self.paramlist_index):
                             print('PROBLEM: '+self.error)
@@ -479,7 +486,7 @@ class PanDataSet:
             pass
         return df
         
-    def setData(self, addEventColumns=True):
+    def setData(self, addEventColumns=True, addQC=False):
         """
         This method populates the data DataFrame with data from a PANGAEA dataset.
         In addition to the data given in the tabular ASCII file delivered by PANGAEA.
@@ -490,6 +497,8 @@ class PanDataSet:
         addEventColumns : boolean
             In case Latitude, Longititude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets, 
             the setData could add these columns to the dataframe using the information given in the metadata for Event. Default is 'True'
+        addQC : boolean
+            If this is set to True, pangaeapy adds a QC column in which the quality flags are separated. Each new column is named after the orgininal column plus a "_qc" suffix.
 
         """
         col=[]
@@ -511,42 +520,63 @@ class PanDataSet:
         else:
             self.paramlist_index=None
         dataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=textfile"
-        panDataTxt= requests.get(dataURL).text
+        panDataTxt= requests.get(dataURL).text       
         panData = re.sub(r"/\*(.*)\*/", "", panDataTxt, 1, re.DOTALL).strip() 
         #Read in PANGAEA Data    
         self.data = pd.read_csv(io.StringIO(panData), index_col=False ,error_bad_lines=False,sep=u'\t',usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
-
         # add geocode/dimension columns from Event
-        #do not add columns for profile series? (otherwise - AttributeError: 'PanEvent' object has no attribute 'elevation')
-        if addEventColumns==True and self.topotype!="profile series" and self.topotype!="not specified":
-            ##REDO: Use pandas MERGE here !!
+
+        if addEventColumns==True and self.topotype!="not specified":          
             if len(self.events)==1:
-                # print('Adding additional GEOCODE columns')
-                if 'Latitude' not in self.data.columns and self.events[0].latitude is not None:
-                    self.data['Latitude']=self.events[0].latitude  
-                    self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','geocode','deg')
-                if 'Longitude' not in self.data.columns and self.events[0].longitude is not None:
-                    self.data['Longitude']=self.events[0].longitude
-                    self.params['Longitude']=PanParam(1600,'Longitude','Longitude','numeric','geocode','deg')
-                #raise SystemExit(0)
-                try:                    
-                    if 'Elevation' not in self.data.columns:
-                        self.data['Elevation']=self.events[0].elevation
+                if 'Event' not in self.data.columns:
+                    self.data['Event']=self.events[0].label
+                    self.params['Event']=PanParam(0,'Event','Event','string','data',None)
+            if len(self.events)>=1:              
+                addEvLat=addEvLon=addEvEle=addEvDat=False
+                if 'Event' in self.data.columns:
+                    if 'Latitude' not in self.data.columns:
+                        addEvLat=True
+                        self.data['Latitude']=np.nan
+                        self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','geocode','deg')
+                    if 'Longitude' not in self.data.columns: 
+                        addEvLon=True
+                        self.data['Longitude']=np.nan
+                        self.params['Longitude']=PanParam(1601,'Longitude','Longitude','numeric','geocode','deg')
+                    if 'Elevation' not in self.data.columns:  
+                        addEvEle=True
+                        self.data['Elevation']=np.nan
                         self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','geocode','m')
-                except  AttributeError:
-                    pass
-                self.data['Event']=self.events[0].label
-                self.params['Event']=PanParam(1600,'Event','Event','string','data',None)
-                if 'Date/Time' not in self.data.columns and self.events[0].datetime is not None:
-                    self.data['Date/Time']=self.events[0].datetime
+                    if 'Date/Time' not in self.data.columns:
+                        self.data['Date/Time']=np.nan
+                        self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','numeric','geocode','')
+                        
+                    for iev,pevent in enumerate(self.events): 
+                        if pevent.latitude is not None and addEvLat==True:
+                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isna()),['Latitude']]=self.events[iev].latitude
+                        if pevent.longitude is not None and addEvLon:
+                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Longitude'].isna()),['Longitude']]=self.events[iev].longitude
+                        if pevent.elevation is not None and addEvEle:
+                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Elevation'].isna()),['Elevation']]=self.events[iev].elevation
+                        if pevent.datetime is not None and addEvDat:
+                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isna()),['Date/Time']]=self.events[iev].datetime
+
         # -- delete values with given QC flags
         if self.deleteFlag!='':
             if self.deleteFlag=='?' or self.deleteFlag=='*':
                 self.deleteFlag="\\"+self.deleteFlag
-            self.data.replace(regex=r'^'+self.deleteFlag+'{1}.*',value='',inplace=True)
-        
-        # --- Replace Quality Flags for numeric columns       
-        self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
+            self.data.replace(regex=r'^'+self.deleteFlag+'{1}.*',value='',inplace=True)      
+        # --- Replace Quality Flags for numeric columns   
+        if addQC==False:
+            self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
+        # --- Delete empty columns
+        self.data=self.data.dropna(axis=1, how='all')
+        for paramcolumn in list(self.params.keys()):
+            if paramcolumn not in self.data.columns:
+                del self.params[paramcolumn]
+        # --- add QC columns
+            elif addQC==True:
+                if self.params[paramcolumn].type=='numeric':
+                    self.data[[paramcolumn+'_qc',paramcolumn]]=self.data[paramcolumn].astype(str).str.extract(r'(^[\*/\?])?(.+)')
         # --- Adjust Column Data Types
         self.data = self.data.apply(pd.to_numeric, errors='ignore')
         if 'Date/Time' in self.data.columns:
@@ -586,6 +616,7 @@ class PanDataSet:
                     #self.children=[re.split(r"D",child)[1] for child in collectionChilds if re.match(r"D",child)!=None]
             self.title=xml.find("./md:citation/md:title", self.ns).text
             self.year=xml.find("./md:citation/md:year", self.ns).text
+            self.date=xml.find("./md:citation/md:dateTime", self.ns).text
             self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
             topotypeEl=xml.find("./md:extent/md:topoType", self.ns)
             if topotypeEl!=None:
