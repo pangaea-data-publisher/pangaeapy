@@ -110,21 +110,29 @@ class PanEvent:
     label : str
         A label which is used to name the event
     latitude : float
-        The latitude of the event location
+        The start latitude of the event location
     longitude : float
-        The longitude of the event location
+        The start longitude of the event location
+    latitude2 : float
+        The end latitude of the event location
+    longitude2 : float
+        The end longitude of the event location
     elevation : float
         The elevation (relative to sea level) of the event location
     datetime : str
-        The date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
+        The start date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
+    datetime2 : str
+        The end date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
     device : str
         The device which was used during the event
     basis : str
         The basis or platform which was used during the event e.g. a ship
     campaign : str
         The campaign during which the event took place, e.g. a ship cruise or observatory deployment
+    location : str
+        The location of the event
     """
-    def __init__(self, label, latitude=None, longitude=None, elevation=None, datetime=None, device=None, basis=None, campaign=None):
+    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, campaign=None, location=None):
         self.label=label
         if latitude !=None:
             self.latitude=float(latitude)
@@ -134,6 +142,14 @@ class PanEvent:
             self.longitude=float(longitude)
         else:
             self.longitude=None
+        if latitude2 !=None:
+            self.latitude2=float(latitude2)
+        else:
+            self.latitude2=None
+        if longitude2 !=None:
+            self.longitude2=float(longitude2)
+        else:
+            self.longitude2=None
         if elevation !=None:
             self.elevation=float(elevation)
         else:
@@ -143,6 +159,8 @@ class PanEvent:
         self.campaign=campaign
         # -- NEED TO CARE ABOUT datetime2!!!
         self.datetime=datetime
+        self.datetime2=datetime2
+        self.location=location
         
 class PanParam:
     """ PANGAEA Parameter
@@ -394,19 +412,31 @@ class PanDataSet:
             eventDevice=None
             eventBasis=None
             eventCampaign=None
+            eventLocation=None
             eventDateTime=None
+            eventDateTime2=None
             eventLatitude=None
             eventLongitude=None
+            eventLatitude2=None
+            eventLongitude2=None
             if event.find('md:elevation',self.ns)!=None:                
                 eventElevation=event.find('md:elevation',self.ns).text
             if event.find('md:dateTime',self.ns)!=None:
                 eventDateTime= event.find('md:dateTime',self.ns).text
+            if event.find('md:dateTime2',self.ns)!=None:
+                eventDateTime2= event.find('md:dateTime2',self.ns).text
             if event.find('md:longitude',self.ns)!=None:
                 eventLongitude= event.find('md:longitude',self.ns).text
             if event.find('md:latitude',self.ns)!=None:
                 eventLatitude= event.find('md:latitude',self.ns).text
+            if event.find('md:longitude2',self.ns)!=None:
+                eventLongitude2= event.find('md:longitude2',self.ns).text
+            if event.find('md:latitude2',self.ns)!=None:
+                eventLatitude2= event.find('md:latitude2',self.ns).text
             if event.find('md:label',self.ns)!=None:
                 eventLabel= event.find('md:label',self.ns).text
+            if event.find('md:location/md:name',self.ns)!=None:
+                eventLocation= event.find('md:location/md:name',self.ns).text
             if event.find('md:campaign/md:name',self.ns)!=None:
                 eventCampaign= event.find('md:campaign/md:name',self.ns).text
             if event.find('md:basis/md:name',self.ns)!=None:
@@ -416,11 +446,15 @@ class PanDataSet:
             self.events.append(PanEvent(eventLabel, 
                                         eventLatitude, 
                                         eventLongitude,
+                                        eventLatitude2,
+                                        eventLongitude2,
                                         eventElevation,
                                         eventDateTime,
+                                        eventDateTime2,
                                         eventDevice,
                                         eventBasis,
-                                        eventCampaign
+                                        eventCampaign,
+                                        eventLocation
                                         ))
           
     def _setParameters(self, panXMLMatrixColumn):
