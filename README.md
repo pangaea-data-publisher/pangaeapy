@@ -21,3 +21,7 @@ print(ds.data.head())
 
 ## Examples
 Please take a look at the example Jupyter Notebooks which you can find in the 'examples' folder
+
+## Documentation
+
+https://github.com/pangaea-data-publisher/pangaeapy/blob/master/docs/pandataset.md
