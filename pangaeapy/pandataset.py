@@ -52,7 +52,17 @@ class PanProject:
         self.name=name
         self.URL=URL
         self.awardURI=awardURI
-
+		
+class PanLicense:
+	"""PANGAEA License Class
+	This class contains the license information for each dataset
+    """
+	
+	def __init__(self,label, name, URI=None):
+		self.label=label
+		self.name=name
+		self.URI=URI
+		
 class PanAuthor:
     """PANGAEA Author Class.
     A simple helper class to declare 'author' objects which are associated as part of the metadata of a given PANGAEA dataset object
@@ -127,12 +137,29 @@ class PanEvent:
         The device which was used during the event
     basis : str
         The basis or platform which was used during the event e.g. a ship
-    campaign : str
+    campaign_name : str
         The campaign during which the event took place, e.g. a ship cruise or observatory deployment
+    campaign_URI : str
+        The campaign URI
+    startdate : str
+        The start date of the campaign
+    enddate : str
+        The end date of the campaign
+    startlocation : str
+        The start location of the campaign
+    endlocation : str
+        The end location of the campaign
+    BSHID : str
+        The BSH ID for the campaign
+    expeditionprogram: str
+        URL of the campaign report
     location : str
         The location of the event
+		
+	Note : datetime and datetime2 consists of the startdate and enddate
     """
-    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, campaign=None, location=None):
+    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, campaign_name=None, 
+    campaign_URI=None, startdate=None, enddate=None, startlocation=None, endlocation=None, BSHID=None, expeditionprogram=None, location=None):
         self.label=label
         if latitude !=None:
             self.latitude=float(latitude)
@@ -156,7 +183,14 @@ class PanEvent:
             self.elevation=None
         self.device=device
         self.basis=basis
-        self.campaign=campaign
+        self.campaign_name=campaign_name
+        self.campaign_URI=campaign_URI
+        self.startdate=startdate
+        self.enddate=enddate
+        self.startlocation=startlocation
+        self.endlocation=endlocation
+        self.BSHID=BSHID
+        self.expeditionprogram=expeditionprogram
         # -- NEED TO CARE ABOUT datetime2!!!
         self.datetime=datetime
         self.datetime2=datetime2
@@ -295,6 +329,7 @@ class PanDataSet:
         self.paramlist_index=[]
         self.events=[]
         self.projects=[]
+        self.licenses=[]
         #allowed geocodes for netcdf generation which are used as xarray dimensions not needed in the moment
         self._geocodes={1599:'Date_Time',1600:'Latitude',1601:'Longitude',1619:'Depth water'}
         self.data =pd.DataFrame()
@@ -411,7 +446,14 @@ class PanDataSet:
             eventElevation= None
             eventDevice=None
             eventBasis=None
-            eventCampaign=None
+            eventCampaign_name=None
+            eventCampaign_URI=None
+            eventStartdate=None
+            eventEnddate=None
+            eventStartlocation=None
+            eventEndlocation=None
+            eventBSHID=None
+            eventExpeditionprogram=None			
             eventLocation=None
             eventDateTime=None
             eventDateTime2=None
@@ -438,7 +480,21 @@ class PanDataSet:
             if event.find('md:location/md:name',self.ns)!=None:
                 eventLocation= event.find('md:location/md:name',self.ns).text
             if event.find('md:campaign/md:name',self.ns)!=None:
-                eventCampaign= event.find('md:campaign/md:name',self.ns).text
+                eventCampaign_name= event.find('md:campaign/md:name',self.ns).text
+            if event.find('md:campaign/md:URI',self.ns)!=None:
+                eventCampaign_URI= event.find('md:campaign/md:URI',self.ns).text
+            if event.find('md:campaign/md:start',self.ns)!=None:
+                eventStartdate= event.find('md:campaign/md:start',self.ns).text
+            if event.find('md:campaign/md:end',self.ns)!=None:
+                eventEnddate= event.find('md:campaign/md:end',self.ns).text
+            if event.find('md:campaign/md:attribute[@name="Start location"]',self.ns)!=None:
+                eventStartlocation= event.find('md:campaign/md:attribute[@name="Start location"]',self.ns).text
+            if event.find('md:campaign/md:attribute[@name="End location"]',self.ns)!=None:
+                eventEndlocation= event.find('md:campaign/md:attribute[@name="End location"]',self.ns).text
+            if event.find('md:campaign/md:attribute[@name="BSH ID"]',self.ns)!=None:
+                eventBSHID= event.find('md:campaign/md:attribute[@name="BSH ID"]',self.ns).text
+            if event.find('md:campaign/md:attribute[@name="Expedition Program"]',self.ns)!=None:
+                eventExpeditionprogram= event.find('md:campaign/md:attribute[@name="Expedition Program"]',self.ns).text
             if event.find('md:basis/md:name',self.ns)!=None:
                 eventBasis= event.find('md:basis/md:name',self.ns).text
             if event.find('md:device/md:name',self.ns)!=None:
@@ -453,7 +509,14 @@ class PanDataSet:
                                         eventDateTime2,
                                         eventDevice,
                                         eventBasis,
-                                        eventCampaign,
+                                        eventCampaign_name,
+                                        eventCampaign_URI,
+                                        eventStartdate,
+                                        eventEnddate,
+                                        eventStartlocation,
+                                        eventEndlocation,
+                                        eventBSHID,
+                                        eventExpeditionprogram,										
                                         eventLocation
                                         ))
           
@@ -586,13 +649,13 @@ class PanDataSet:
                         
                     for iev,pevent in enumerate(self.events): 
                         if pevent.latitude is not None and addEvLat==True:
-                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isna()),['Latitude']]=self.events[iev].latitude
+                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isnull()),['Latitude']]=self.events[iev].latitude
                         if pevent.longitude is not None and addEvLon:
-                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Longitude'].isna()),['Longitude']]=self.events[iev].longitude
+                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Longitude'].isnull()),['Longitude']]=self.events[iev].longitude
                         if pevent.elevation is not None and addEvEle:
-                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Elevation'].isna()),['Elevation']]=self.events[iev].elevation
+                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Elevation'].isnull()),['Elevation']]=self.events[iev].elevation
                         if pevent.datetime is not None and addEvDat:
-                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isna()),['Date/Time']]=self.events[iev].datetime
+                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isnull()),['Date/Time']]=self.events[iev].datetime
 
         # -- delete values with given QC flags
         if self.deleteFlag!='':
@@ -632,60 +695,75 @@ class PanDataSet:
         #metaDataURL="https://ws.pangaea.de/es/pangaea/panmd/"+str(self.id)
         r=requests.get(metaDataURL)
         if r.status_code!=404:
-            #panJson=r.json()
-            xmlText=r.text
-            #xmlText=panJson["_source"]["xml"]  
-            xml = ET.fromstring(xmlText)
-            self.loginstatus=xml.find('./md:technicalInfo/md:entry[@key="loginOption"]',self.ns).get('value')
-            if self.loginstatus!='unrestricted':
-                self.error='Data set is protected'
-            hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
-            if hierarchyLevel!=None:
-                if hierarchyLevel.get('value')=='parent':
-                    self.error='Data set is of type parent, please select one of its child datasets'
-                    self.isParent=True
-                    self._setChildren()
-                    # write list of children
-                    #collectionChilds=xml.find('./md:technicalInfo/md:entry[@key="collectionChilds"]',self.ns).get('value').split(",")
-                    #self.children=[re.split(r"D",child)[1] for child in collectionChilds if re.match(r"D",child)!=None]
-            self.title=xml.find("./md:citation/md:title", self.ns).text
-            self.year=xml.find("./md:citation/md:year", self.ns).text
-            self.date=xml.find("./md:citation/md:dateTime", self.ns).text
-            self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
-            topotypeEl=xml.find("./md:extent/md:topoType", self.ns)
-            if topotypeEl!=None:
-                self.topotype=topotypeEl.text
-            else:
-                self.topotype=None
-            for author in xml.findall("./md:citation/md:author", self.ns):
-                lastname=None
-                firstname=None
-                orcid=None
-                if author.find("md:lastName", self.ns)!=None:
-                    lastname=author.find("md:lastName", self.ns).text
-                if author.find("md:firstName", self.ns)!=None:
-                    firstname=author.find("md:firstName", self.ns).text
-                if author.find("md:orcid", self.ns)!=None:
-                    orcid=author.find("md:orcid", self.ns).text
-                self.authors.append(PanAuthor(lastname, firstname,orcid))
-            for project in xml.findall("./md:project", self.ns):
-                label=None
-                name=None
-                URI=None
-                awardURI=None
-                if project.find("md:label", self.ns)!=None:
-                    label=project.find("md:label", self.ns)
-                if project.find("md:name", self.ns)!=None:
-                    name=project.find("md:name", self.ns)
-                if project.find("md:URI", self.ns)!=None:
-                    URI=project.find("md:URI", self.ns)
-                if project.find("md:award/md:URI", self.ns)!=None:
-                    awardURI=project.find("md:award/md:URI", self.ns)
-                self.projects.append(PanProject(label, name, URI, awardURI))
-            panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
-            self._setParameters(panXMLMatrixColumn)
-            panXMLEvents=xml.findall("./md:event", self.ns)
-            self._setEvents(panXMLEvents)
+			try:
+				r.raise_for_status()
+				#panJson=r.json()
+				xmlText=r.text
+				#xmlText=panJson["_source"]["xml"]  
+				xml = ET.fromstring(xmlText)
+				self.loginstatus=xml.find('./md:technicalInfo/md:entry[@key="loginOption"]',self.ns).get('value')
+				if self.loginstatus!='unrestricted':
+					self.error='Data set is protected'
+				hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
+				if hierarchyLevel!=None:
+					if hierarchyLevel.get('value')=='parent':
+						self.error='Data set is of type parent, please select one of its child datasets'
+						self.isParent=True
+						self._setChildren()
+						# write list of children
+						#collectionChilds=xml.find('./md:technicalInfo/md:entry[@key="collectionChilds"]',self.ns).get('value').split(",")
+						#self.children=[re.split(r"D",child)[1] for child in collectionChilds if re.match(r"D",child)!=None]
+				self.title=xml.find("./md:citation/md:title", self.ns).text
+				self.year=xml.find("./md:citation/md:year", self.ns).text
+				self.date=xml.find("./md:citation/md:dateTime", self.ns).text
+				self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
+				topotypeEl=xml.find("./md:extent/md:topoType", self.ns)
+				if topotypeEl!=None:
+					self.topotype=topotypeEl.text
+				else:
+					self.topotype=None
+				for author in xml.findall("./md:citation/md:author", self.ns):
+					lastname=None
+					firstname=None
+					orcid=None
+					if author.find("md:lastName", self.ns)!=None:
+						lastname=author.find("md:lastName", self.ns).text
+					if author.find("md:firstName", self.ns)!=None:
+						firstname=author.find("md:firstName", self.ns).text
+					if author.find("md:orcid", self.ns)!=None:
+						orcid=author.find("md:orcid", self.ns).text
+					self.authors.append(PanAuthor(lastname, firstname,orcid))
+				for project in xml.findall("./md:project", self.ns):
+					label=None
+					name=None
+					URI=None
+					awardURI=None
+					if project.find("md:label", self.ns)!=None:
+						label=project.find("md:label", self.ns)
+					if project.find("md:name", self.ns)!=None:
+						name=project.find("md:name", self.ns)
+					if project.find("md:URI", self.ns)!=None:
+						URI=project.find("md:URI", self.ns)
+					if project.find("md:award/md:URI", self.ns)!=None:
+						awardURI=project.find("md:award/md:URI", self.ns)
+					self.projects.append(PanProject(label, name, URI, awardURI))
+				for license in xml.findall("./md:license",self.ns):
+					label=None
+					name=None
+					URI=None
+					if license.find("md:label", self.ns)!=None:
+						label=license.find("md:label", self.ns)
+					if license.find("md:name", self.ns)!=None:
+						name=license.find("md:name", self.ns)
+					if license.find("md:URI", self.ns)!=None:
+						URI=license.find("md:URI", self.ns)
+					self.licenses.append(PanLicense(label, name, URI))
+				panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
+				self._setParameters(panXMLMatrixColumn)
+				panXMLEvents=xml.findall("./md:event", self.ns)
+				self._setEvents(panXMLEvents)
+			except requests.exceptions.HTTPError as e: 
+				print e
         else:
             self.error='Data set does not exist'
             print(self.error)
