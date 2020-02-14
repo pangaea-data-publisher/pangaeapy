@@ -137,29 +137,10 @@ class PanEvent:
         The device which was used during the event
     basis : str
         The basis or platform which was used during the event e.g. a ship
-    campaign_name : str
-        The campaign during which the event took place, e.g. a ship cruise or observatory deployment
-    campaign_URI : str
-        The campaign URI
-    startdate : str
-        The start date of the campaign
-    enddate : str
-        The end date of the campaign
-    startlocation : str
-        The start location of the campaign
-    endlocation : str
-        The end location of the campaign
-    BSHID : str
-        The BSH ID for the campaign
-    expeditionprogram: str
-        URL of the campaign report
     location : str
         The location of the event
-		
-	Note : datetime and datetime2 consists of the startdate and enddate
     """
-    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, campaign_name=None, 
-    campaign_URI=None, startdate=None, enddate=None, startlocation=None, endlocation=None, BSHID=None, expeditionprogram=None, location=None):
+    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, location=None):
         self.label=label
         if latitude !=None:
             self.latitude=float(latitude)
@@ -183,19 +164,43 @@ class PanEvent:
             self.elevation=None
         self.device=device
         self.basis=basis
-        self.campaign_name=campaign_name
-        self.campaign_URI=campaign_URI
-        self.startdate=startdate
-        self.enddate=enddate
-        self.startlocation=startlocation
-        self.endlocation=endlocation
-        self.BSHID=BSHID
-        self.expeditionprogram=expeditionprogram
         # -- NEED TO CARE ABOUT datetime2!!!
         self.datetime=datetime
         self.datetime2=datetime2
         self.location=location
+		
+class PanCampaign:
+    """PANGAEA Campaign class
+	The campaign during which the event took place, e.g. a ship cruise or observatory deployment
+	
+	name : str
+        The name of the campaign
+    URI : str
+        The campaign URI
+    start : str
+        The start date of the campaign
+    end : str
+        The end date of the campaign
+    startlocation : str
+        The start location of the campaign
+    endlocation : str
+        The end location of the campaign
+    BSHID : str
+        The BSH ID for the campaign
+    expeditionprogram: str
+        URL of the campaign report
+	"""
+    def __init__(self,name=None, URI=None, start=None, end=None, startlocation=None, endlocation=None, BSHID=None, expeditionprogram=None):
         
+        self.name=name
+        self.URI=URI
+        self.start=start
+        self.end=end
+        self.startlocation=startlocation
+        self.endlocation=endlocation
+        self.BSHID=BSHID
+        self.expeditionprogram=expeditionprogram
+	
 class PanParam:
     """ PANGAEA Parameter
     Shoud be used to create PANGAEA parameter objects. Parameter is used here to represent 'measured variables'
@@ -302,7 +307,9 @@ class PanDataSet:
     params : list of PanParam
         a list of all PanParam objects (the parameters) used in this dataset    
     events : list of PanEvent
-        a list of all PanEvent objects (the events) used in this dataset  
+        a list of all PanEvent objects (the events) used in this dataset
+    campaigns : list of PanCampaign
+		a list of all PanCampaign objects used in this dataset
     projects : list of PanProject
         a list containing the PanProjects objects referenced by this dataset
     data : pandas.DataFrame
@@ -328,6 +335,7 @@ class PanDataSet:
         self.paramlist=paramlist
         self.paramlist_index=[]
         self.events=[]
+        self.campaigns=[]
         self.projects=[]
         self.licenses=[]
         #allowed geocodes for netcdf generation which are used as xarray dimensions not needed in the moment
@@ -445,15 +453,7 @@ class PanDataSet:
         for event in panXMLEvents:
             eventElevation= None
             eventDevice=None
-            eventBasis=None
-            eventCampaign_name=None
-            eventCampaign_URI=None
-            eventStartdate=None
-            eventEnddate=None
-            eventStartlocation=None
-            eventEndlocation=None
-            eventBSHID=None
-            eventExpeditionprogram=None			
+            eventBasis=None		
             eventLocation=None
             eventDateTime=None
             eventDateTime2=None
@@ -479,22 +479,6 @@ class PanDataSet:
                 eventLabel= event.find('md:label',self.ns).text
             if event.find('md:location/md:name',self.ns)!=None:
                 eventLocation= event.find('md:location/md:name',self.ns).text
-            if event.find('md:campaign/md:name',self.ns)!=None:
-                eventCampaign_name= event.find('md:campaign/md:name',self.ns).text
-            if event.find('md:campaign/md:URI',self.ns)!=None:
-                eventCampaign_URI= event.find('md:campaign/md:URI',self.ns).text
-            if event.find('md:campaign/md:start',self.ns)!=None:
-                eventStartdate= event.find('md:campaign/md:start',self.ns).text
-            if event.find('md:campaign/md:end',self.ns)!=None:
-                eventEnddate= event.find('md:campaign/md:end',self.ns).text
-            if event.find('md:campaign/md:attribute[@name="Start location"]',self.ns)!=None:
-                eventStartlocation= event.find('md:campaign/md:attribute[@name="Start location"]',self.ns).text
-            if event.find('md:campaign/md:attribute[@name="End location"]',self.ns)!=None:
-                eventEndlocation= event.find('md:campaign/md:attribute[@name="End location"]',self.ns).text
-            if event.find('md:campaign/md:attribute[@name="BSH ID"]',self.ns)!=None:
-                eventBSHID= event.find('md:campaign/md:attribute[@name="BSH ID"]',self.ns).text
-            if event.find('md:campaign/md:attribute[@name="Expedition Program"]',self.ns)!=None:
-                eventExpeditionprogram= event.find('md:campaign/md:attribute[@name="Expedition Program"]',self.ns).text
             if event.find('md:basis/md:name',self.ns)!=None:
                 eventBasis= event.find('md:basis/md:name',self.ns).text
             if event.find('md:device/md:name',self.ns)!=None:
@@ -508,18 +492,10 @@ class PanDataSet:
                                         eventDateTime,
                                         eventDateTime2,
                                         eventDevice,
-                                        eventBasis,
-                                        eventCampaign_name,
-                                        eventCampaign_URI,
-                                        eventStartdate,
-                                        eventEnddate,
-                                        eventStartlocation,
-                                        eventEndlocation,
-                                        eventBSHID,
-                                        eventExpeditionprogram,										
+                                        eventBasis,									
                                         eventLocation
                                         ))
-          
+
     def _setParameters(self, panXMLMatrixColumn):
         """
         Initializes the list of parameter objects from the metadata XML info
@@ -747,6 +723,32 @@ class PanDataSet:
 					if project.find("md:award/md:URI", self.ns)!=None:
 						awardURI=project.find("md:award/md:URI", self.ns)
 					self.projects.append(PanProject(label, name, URI, awardURI))
+				for campaign in xml.findall("./md:event/md:campaign", self.ns):
+					name=None
+					URI=None
+					start=None
+					end=None
+					startlocation=None
+					endlocation=None
+					BSHID=None
+					expeditionprogram=None			
+					if campaign.find('md:name',self.ns)!=None:
+						name= campaign.find('md:name',self.ns).text
+					if campaign.find('md:URI',self.ns)!=None:
+						URI= campaign.find('md:URI',self.ns).text
+					if campaign.find('md:start',self.ns)!=None:
+						start= campaign.find('md:start',self.ns).text
+					if campaign.find('md:end',self.ns)!=None:
+						end= campaign.find('md:end',self.ns).text
+					if campaign.find('md:attribute[@name="Start location"]',self.ns)!=None:
+						startlocation= campaign.find('md:attribute[@name="Start location"]',self.ns).text
+					if campaign.find('md:attribute[@name="End location"]',self.ns)!=None:
+						endlocation= campaign.find('md:attribute[@name="End location"]',self.ns).text
+					if campaign.find('md:attribute[@name="BSH ID"]',self.ns)!=None:
+						BSHID= campaign.find('md:attribute[@name="BSH ID"]',self.ns).text
+					if campaign.find('md:attribute[@name="Expedition Program"]',self.ns)!=None:
+						expeditionprogram= campaign.find('md:attribute[@name="Expedition Program"]',self.ns).text
+					self.campaigns.append(PanCampaign(name,URI,start,end,startlocation,endlocation,BSHID,expeditionprogram))
 				for license in xml.findall("./md:license",self.ns):
 					label=None
 					name=None
