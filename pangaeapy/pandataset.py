@@ -516,6 +516,8 @@ class PanDataSet:
                 else:
                     expeditionprogram=None
                 eventCampaign=PanCampaign(campaign_name,campaign_URI,campaign_start,campaign_end,startlocation,endlocation,BSHID,expeditionprogram)
+            else:
+                eventCampaign=None
 
             self.events.append(PanEvent(eventLabel, 
                                         eventLatitude, 
