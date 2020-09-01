@@ -463,16 +463,13 @@ class PanDataSet:
         Initializes the list of Events from a metadata XML file for a given pangaea dataset. 
         """
         for event in panXMLEvents:
-            eventElevation= None
-            eventDevice=None
-            eventBasis=None		
-            eventLocation=None
-            eventDateTime=None
-            eventDateTime2=None
-            eventLatitude=None
-            eventLongitude=None
-            eventLatitude2=None
-            eventLongitude2=None
+
+            eventElevation=eventDateTime=eventDateTime2 = None
+            eventDevice=eventLabel=eventBasis = None
+            campaign_name= campaign_URI=campaign_start=campaign_end = None
+            eventLongitude=eventLatitude=eventLatitude2=eventLongitude2=eventLocation = None
+            startlocation =endlocation=BSHID=expeditionprogram = None
+
             if event.find('md:elevation',self.ns)!=None:                
                 eventElevation=event.find('md:elevation',self.ns).text
             if event.find('md:dateTime',self.ns)!=None:
@@ -503,24 +500,14 @@ class PanDataSet:
                     campaign_URI= campaign.find('md:URI',self.ns).text
                 if campaign.find('md:start',self.ns)!=None:
                     campaign_start= campaign.find('md:start',self.ns).text
-                else:
-                    campaign_start=None
                 if campaign.find('md:end',self.ns)!=None:
                     campaign_end= campaign.find('md:end',self.ns).text
-                else:
-                    campaign_end=None
                 if campaign.find('md:attribute[@name="Start location"]',self.ns)!=None:
                     startlocation= campaign.find('md:attribute[@name="Start location"]',self.ns).text
-                else:
-                    startlocation=None
                 if campaign.find('md:attribute[@name="End location"]',self.ns)!=None:
                     endlocation= campaign.find('md:attribute[@name="End location"]',self.ns).text
-                else:
-                    endlocation= None
                 if campaign.find('md:attribute[@name="BSH ID"]',self.ns)!=None:
                     BSHID= campaign.find('md:attribute[@name="BSH ID"]',self.ns).text
-                else:
-                    BSHID=None
                 if campaign.find('md:attribute[@name="Expedition Program"]',self.ns)!=None:
                     expeditionprogram= campaign.find('md:attribute[@name="Expedition Program"]',self.ns).text
                 else:
