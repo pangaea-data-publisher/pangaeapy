@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4013941.svg)](https://doi.org/10.5281/zenodo.4013941)
+
 # pangaeapy - a Python module to access and analyse PANGAEA data
 
 ## Background
@@ -33,3 +35,9 @@ Please take a look at the example Jupyter Notebooks which you can find in the 'e
 ## Documentation
 
 https://github.com/pangaea-data-publisher/pangaeapy/blob/master/docs/pandataset.md
+
+## Cite as
+Huber, Robert, Gordeev, Egor, Stocker, Markus, Balamurugan, Aarthi, & Schindler, Uwe. (2020, September 3). pangaeapy - a Python module to access and analyse PANGAEA data (Version 1.0.0-beta). Zenodo. http://doi.org/10.5281/zenodo.4013941
+
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4013941.svg)](https://doi.org/10.5281/zenodo.4013941)
+
