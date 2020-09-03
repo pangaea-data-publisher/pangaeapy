@@ -1,6 +1,12 @@
-# pangaeapy
+# pangaeapy - a Python module to access and analyse PANGAEA data
 
-This module allows to download and analyse metadata as well as data from tabular PANGAEA (https://www.pangaea.de) datasets.
+## Background
+
+PANGAEA (https://www.pangaea.de) is one of the world's largest archives of this kind offering essential data services such as data curation, long-term data archiving and data publication. PANGAEA hosts about 400,000 datasets comprising around 17.5 billion individual measurements (Aug. 2020) and observations which have been collected during more than 240 international research projects. The system is open to any project, institution or individual scientist using, archiving or publishing research data.
+
+Since the programming languages Python and R have become increasingly important for scientific data analysis in recent years, we have developed 'pangaeapy'  a new, custom Python module that considerably simplifies typical data science tasks. 
+
+Given a DOI, pangaeapy uses PANGAEA’s web services to automatically load PANGAEA metadata into a dedicated python object and tabular data into a Python Data Analysis Library (pandas) DataFrame with a mere call of a specialized function. This makes it possible to integrate PANGAEA data with data from a large number of sources and formats (Excel, NetCDF, etc.) and to carry out data analyses within a suitable computational environment such as Jupyter notebooks in a uniform manner.
 
 ## Installation
 
