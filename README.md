@@ -2,6 +2,8 @@
 
 ## Background
 
+![pangaea](https://pangaea.de/assets/v.0163d8ce3a8d13294b065fcbdc04aebc/layout-images/pangaea-logo.png) 
+
 PANGAEA (https://www.pangaea.de) is one of the world's largest archives of this kind offering essential data services such as data curation, long-term data archiving and data publication. PANGAEA hosts about 400,000 datasets comprising around 17.5 billion individual measurements (Aug. 2020) and observations which have been collected during more than 240 international research projects. The system is open to any project, institution or individual scientist using, archiving or publishing research data.
 
 Since the programming languages Python and R have become increasingly important for scientific data analysis in recent years, we have developed 'pangaeapy'  a new, custom Python module that considerably simplifies typical data science tasks. 
