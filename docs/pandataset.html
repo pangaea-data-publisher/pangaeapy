@@ -1,0 +1,2494 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.9.1" />
+<title>pangaeapy.pandataset API documentation</title>
+<meta name="description" content="Created on Tue Aug 21 13:31:30 2018 …" />
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/sanitize.min.css" integrity="sha256-PK9q560IAAa6WVRRh76LtCaI8pjTJ2z11v0miyNNjrs=" crossorigin>
+<link rel="preload stylesheet" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/11.0.1/typography.min.css" integrity="sha256-7l/o7C8jubJiy74VsKTidCy1yBkRtiUGbVkYBylBqUg=" crossorigin>
+<link rel="stylesheet preload" as="style" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/styles/github.min.css" crossorigin>
+<style>:root{--highlight-color:#fe9}.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}h1:target,h2:target,h3:target,h4:target,h5:target,h6:target{background:var(--highlight-color);padding:.2em 0}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}dt:target .name{background:var(--highlight-color)}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}td{padding:0 .5em}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.1.1/highlight.min.js" integrity="sha256-Uv3H6lx7dJmRfRvH8TH6kJD1TSK1aFcwgx+mdg3epi8=" crossorigin></script>
+<script>window.addEventListener('DOMContentLoaded', () => hljs.initHighlighting())</script>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>pangaeapy.pandataset</code></h1>
+</header>
+<section id="section-intro">
+<p>Created on Tue Aug 21 13:31:30 2018</p>
+<p>@author: Robert Huber
+@author: Markus Stocker
+@author: Egor Gordeev
+@author: Aarthi Balamurugan</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python"># -*- coding: utf-8 -*-
+&#34;&#34;&#34;
+Created on Tue Aug 21 13:31:30 2018
+
+@author: Robert Huber
+@author: Markus Stocker
+@author: Egor Gordeev
+@author: Aarthi Balamurugan
+&#34;&#34;&#34;
+import requests
+import pandas as pd
+import numpy as np
+import json
+import math
+import xml.etree.ElementTree as ET
+import re
+import io
+import os
+
+import operator
+import pickle
+import matplotlib.pyplot as plt
+
+class PanProject:
+    &#34;&#34;&#34;PANGAEA Project Class
+    This class creates objects which contain the project context information for each dataset
+    
+    Parameters
+    ----------
+    acronym : str
+        The project acronym
+    title : str
+        The full title of the project
+    URL : str
+        The project website
+    awardURI : str
+        The unique identifier of the award e.g. a CORDIS URI
+    
+    
+    Attributes
+    ----------
+    acronym : str
+        The project acronym
+    title : str
+        The full title of the project
+    URL : str
+        The project website
+    awardURI : str
+        The unique identifier of the award e.g. a CORDIS URI
+    
+    &#34;&#34;&#34;
+    def __init__(self,label, name,URL=None, awardURI=None):
+        self.label=label
+        self.name=name
+        self.URL=URL
+        self.awardURI=awardURI
+                
+class PanLicense:
+        &#34;&#34;&#34;PANGAEA License Class
+        This class contains the license information for each dataset
+    &#34;&#34;&#34;
+        
+        def __init__(self,label, name, URI=None):
+                self.label=label
+                self.name=name
+                self.URI=URI
+                
+class PanAuthor:
+    &#34;&#34;&#34;PANGAEA Author Class.
+    A simple helper class to declare &#39;author&#39; objects which are associated as part of the metadata of a given PANGAEA dataset object
+    
+    Parameters
+    ----------
+    lastname : str
+        The author&#39;s first name
+    firstname : str
+        The authors&#39;s last name
+    ORCID : str
+        The unique ORCID identifier assigned by orcid.org
+    
+    Attributes
+    ----------
+    lastname : str
+        The author&#39;s first name
+    firstname : str
+        The authors&#39;s last name
+    fullname : str
+        Combination of lastname, firstname. This attribute is created by the constructor
+    ORCID : str
+        The unique ORCID identifier assigned by orcid.org
+    &#34;&#34;&#34;
+    def __init__(self,lastname, firstname=None, orcid=None):
+        self.lastname=lastname
+        self.firstname=firstname
+        self.fullname=self.lastname
+        self.ORCID=orcid
+        if firstname!=None and  firstname!=&#39;&#39;:
+            self.fullname+=&#39;, &#39;+self.firstname
+
+class PanEvent:
+    &#34;&#34;&#34; PANGAEA Event Class.
+    An Event can be regarded as a named entity which is defined by the usage of a distinct method or device at a distinct location during a given time interval for scientific purposes.
+    More infos on PANGAEA&#39;s Evenmts can be found here: https://wiki.pangaea.de/wiki/Event
+    
+    Parameters
+    ----------
+    label : str
+        A label which is used to name the event
+    latitude : float
+        The latitude of the event location
+    longitude : float
+        The longitude of the event location
+    elevation : float
+        The elevation (relative to sea level) of the event location
+    datetime : str
+        The date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
+    device : str
+        The device which was used during the event
+        
+    Attributes
+    ----------
+    label : str
+        A label which is used to name the event
+    latitude : float
+        The start latitude of the event location
+    longitude : float
+        The start longitude of the event location
+    latitude2 : float
+        The end latitude of the event location
+    longitude2 : float
+        The end longitude of the event location
+    elevation : float
+        The elevation (relative to sea level) of the event location
+    datetime : str
+        The start date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
+    datetime2 : str
+        The end date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
+    device : str
+        The device which was used during the event
+    basis : str
+        The basis or platform which was used during the event e.g. a ship
+    location : str
+        The location of the event
+    campaign : PanCampaign
+        The campaign during which the event was performed
+    &#34;&#34;&#34;
+    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, location=None, campaign=None):
+        self.label=label
+        if latitude !=None:
+            self.latitude=float(latitude)
+        else:
+            self.latitude=None
+        if longitude !=None:
+            self.longitude=float(longitude)
+        else:
+            self.longitude=None
+        if latitude2 !=None:
+            self.latitude2=float(latitude2)
+        else:
+            self.latitude2=None
+        if longitude2 !=None:
+            self.longitude2=float(longitude2)
+        else:
+            self.longitude2=None
+        if elevation !=None:
+            self.elevation=float(elevation)
+        else:
+            self.elevation=None
+        self.device=device
+        self.basis=basis
+        # -- NEED TO CARE ABOUT datetime2!!!
+        self.datetime=datetime
+        self.datetime2=datetime2
+        self.location=location
+        self.campaign=campaign
+                
+class PanCampaign:
+    &#34;&#34;&#34;PANGAEA Campaign class
+        The campaign during which the event took place, e.g. a ship cruise or observatory deployment
+        
+        name : str
+        The name of the campaign
+    URI : str
+        The campaign URI
+    start : str
+        The start date of the campaign
+    end : str
+        The end date of the campaign
+    startlocation : str
+        The start location of the campaign
+    endlocation : str
+        The end location of the campaign
+    BSHID : str
+        The BSH ID for the campaign
+    expeditionprogram: str
+        URL of the campaign report
+        &#34;&#34;&#34;
+    def __init__(self,name=None, URI=None, start=None, end=None, startlocation=None, endlocation=None, BSHID=None, expeditionprogram=None):
+        
+        self.name=name
+        self.URI=URI
+        self.start=start
+        self.end=end
+        self.startlocation=startlocation
+        self.endlocation=endlocation
+        self.BSHID=BSHID
+        self.expeditionprogram=expeditionprogram
+        
+class PanParam:
+    &#34;&#34;&#34; PANGAEA Parameter
+    Shoud be used to create PANGAEA parameter objects. Parameter is used here to represent &#39;measured variables&#39;
+    
+    Parameters
+    ----------
+    id : int
+        the identifier for the parameter
+    name : str
+        A long name or title used for the parameter
+    shortName : str
+        A short name or label to identify the parameter
+    param_type : str
+        indicates the data type of the parameter (string, numeric, datetime etc..)
+    source : str
+        defines the category or source for a parameter (e.g. geocode, data, event)... very PANGAEA specific ;)
+    unit : str
+        the unit of measurement used with this parameter (e.g. m/s, kg etc..)
+    
+    Attributes
+    ----------
+    id : int
+        the identifier for the parameter
+    name : str
+        A long name or title used for the parameter
+    shortName : str
+        A short name or label to identify the parameter
+    synonym : dict
+        A diconary of synonyms for the parameter whcih e.g. is used by other archives or communities. 
+        The dict key indicates the namespace (possible values currently are CF and OS)
+    type : str
+        indicates the data type of the parameter (string, numeric, datetime etc..)
+    source : str
+        defines the category or source for a parameter (e.g. geocode, data, event)... very PANGAEA specific ;)
+    unit : str
+        the unit of measurement used with this parameter (e.g. m/s, kg etc..)
+    format: str
+        the number format string given by PANGAEA e.g ##.000 which defines the displayed precision of the number
+        
+    
+    
+    &#34;&#34;&#34;
+    def __init__(self, id, name, shortName, param_type, source, unit=None, format=None):
+        self.id=id
+        self.name=name
+        self.shortName=shortName
+        # Synonym namespace dict predefined keys are CF: CF variables (), OS:OceanSites, SD:SeaDataNet abbreviations (TEMP, PSAL etc..)
+        ns=(&#39;CF&#39;,&#39;OS&#39;,&#39;SD&#39;)
+        self.synonym=dict.fromkeys(ns)
+        self.type=param_type
+        self.source=source
+        self.unit=unit
+        self.format=format
+
+    def addSynonym(self,ns, name, uri=None, id=None, unit=None):
+        &#34;&#34;&#34;
+        Creates a new synonym for a parameter which is valid within the given name space. Synonyms are stored in the synonym attribute which is a dictionary
+        
+        Parameters
+        ----------
+        name : str
+            the name of the synonym
+        id : str
+            the internal ID of the term used at its auhority ontology
+        uri : str
+            the URI (ideally actionable) leading to its auhority ontology entry/web page
+        ns : str
+            the namespace indicator for the sysnonym
+        unit : str
+            in case another unit expression is used for the synonym parameter within its namespace
+        &#34;&#34;&#34;
+        self.synonym[ns]={&#39;name&#39;:name,&#39;id&#39;:id, &#39;uri&#39;:uri, &#39;unit&#39;:unit}
+    
+class PanDataSet:
+    &#34;&#34;&#34; PANGAEA DataSet
+    The PANGAEA PanDataSet class enables the creation of objects which hold the necessary information, including data as well as metadata, to analyse a given PANGAEA dataset.
+    
+    Parameters
+    ----------
+    id : str
+        The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
+    deleteFlag : str
+        in case quality flags are avialable, this parameter defines a flag for which data should not be included in the data dataFrame.
+        Possible values are listed here: https://wiki.pangaea.de/wiki/Quality_flag
+    addQC : boolean
+        adds a QC column for each parameter which contains QC flags
+    enable_cache : boolean
+        If set to True, PanDataSet objects are cached as pickle files on the local home directory within a directory called &#39;pangaeapy_cache&#39; in order to avoid unnecessary downloads.
+    include_data : boolean
+        determines if data table is downloaded and added to the self.data dataframe. If you are interested in metadata only set this to False
+        
+    Attributes
+    ----------
+    id : str
+        The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
+    uri : str
+        The PANGAEA DOI
+    title : str
+        The title of the dataset
+    year : int
+        The publication year of the dataset
+    authors : list of PanAuthor
+        a list containing the PanAuthot objects (author info) of the dataset
+    citation : str
+        the full citation of the dataset including e.g. author, year, title etc..
+    params : list of PanParam
+        a list of all PanParam objects (the parameters) used in this dataset    
+    events : list of PanEvent
+        a list of all PanEvent objects (the events) used in this dataset
+    projects : list of PanProject
+        a list containing the PanProjects objects referenced by this dataset
+    mintimeextent : str
+        a string containing the min time of data set extent
+    maxtimeextent : str
+        a string containing the max time of data set extent
+    data : pandas.DataFrame
+        a pandas dataframe holding all the data
+    loginstatus : str
+        a label which indicates if the data set is protected or not default value: &#39;unrestricted&#39;            
+    isParent : boolean
+        indicates if this dataset is a parent data set within a collection of child data sets
+    children : list
+        a list of DOIs of all child data sets in case the data set is a parent data set
+    &#34;&#34;&#34;
+    def __init__(self, id=None,paramlist=None, deleteFlag=&#39;&#39;, addQC=False, enable_cache=False, include_data=True):
+        ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
+        self.setID(id)
+        self.ns= {&#39;md&#39;:&#39;http://www.pangaea.de/MetaData&#39;}        
+        # Mapping should be moved to e.g netCDF class/module??
+        #moddir = os.path.dirname(os.path.abspath(__file__))
+        #self.CFmapping=pd.read_csv(moddir+&#39;\\PANGAEA_CF_mapping.txt&#39;,delimiter=&#39;\t&#39;,index_col=&#39;ID&#39;)
+        self.cache=enable_cache
+        self.uri=&#39;&#39; #the doi
+        self.isParent=False
+        self.params=dict()
+        self.defaultparams=[&#39;Latitude&#39;,&#39;Longitude&#39;,&#39;Event&#39;,&#39;Elevation&#39;,&#39;Date/Time&#39;]
+        self.paramlist=paramlist
+        self.paramlist_index=[]
+        self.events=[]
+        self.projects=[]
+        self.licenses=[]
+        #allowed geocodes for netcdf generation which are used as xarray dimensions not needed in the moment
+        self._geocodes={1599:&#39;Date_Time&#39;,1600:&#39;Latitude&#39;,1601:&#39;Longitude&#39;,1619:&#39;Depth water&#39;}
+        self.data =pd.DataFrame()
+        self.title=None
+        self.citation=None
+        self.year=None
+        self.date=None
+        self.mintimeextent=None
+        self.maxtimeextent=None
+        self.authors=[]
+        self.error=None
+        self.loginstatus=&#39;unrestricted&#39;;
+        self.allowNetCDF=True        
+        self.eventInMatrix=False
+        self.deleteFlag=deleteFlag
+        self.children=[]
+        self.include_data=include_data
+        if self.id != None:
+            gotData=False
+            if self.cache==True:
+                print(&#39;Caching activated..trying to load data and metadata from cache&#39;)
+                gotData=self.from_pickle()
+            if not gotData:        
+                #print(&#39;trying to load data and metadata from PANGAEA&#39;)
+                self.setMetadata()
+                self.defaultparams=[s for s in self.defaultparams if s in self.params.keys()]            
+                if self.loginstatus==&#39;unrestricted&#39; and self.isParent!=True:
+                    self.setData(addQC=addQC)
+                    if self.paramlist!=None:
+                        if  len(self.paramlist)!=len(self.paramlist_index):
+                            print(&#39;PROBLEM: &#39;+self.error)
+                    if self.cache==True:
+                       self.to_pickle() 
+                else:
+                    print(&#39;PROBLEM: &#39;+self.error)
+                
+                
+    def from_pickle(self, cachedir=&#39;&#39;):
+        &#34;&#34;&#34;
+        Reads a PanDataSet object from a pickle file
+        
+        Parameters
+        ----------
+        cachedir : str
+            the name of the directory
+        &#34;&#34;&#34;
+        home = os.path.expanduser(&#34;~&#34;)
+        ret=False
+        if cachedir==&#39;&#39;:
+            cachedir=home+&#39;/&#39;+&#39;pangaeapy_cache&#39;
+
+        if os.path.exists(cachedir+&#39;/&#39;+str(self.id)+&#39;_data.pik&#39;):
+            try:
+                f = open(cachedir+&#39;/&#39;+str(self.id)+&#39;_data.pik&#39;, &#39;rb&#39;)
+                tmp_dict = pickle.load(f)
+                f.close()         
+                self.__dict__.update(tmp_dict)
+                ret=True
+            except:
+                ret=False
+            
+            
+        else:
+            ret=False
+        return ret
+                
+    def to_pickle(self,cachedir=&#39;&#39;):
+        &#34;&#34;&#34;
+        Writes a PanDataSet object to a pickle file
+        
+        Parameters
+        ----------
+        cachedir : str
+            the name of the directory
+        &#34;&#34;&#34;
+        home = os.path.expanduser(&#34;~&#34;)
+        if cachedir==&#39;&#39;:
+            cachedir=home+&#39;/&#39;+&#39;pangaeapy_cache&#39;
+        if not os.path.exists(cachedir):
+            os.makedirs(cachedir)
+        f = open(cachedir+&#39;/&#39;+str(self.id)+&#39;_data.pik&#39;, &#39;wb&#39;)
+        pickle.dump(self.__dict__, f, 2)
+        f.close()
+        
+    
+    def setID (self, id):
+        &#34;&#34;&#34;
+        Initialize the ID of a data set in case it was not defined in the constructur
+        Parameters
+        ----------
+        id : str
+            The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
+        &#34;&#34;&#34;
+        if type(id) is str and id.startswith(&#39;10.1594/PANGAEA&#39;):
+            self.id = id[16:]
+        elif type(id) is str and id.startswith(&#39;doi:10.1594/PANGAEA&#39;):
+            #print(id[20:])
+            self.id = id[20:]
+        else:
+            self.id = id
+    
+            
+    def _getID(self,panparidstr):
+        panparidstr=panparidstr[panparidstr.rfind(&#39;.&#39;)+1:]
+        panparId=re.match(r&#34;([a-z]+)([0-9]+)&#34;,panparidstr)
+        if panparId:
+            return panparId.group(2)
+        else:
+            return False
+        
+    
+    def _setEvents(self, panXMLEvents):
+        &#34;&#34;&#34;
+        Initializes the list of Events from a metadata XML file for a given pangaea dataset. 
+        &#34;&#34;&#34;
+        for event in panXMLEvents:
+            eventElevation= None
+            eventDevice=None
+            eventBasis=None             
+            eventLocation=None
+            eventDateTime=None
+            eventDateTime2=None
+            eventLatitude=None
+            eventLongitude=None
+            eventLatitude2=None
+            eventLongitude2=None
+            campaign_URI=None
+            if event.find(&#39;md:elevation&#39;,self.ns)!=None:                
+                eventElevation=event.find(&#39;md:elevation&#39;,self.ns).text
+            if event.find(&#39;md:dateTime&#39;,self.ns)!=None:
+                eventDateTime= event.find(&#39;md:dateTime&#39;,self.ns).text
+            if event.find(&#39;md:dateTime2&#39;,self.ns)!=None:
+                eventDateTime2= event.find(&#39;md:dateTime2&#39;,self.ns).text
+            if event.find(&#39;md:longitude&#39;,self.ns)!=None:
+                eventLongitude= event.find(&#39;md:longitude&#39;,self.ns).text
+            if event.find(&#39;md:latitude&#39;,self.ns)!=None:
+                eventLatitude= event.find(&#39;md:latitude&#39;,self.ns).text
+            if event.find(&#39;md:longitude2&#39;,self.ns)!=None:
+                eventLongitude2= event.find(&#39;md:longitude2&#39;,self.ns).text
+            if event.find(&#39;md:latitude2&#39;,self.ns)!=None:
+                eventLatitude2= event.find(&#39;md:latitude2&#39;,self.ns).text
+            if event.find(&#39;md:label&#39;,self.ns)!=None:
+                eventLabel= event.find(&#39;md:label&#39;,self.ns).text
+            if event.find(&#39;md:location/md:name&#39;,self.ns)!=None:
+                eventLocation= event.find(&#39;md:location/md:name&#39;,self.ns).text
+            if event.find(&#39;md:basis/md:name&#39;,self.ns)!=None:
+                eventBasis= event.find(&#39;md:basis/md:name&#39;,self.ns).text
+            if event.find(&#39;md:method/md:name&#39;,self.ns)!=None:
+                eventDevice= event.find(&#39;md:method/md:name&#39;,self.ns).text
+            if event.find(&#34;md:campaign&#34;, self.ns)!=None:
+                campaign=event.find(&#34;md:campaign&#34;, self.ns)
+                if campaign.find(&#39;md:name&#39;,self.ns)!=None:
+                    campaign_name= campaign.find(&#39;md:name&#39;,self.ns).text
+                if campaign.find(&#39;md:URI&#39;,self.ns)!=None:
+                    campaign_URI= campaign.find(&#39;md:URI&#39;,self.ns).text
+                if campaign.find(&#39;md:start&#39;,self.ns)!=None:
+                    campaign_start= campaign.find(&#39;md:start&#39;,self.ns).text
+                else:
+                    campaign_start=None
+                if campaign.find(&#39;md:end&#39;,self.ns)!=None:
+                    campaign_end= campaign.find(&#39;md:end&#39;,self.ns).text
+                else:
+                    campaign_end=None
+                if campaign.find(&#39;md:attribute[@name=&#34;Start location&#34;]&#39;,self.ns)!=None:
+                    startlocation= campaign.find(&#39;md:attribute[@name=&#34;Start location&#34;]&#39;,self.ns).text
+                else:
+                    startlocation=None
+                if campaign.find(&#39;md:attribute[@name=&#34;End location&#34;]&#39;,self.ns)!=None:
+                    endlocation= campaign.find(&#39;md:attribute[@name=&#34;End location&#34;]&#39;,self.ns).text
+                else:
+                    endlocation= None
+                if campaign.find(&#39;md:attribute[@name=&#34;BSH ID&#34;]&#39;,self.ns)!=None:
+                    BSHID= campaign.find(&#39;md:attribute[@name=&#34;BSH ID&#34;]&#39;,self.ns).text
+                else:
+                    BSHID=None
+                if campaign.find(&#39;md:attribute[@name=&#34;Expedition Program&#34;]&#39;,self.ns)!=None:
+                    expeditionprogram= campaign.find(&#39;md:attribute[@name=&#34;Expedition Program&#34;]&#39;,self.ns).text
+                else:
+                    expeditionprogram=None
+                eventCampaign=PanCampaign(campaign_name,campaign_URI,campaign_start,campaign_end,startlocation,endlocation,BSHID,expeditionprogram)
+            else:
+                eventCampaign=None
+
+            self.events.append(PanEvent(eventLabel, 
+                                        eventLatitude, 
+                                        eventLongitude,
+                                        eventLatitude2,
+                                        eventLongitude2,
+                                        eventElevation,
+                                        eventDateTime,
+                                        eventDateTime2,
+                                        eventDevice,
+                                        eventBasis,                                                                     
+                                        eventLocation,
+                                        eventCampaign
+                                        ))
+
+    def _setParameters(self, panXMLMatrixColumn):
+        &#34;&#34;&#34;
+        Initializes the list of parameter objects from the metadata XML info
+        &#34;&#34;&#34;
+        coln=dict()
+        if panXMLMatrixColumn!=None:
+            for matrix in panXMLMatrixColumn:  
+                panparCFName=None
+                paramstr=matrix.find(&#34;md:parameter&#34;, self.ns)
+                panparID=int(self._getID(str(paramstr.get(&#39;id&#39;))))  
+
+                panparShortName=&#39;&#39;;
+                if(paramstr.find(&#39;md:shortName&#39;,self.ns) != None):
+                    panparShortName=paramstr.find(&#39;md:shortName&#39;,self.ns).text
+                    #Rename duplicate column headers
+                    if panparShortName in coln:
+                        coln[panparShortName]+=1
+                        panparShortName=panparShortName+&#39;_&#39;+str(coln[panparShortName])
+                    else:
+                        coln[panparShortName]=1
+                panparType=matrix.get(&#39;type&#39;)
+                panparUnit=None
+                if(paramstr.find(&#39;md:unit&#39;,self.ns)!=None):
+                    panparUnit=paramstr.find(&#39;md:unit&#39;,self.ns).text 
+                panparFormat=matrix.get(&#39;format&#39;)
+                if panparShortName==&#39;Event&#39;:
+                    self.eventInMatrix=True
+                #if panparID in self.CFmapping.index:
+                #    panparCFName=self.CFmapping.at[panparID,&#39;STDNAME&#39;]
+                self.params[panparShortName]=PanParam(panparID,paramstr.find(&#39;md:name&#39;,self.ns).text,panparShortName,panparType,matrix.get(&#39;source&#39;),panparUnit,panparFormat)
+                if panparType==&#39;geocode&#39;:
+                    try:
+                        panGeocode[panparShortName]=0
+                    except:
+                        self.allowNetCDF=False
+                        self.error=&#39;Data set contains duplicate Geocodes&#39;
+                        print(self.error)
+                        
+    def _getRnd(self,pformat):
+        &#34;&#34;&#34;
+        Helper function to get the rounding factor based on the parameter.format information
+        &#34;&#34;&#34;
+        print(pformat)
+        d=0
+        if pformat is not None:
+            m = re.search(&#39;\.[0]+$&#39;, pformat)
+            print(m)
+            if m!=None:
+                d=m.group(0).count(&#39;0&#39;)
+        return d
+        
+    def getEventsAsFrame(self):
+        &#34;&#34;&#34;
+        For more convenient handlicg of event info, this method returns a dataframe containing all events with their attributes as columns
+        &#34;&#34;&#34;
+        df=pd.DataFrame()
+        try:
+            df = pd.DataFrame([ev.__dict__ for ev in self.events ])
+        except:
+            pass
+        return df
+        
+    def setData(self, addEventColumns=True, addQC=False):
+        &#34;&#34;&#34;
+        This method populates the data DataFrame with data from a PANGAEA dataset.
+        In addition to the data given in the tabular ASCII file delivered by PANGAEA.
+        
+        
+        Parameters:
+        -----------
+        addEventColumns : boolean
+            In case Latitude, Longititude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets, 
+            the setData could add these columns to the dataframe using the information given in the metadata for Event. Default is &#39;True&#39;
+        addQC : boolean
+            If this is set to True, pangaeapy adds a QC column in which the quality flags are separated. Each new column is named after the orgininal column plus a &#34;_qc&#34; suffix.
+
+        &#34;&#34;&#34;
+
+        # converting list of parameters` short names (from user input) to the list of parameters` indexes
+        # the list of parameters` indexes is an argument for pd.read_csv
+        if self.paramlist!=None:
+            self.paramlist+=self.defaultparams
+            for parameter in self.paramlist:
+                iter=0
+                for shortName in self.params.keys():
+                    if parameter==shortName:
+                        self.paramlist_index.append(iter)
+                    iter+=1
+            if len(self.paramlist)!=len(self.paramlist_index):
+                self.error=&#34;Error entering parameters`short names!&#34;
+        else:
+            self.paramlist_index=None
+        if self.include_data==True:
+            dataURL=&#34;https://doi.pangaea.de/10.1594/PANGAEA.&#34;+str(self.id)+&#34;?format=textfile&#34;
+            panDataTxt= requests.get(dataURL).text       
+            panData = re.sub(r&#34;/\*(.*)\*/&#34;, &#34;&#34;, panDataTxt, 1, re.DOTALL).strip() 
+            #Read in PANGAEA Data    
+            self.data = pd.read_csv(io.StringIO(panData), index_col=False ,error_bad_lines=False,sep=u&#39;\t&#39;,usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
+            # add geocode/dimension columns from Event
+    
+            if addEventColumns==True and self.topotype!=&#34;not specified&#34;:          
+                if len(self.events)==1:
+                    if &#39;Event&#39; not in self.data.columns:
+                        self.data[&#39;Event&#39;]=self.events[0].label
+                        self.params[&#39;Event&#39;]=PanParam(0,&#39;Event&#39;,&#39;Event&#39;,&#39;string&#39;,&#39;data&#39;,None)
+                if len(self.events)&gt;=1:              
+                    addEvLat=addEvLon=addEvEle=addEvDat=False
+                    if &#39;Event&#39; in self.data.columns:
+                        if &#39;Latitude&#39; not in self.data.columns:
+                            addEvLat=True
+                            self.data[&#39;Latitude&#39;]=np.nan
+                            self.params[&#39;Latitude&#39;]=PanParam(1600,&#39;Latitude&#39;,&#39;Latitude&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;deg&#39;)
+                        if &#39;Longitude&#39; not in self.data.columns: 
+                            addEvLon=True
+                            self.data[&#39;Longitude&#39;]=np.nan
+                            self.params[&#39;Longitude&#39;]=PanParam(1601,&#39;Longitude&#39;,&#39;Longitude&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;deg&#39;)
+                        if &#39;Elevation&#39; not in self.data.columns:  
+                            addEvEle=True
+                            self.data[&#39;Elevation&#39;]=np.nan
+                            self.params[&#39;Elevation&#39;]=PanParam(8128,&#39;Elevation&#39;,&#39;Elevation&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;m&#39;)
+                        if &#39;Date/Time&#39; not in self.data.columns:
+                            self.data[&#39;Date/Time&#39;]=np.nan
+                            self.params[&#39;Date/Time&#39;]=PanParam(1599,&#39;Date/Time&#39;,&#39;Date/Time&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;&#39;)
+                            
+                        for iev,pevent in enumerate(self.events): 
+                            if pevent.latitude is not None and addEvLat==True:
+                                self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Latitude&#39;].isnull()),[&#39;Latitude&#39;]]=self.events[iev].latitude
+                            if pevent.longitude is not None and addEvLon:
+                                self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Longitude&#39;].isnull()),[&#39;Longitude&#39;]]=self.events[iev].longitude
+                            if pevent.elevation is not None and addEvEle:
+                                self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Elevation&#39;].isnull()),[&#39;Elevation&#39;]]=self.events[iev].elevation
+                            if pevent.datetime is not None and addEvDat:
+                                self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Date/Time&#39;].isnull()),[&#39;Date/Time&#39;]]=self.events[iev].datetime
+    
+            # -- delete values with given QC flags
+            if self.deleteFlag!=&#39;&#39;:
+                if self.deleteFlag==&#39;?&#39; or self.deleteFlag==&#39;*&#39;:
+                    self.deleteFlag=&#34;\\&#34;+self.deleteFlag
+                self.data.replace(regex=r&#39;^&#39;+self.deleteFlag+&#39;{1}.*&#39;,value=&#39;&#39;,inplace=True)      
+            # --- Replace Quality Flags for numeric columns   
+            if addQC==False:
+                self.data.replace(regex=r&#39;^[\?/\*#\&lt;\&gt;]&#39;,value=&#39;&#39;,inplace=True)
+            # --- Delete empty columns
+            self.data=self.data.dropna(axis=1, how=&#39;all&#39;)
+            for paramcolumn in list(self.params.keys()):
+                if paramcolumn not in self.data.columns:
+                    del self.params[paramcolumn]
+            # --- add QC columns
+                elif addQC==True:
+                    if self.params[paramcolumn].type==&#39;numeric&#39;:
+                        self.data[[paramcolumn+&#39;_qc&#39;,paramcolumn]]=self.data[paramcolumn].astype(str).str.extract(r&#39;(^[\*/\?])?(.+)&#39;)
+            # --- Adjust Column Data Types
+            self.data = self.data.apply(pd.to_numeric, errors=&#39;ignore&#39;)
+            if &#39;Date/Time&#39; in self.data.columns:
+                self.data[&#39;Date/Time&#39;] = pd.to_datetime(self.data[&#39;Date/Time&#39;], format=&#39;%Y/%m/%dT%H:%M:%S&#39;)
+        
+    def _setCitation(self):
+        citationURL=&#34;https://doi.pangaea.de/10.1594/PANGAEA.&#34;+str(self.id)+&#34;?format=citation_text&amp;charset=UTF-8&#34;
+        r=requests.get(citationURL)
+        if r.status_code!=404:
+            self.citation=r.text
+        
+    def setMetadata(self):
+        &#34;&#34;&#34;
+        The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
+        
+        &#34;&#34;&#34;
+        self._setCitation()
+        metaDataURL=&#34;https://doi.pangaea.de/10.1594/PANGAEA.&#34;+str(self.id)+&#34;?format=metainfo_xml&#34;
+        #metaDataURL=&#34;https://ws.pangaea.de/es/pangaea/panmd/&#34;+str(self.id)
+        r=requests.get(metaDataURL)
+        if r.status_code!=404:
+            try:
+                r.raise_for_status()
+                xmlText=r.text
+                xml = ET.fromstring(xmlText)
+                self.loginstatus=xml.find(&#39;./md:technicalInfo/md:entry[@key=&#34;loginOption&#34;]&#39;,self.ns).get(&#39;value&#39;)
+                if self.loginstatus!=&#39;unrestricted&#39;:
+                    self.error=&#39;Data set is protected&#39;                
+                hierarchyLevel=xml.find(&#39;./md:technicalInfo/md:entry[@key=&#34;hierarchyLevel&#34;]&#39;,self.ns)
+                if hierarchyLevel!=None:
+                    if hierarchyLevel.get(&#39;value&#39;)==&#39;parent&#39;:
+                        self.error=&#39;Data set is of type parent, please select one of its child datasets&#39;
+                        self.isParent=True
+                        self._setChildren()
+                self.title=xml.find(&#34;./md:citation/md:title&#34;, self.ns).text
+                self.year=xml.find(&#34;./md:citation/md:year&#34;, self.ns).text
+                self.date=xml.find(&#34;./md:citation/md:dateTime&#34;, self.ns).text
+                self.doi=self.uri=xml.find(&#34;./md:citation/md:URI&#34;, self.ns).text
+                #extent
+                if xml.find(&#34;./md:extent/md:temporal/md:minDateTime&#34;, self.ns)!=None:
+                    self.mintimeextent=xml.find(&#34;./md:extent/md:temporal/md:minDateTime&#34;, self.ns).text
+                if xml.find(&#34;./md:extent/md:temporal/md:maxDateTime&#34;, self.ns)!=None:
+                    self.maxtimeextent=xml.find(&#34;./md:extent/md:temporal/md:maxDateTime&#34;, self.ns).text
+                
+                topotypeEl=xml.find(&#34;./md:extent/md:topoType&#34;, self.ns)
+                if topotypeEl!=None:
+                    self.topotype=topotypeEl.text
+                else:
+                    self.topotype=None
+                for author in xml.findall(&#34;./md:citation/md:author&#34;, self.ns):
+                    lastname=None
+                    firstname=None
+                    orcid=None
+                    if author.find(&#34;md:lastName&#34;, self.ns)!=None:
+                        lastname=author.find(&#34;md:lastName&#34;, self.ns).text
+                    if author.find(&#34;md:firstName&#34;, self.ns)!=None:
+                        firstname=author.find(&#34;md:firstName&#34;, self.ns).text
+                    if author.find(&#34;md:orcid&#34;, self.ns)!=None:
+                        orcid=author.find(&#34;md:orcid&#34;, self.ns).text
+                    self.authors.append(PanAuthor(lastname, firstname,orcid))
+                for project in xml.findall(&#34;./md:project&#34;, self.ns):
+                    label=None
+                    name=None
+                    URI=None
+                    awardURI=None
+                    if project.find(&#34;md:label&#34;, self.ns)!=None:
+                        label=project.find(&#34;md:label&#34;, self.ns)
+                    if project.find(&#34;md:name&#34;, self.ns)!=None:
+                        name=project.find(&#34;md:name&#34;, self.ns)
+                    if project.find(&#34;md:URI&#34;, self.ns)!=None:
+                        URI=project.find(&#34;md:URI&#34;, self.ns)
+                    if project.find(&#34;md:award/md:URI&#34;, self.ns)!=None:
+                        awardURI=project.find(&#34;md:award/md:URI&#34;, self.ns)
+                    self.projects.append(PanProject(label, name, URI, awardURI))
+                for license in xml.findall(&#34;./md:license&#34;,self.ns):
+                    label=None
+                    name=None
+                    URI=None
+                    if license.find(&#34;md:label&#34;, self.ns)!=None:
+                        label=license.find(&#34;md:label&#34;, self.ns)
+                    if license.find(&#34;md:name&#34;, self.ns)!=None:
+                        name=license.find(&#34;md:name&#34;, self.ns)
+                    if license.find(&#34;md:URI&#34;, self.ns)!=None:
+                        URI=license.find(&#34;md:URI&#34;, self.ns)
+                    self.licenses.append(PanLicense(label, name, URI))
+                panXMLMatrixColumn=xml.findall(&#34;./md:matrixColumn&#34;, self.ns)
+                self._setParameters(panXMLMatrixColumn)
+                panXMLEvents=xml.findall(&#34;./md:event&#34;, self.ns)
+                self._setEvents(panXMLEvents)
+            except requests.exceptions.HTTPError as e:
+                print(e)
+        else:
+            self.error=&#39;Data set does not exist&#39;
+            print(self.error)
+
+    def _setChildren(self):
+        childqueryURL=&#34;https://www.pangaea.de/advanced/search.php?q=incollection:&#34;+str(self.id)+&#34;&amp;count=1000&#34;
+        r = requests.get(childqueryURL)
+        if r.status_code != 404:
+            s = r.json()
+            for p in s[&#39;results&#39;]: 
+                self.children.append(p[&#39;URI&#39;])
+                #print(p[&#39;URI&#39;])
+            
+    def getGeometry(self):
+        &#34;&#34;&#34;
+        Sometimes the topotype attribute has not been set correctly during the curation process. 
+        This method returns the real geometry (topographic type) of the dataset based on the x,y,z and t information of the data frame content.
+        Still a bit experimental..
+        &#34;&#34;&#34;
+        geotype=0
+        zgroup=[&#39;Latitude&#39;,&#39;Longitude&#39;]
+        tgroup=[&#39;Latitude&#39;,&#39;Longitude&#39;]
+        locgrp=[&#39;Latitude&#39;,&#39;Longitude&#39;]
+        p=pz=pt=len(self.data.groupby(locgrp))
+        t=z=None
+        
+        if &#39;Date/Time&#39; in self.data.columns:
+            t=&#39;Date/Time&#39;            
+        if &#39;Depth water&#39; in self.data.columns:
+            z=&#39;Depth water&#39;
+        elif &#39;Depth&#39; in self.data.columns:
+            z=&#39;Depth&#39;
+        elif &#39;Depth ice/snow&#39; in self.data.columns:
+            z=&#39;Depth ice/snow&#39; 
+        elif &#39;Depth soil&#39; in self.data.columns:
+            z=&#39;Depth soil&#39;
+
+        if t!=None:
+            tgroup.append(t)
+            pt=len(self.data.groupby(tgroup))
+        if z!=None:
+            zgroup.append(z)
+            pz=len(self.data.groupby(zgroup))             
+        
+        if p==1:
+            if pt==1 and pz==1:
+                geotype=&#39;point&#39;
+            elif pt&gt;=1:
+                if pz==1 or len(self.events)==1:
+                    geotype=&#39;timeSeries&#39;
+                else: 
+                    geotype=&#39;timeSeriesStack&#39;
+            else:
+                geotype=&#39;profile&#39;
+        else:
+            if p==pz:
+                geotype=&#39;trajectory&#39;
+            elif pt&gt;pz:
+                geotype=&#39;timeSeriesProfile&#39;
+            else:
+                geotype=&#39;trajectoryProfile&#39;
+        return geotype</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="pangaeapy.pandataset.PanAuthor"><code class="flex name class">
+<span>class <span class="ident">PanAuthor</span></span>
+<span>(</span><span>lastname, firstname=None, orcid=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>PANGAEA Author Class.
+A simple helper class to declare 'author' objects which are associated as part of the metadata of a given PANGAEA dataset object</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>lastname</code></strong> :&ensp;<code>str</code></dt>
+<dd>The author's first name</dd>
+<dt><strong><code>firstname</code></strong> :&ensp;<code>str</code></dt>
+<dd>The authors's last name</dd>
+<dt><strong><code>ORCID</code></strong> :&ensp;<code>str</code></dt>
+<dd>The unique ORCID identifier assigned by orcid.org</dd>
+</dl>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>lastname</code></strong> :&ensp;<code>str</code></dt>
+<dd>The author's first name</dd>
+<dt><strong><code>firstname</code></strong> :&ensp;<code>str</code></dt>
+<dd>The authors's last name</dd>
+<dt><strong><code>fullname</code></strong> :&ensp;<code>str</code></dt>
+<dd>Combination of lastname, firstname. This attribute is created by the constructor</dd>
+<dt><strong><code>ORCID</code></strong> :&ensp;<code>str</code></dt>
+<dd>The unique ORCID identifier assigned by orcid.org</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class PanAuthor:
+    &#34;&#34;&#34;PANGAEA Author Class.
+    A simple helper class to declare &#39;author&#39; objects which are associated as part of the metadata of a given PANGAEA dataset object
+    
+    Parameters
+    ----------
+    lastname : str
+        The author&#39;s first name
+    firstname : str
+        The authors&#39;s last name
+    ORCID : str
+        The unique ORCID identifier assigned by orcid.org
+    
+    Attributes
+    ----------
+    lastname : str
+        The author&#39;s first name
+    firstname : str
+        The authors&#39;s last name
+    fullname : str
+        Combination of lastname, firstname. This attribute is created by the constructor
+    ORCID : str
+        The unique ORCID identifier assigned by orcid.org
+    &#34;&#34;&#34;
+    def __init__(self,lastname, firstname=None, orcid=None):
+        self.lastname=lastname
+        self.firstname=firstname
+        self.fullname=self.lastname
+        self.ORCID=orcid
+        if firstname!=None and  firstname!=&#39;&#39;:
+            self.fullname+=&#39;, &#39;+self.firstname</code></pre>
+</details>
+</dd>
+<dt id="pangaeapy.pandataset.PanCampaign"><code class="flex name class">
+<span>class <span class="ident">PanCampaign</span></span>
+<span>(</span><span>name=None, URI=None, start=None, end=None, startlocation=None, endlocation=None, BSHID=None, expeditionprogram=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>PANGAEA Campaign class
+The campaign during which the event took place, e.g. a ship cruise or observatory deployment</p>
+<pre><code>name : str
+The name of the campaign
+</code></pre>
+<p>URI : str
+The campaign URI
+start : str
+The start date of the campaign
+end : str
+The end date of the campaign
+startlocation : str
+The start location of the campaign
+endlocation : str
+The end location of the campaign
+BSHID : str
+The BSH ID for the campaign
+expeditionprogram: str
+URL of the campaign report</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class PanCampaign:
+    &#34;&#34;&#34;PANGAEA Campaign class
+        The campaign during which the event took place, e.g. a ship cruise or observatory deployment
+        
+        name : str
+        The name of the campaign
+    URI : str
+        The campaign URI
+    start : str
+        The start date of the campaign
+    end : str
+        The end date of the campaign
+    startlocation : str
+        The start location of the campaign
+    endlocation : str
+        The end location of the campaign
+    BSHID : str
+        The BSH ID for the campaign
+    expeditionprogram: str
+        URL of the campaign report
+        &#34;&#34;&#34;
+    def __init__(self,name=None, URI=None, start=None, end=None, startlocation=None, endlocation=None, BSHID=None, expeditionprogram=None):
+        
+        self.name=name
+        self.URI=URI
+        self.start=start
+        self.end=end
+        self.startlocation=startlocation
+        self.endlocation=endlocation
+        self.BSHID=BSHID
+        self.expeditionprogram=expeditionprogram</code></pre>
+</details>
+</dd>
+<dt id="pangaeapy.pandataset.PanDataSet"><code class="flex name class">
+<span>class <span class="ident">PanDataSet</span></span>
+<span>(</span><span>id=None, paramlist=None, deleteFlag='', addQC=False, enable_cache=False, include_data=True)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>PANGAEA DataSet
+The PANGAEA PanDataSet class enables the creation of objects which hold the necessary information, including data as well as metadata, to analyse a given PANGAEA dataset.</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>id</code></strong> :&ensp;<code>str</code></dt>
+<dd>The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here</dd>
+<dt><strong><code>deleteFlag</code></strong> :&ensp;<code>str</code></dt>
+<dd>in case quality flags are avialable, this parameter defines a flag for which data should not be included in the data dataFrame.
+Possible values are listed here: <a href="https://wiki.pangaea.de/wiki/Quality_flag">https://wiki.pangaea.de/wiki/Quality_flag</a></dd>
+<dt><strong><code>addQC</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>adds a QC column for each parameter which contains QC flags</dd>
+<dt><strong><code>enable_cache</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>If set to True, PanDataSet objects are cached as pickle files on the local home directory within a directory called 'pangaeapy_cache' in order to avoid unnecessary downloads.</dd>
+<dt><strong><code>include_data</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>determines if data table is downloaded and added to the self.data dataframe. If you are interested in metadata only set this to False</dd>
+</dl>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>id</code></strong> :&ensp;<code>str</code></dt>
+<dd>The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here</dd>
+<dt><strong><code>uri</code></strong> :&ensp;<code>str</code></dt>
+<dd>The PANGAEA DOI</dd>
+<dt><strong><code>title</code></strong> :&ensp;<code>str</code></dt>
+<dd>The title of the dataset</dd>
+<dt><strong><code>year</code></strong> :&ensp;<code>int</code></dt>
+<dd>The publication year of the dataset</dd>
+<dt><strong><code>authors</code></strong> :&ensp;<code>list</code> of <code><a title="pangaeapy.pandataset.PanAuthor" href="#pangaeapy.pandataset.PanAuthor">PanAuthor</a></code></dt>
+<dd>a list containing the PanAuthot objects (author info) of the dataset</dd>
+<dt><strong><code>citation</code></strong> :&ensp;<code>str</code></dt>
+<dd>the full citation of the dataset including e.g. author, year, title etc..</dd>
+<dt><strong><code>params</code></strong> :&ensp;<code>list</code> of <code><a title="pangaeapy.pandataset.PanParam" href="#pangaeapy.pandataset.PanParam">PanParam</a></code></dt>
+<dd>a list of all PanParam objects (the parameters) used in this dataset</dd>
+<dt><strong><code>events</code></strong> :&ensp;<code>list</code> of <code><a title="pangaeapy.pandataset.PanEvent" href="#pangaeapy.pandataset.PanEvent">PanEvent</a></code></dt>
+<dd>a list of all PanEvent objects (the events) used in this dataset</dd>
+<dt><strong><code>projects</code></strong> :&ensp;<code>list</code> of <code><a title="pangaeapy.pandataset.PanProject" href="#pangaeapy.pandataset.PanProject">PanProject</a></code></dt>
+<dd>a list containing the PanProjects objects referenced by this dataset</dd>
+<dt><strong><code>mintimeextent</code></strong> :&ensp;<code>str</code></dt>
+<dd>a string containing the min time of data set extent</dd>
+<dt><strong><code>maxtimeextent</code></strong> :&ensp;<code>str</code></dt>
+<dd>a string containing the max time of data set extent</dd>
+<dt><strong><code>data</code></strong> :&ensp;<code>pandas.DataFrame</code></dt>
+<dd>a pandas dataframe holding all the data</dd>
+<dt><strong><code>loginstatus</code></strong> :&ensp;<code>str</code></dt>
+<dd>a label which indicates if the data set is protected or not default value: 'unrestricted'</dd>
+<dt><strong><code>isParent</code></strong> :&ensp;<code>boolean</code></dt>
+<dd>indicates if this dataset is a parent data set within a collection of child data sets</dd>
+<dt><strong><code>children</code></strong> :&ensp;<code>list</code></dt>
+<dd>a list of DOIs of all child data sets in case the data set is a parent data set</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class PanDataSet:
+    &#34;&#34;&#34; PANGAEA DataSet
+    The PANGAEA PanDataSet class enables the creation of objects which hold the necessary information, including data as well as metadata, to analyse a given PANGAEA dataset.
+    
+    Parameters
+    ----------
+    id : str
+        The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
+    deleteFlag : str
+        in case quality flags are avialable, this parameter defines a flag for which data should not be included in the data dataFrame.
+        Possible values are listed here: https://wiki.pangaea.de/wiki/Quality_flag
+    addQC : boolean
+        adds a QC column for each parameter which contains QC flags
+    enable_cache : boolean
+        If set to True, PanDataSet objects are cached as pickle files on the local home directory within a directory called &#39;pangaeapy_cache&#39; in order to avoid unnecessary downloads.
+    include_data : boolean
+        determines if data table is downloaded and added to the self.data dataframe. If you are interested in metadata only set this to False
+        
+    Attributes
+    ----------
+    id : str
+        The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
+    uri : str
+        The PANGAEA DOI
+    title : str
+        The title of the dataset
+    year : int
+        The publication year of the dataset
+    authors : list of PanAuthor
+        a list containing the PanAuthot objects (author info) of the dataset
+    citation : str
+        the full citation of the dataset including e.g. author, year, title etc..
+    params : list of PanParam
+        a list of all PanParam objects (the parameters) used in this dataset    
+    events : list of PanEvent
+        a list of all PanEvent objects (the events) used in this dataset
+    projects : list of PanProject
+        a list containing the PanProjects objects referenced by this dataset
+    mintimeextent : str
+        a string containing the min time of data set extent
+    maxtimeextent : str
+        a string containing the max time of data set extent
+    data : pandas.DataFrame
+        a pandas dataframe holding all the data
+    loginstatus : str
+        a label which indicates if the data set is protected or not default value: &#39;unrestricted&#39;            
+    isParent : boolean
+        indicates if this dataset is a parent data set within a collection of child data sets
+    children : list
+        a list of DOIs of all child data sets in case the data set is a parent data set
+    &#34;&#34;&#34;
+    def __init__(self, id=None,paramlist=None, deleteFlag=&#39;&#39;, addQC=False, enable_cache=False, include_data=True):
+        ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
+        self.setID(id)
+        self.ns= {&#39;md&#39;:&#39;http://www.pangaea.de/MetaData&#39;}        
+        # Mapping should be moved to e.g netCDF class/module??
+        #moddir = os.path.dirname(os.path.abspath(__file__))
+        #self.CFmapping=pd.read_csv(moddir+&#39;\\PANGAEA_CF_mapping.txt&#39;,delimiter=&#39;\t&#39;,index_col=&#39;ID&#39;)
+        self.cache=enable_cache
+        self.uri=&#39;&#39; #the doi
+        self.isParent=False
+        self.params=dict()
+        self.defaultparams=[&#39;Latitude&#39;,&#39;Longitude&#39;,&#39;Event&#39;,&#39;Elevation&#39;,&#39;Date/Time&#39;]
+        self.paramlist=paramlist
+        self.paramlist_index=[]
+        self.events=[]
+        self.projects=[]
+        self.licenses=[]
+        #allowed geocodes for netcdf generation which are used as xarray dimensions not needed in the moment
+        self._geocodes={1599:&#39;Date_Time&#39;,1600:&#39;Latitude&#39;,1601:&#39;Longitude&#39;,1619:&#39;Depth water&#39;}
+        self.data =pd.DataFrame()
+        self.title=None
+        self.citation=None
+        self.year=None
+        self.date=None
+        self.mintimeextent=None
+        self.maxtimeextent=None
+        self.authors=[]
+        self.error=None
+        self.loginstatus=&#39;unrestricted&#39;;
+        self.allowNetCDF=True        
+        self.eventInMatrix=False
+        self.deleteFlag=deleteFlag
+        self.children=[]
+        self.include_data=include_data
+        if self.id != None:
+            gotData=False
+            if self.cache==True:
+                print(&#39;Caching activated..trying to load data and metadata from cache&#39;)
+                gotData=self.from_pickle()
+            if not gotData:        
+                #print(&#39;trying to load data and metadata from PANGAEA&#39;)
+                self.setMetadata()
+                self.defaultparams=[s for s in self.defaultparams if s in self.params.keys()]            
+                if self.loginstatus==&#39;unrestricted&#39; and self.isParent!=True:
+                    self.setData(addQC=addQC)
+                    if self.paramlist!=None:
+                        if  len(self.paramlist)!=len(self.paramlist_index):
+                            print(&#39;PROBLEM: &#39;+self.error)
+                    if self.cache==True:
+                       self.to_pickle() 
+                else:
+                    print(&#39;PROBLEM: &#39;+self.error)
+                
+                
+    def from_pickle(self, cachedir=&#39;&#39;):
+        &#34;&#34;&#34;
+        Reads a PanDataSet object from a pickle file
+        
+        Parameters
+        ----------
+        cachedir : str
+            the name of the directory
+        &#34;&#34;&#34;
+        home = os.path.expanduser(&#34;~&#34;)
+        ret=False
+        if cachedir==&#39;&#39;:
+            cachedir=home+&#39;/&#39;+&#39;pangaeapy_cache&#39;
+
+        if os.path.exists(cachedir+&#39;/&#39;+str(self.id)+&#39;_data.pik&#39;):
+            try:
+                f = open(cachedir+&#39;/&#39;+str(self.id)+&#39;_data.pik&#39;, &#39;rb&#39;)
+                tmp_dict = pickle.load(f)
+                f.close()         
+                self.__dict__.update(tmp_dict)
+                ret=True
+            except:
+                ret=False
+            
+            
+        else:
+            ret=False
+        return ret
+                
+    def to_pickle(self,cachedir=&#39;&#39;):
+        &#34;&#34;&#34;
+        Writes a PanDataSet object to a pickle file
+        
+        Parameters
+        ----------
+        cachedir : str
+            the name of the directory
+        &#34;&#34;&#34;
+        home = os.path.expanduser(&#34;~&#34;)
+        if cachedir==&#39;&#39;:
+            cachedir=home+&#39;/&#39;+&#39;pangaeapy_cache&#39;
+        if not os.path.exists(cachedir):
+            os.makedirs(cachedir)
+        f = open(cachedir+&#39;/&#39;+str(self.id)+&#39;_data.pik&#39;, &#39;wb&#39;)
+        pickle.dump(self.__dict__, f, 2)
+        f.close()
+        
+    
+    def setID (self, id):
+        &#34;&#34;&#34;
+        Initialize the ID of a data set in case it was not defined in the constructur
+        Parameters
+        ----------
+        id : str
+            The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
+        &#34;&#34;&#34;
+        if type(id) is str and id.startswith(&#39;10.1594/PANGAEA&#39;):
+            self.id = id[16:]
+        elif type(id) is str and id.startswith(&#39;doi:10.1594/PANGAEA&#39;):
+            #print(id[20:])
+            self.id = id[20:]
+        else:
+            self.id = id
+    
+            
+    def _getID(self,panparidstr):
+        panparidstr=panparidstr[panparidstr.rfind(&#39;.&#39;)+1:]
+        panparId=re.match(r&#34;([a-z]+)([0-9]+)&#34;,panparidstr)
+        if panparId:
+            return panparId.group(2)
+        else:
+            return False
+        
+    
+    def _setEvents(self, panXMLEvents):
+        &#34;&#34;&#34;
+        Initializes the list of Events from a metadata XML file for a given pangaea dataset. 
+        &#34;&#34;&#34;
+        for event in panXMLEvents:
+            eventElevation= None
+            eventDevice=None
+            eventBasis=None             
+            eventLocation=None
+            eventDateTime=None
+            eventDateTime2=None
+            eventLatitude=None
+            eventLongitude=None
+            eventLatitude2=None
+            eventLongitude2=None
+            campaign_URI=None
+            if event.find(&#39;md:elevation&#39;,self.ns)!=None:                
+                eventElevation=event.find(&#39;md:elevation&#39;,self.ns).text
+            if event.find(&#39;md:dateTime&#39;,self.ns)!=None:
+                eventDateTime= event.find(&#39;md:dateTime&#39;,self.ns).text
+            if event.find(&#39;md:dateTime2&#39;,self.ns)!=None:
+                eventDateTime2= event.find(&#39;md:dateTime2&#39;,self.ns).text
+            if event.find(&#39;md:longitude&#39;,self.ns)!=None:
+                eventLongitude= event.find(&#39;md:longitude&#39;,self.ns).text
+            if event.find(&#39;md:latitude&#39;,self.ns)!=None:
+                eventLatitude= event.find(&#39;md:latitude&#39;,self.ns).text
+            if event.find(&#39;md:longitude2&#39;,self.ns)!=None:
+                eventLongitude2= event.find(&#39;md:longitude2&#39;,self.ns).text
+            if event.find(&#39;md:latitude2&#39;,self.ns)!=None:
+                eventLatitude2= event.find(&#39;md:latitude2&#39;,self.ns).text
+            if event.find(&#39;md:label&#39;,self.ns)!=None:
+                eventLabel= event.find(&#39;md:label&#39;,self.ns).text
+            if event.find(&#39;md:location/md:name&#39;,self.ns)!=None:
+                eventLocation= event.find(&#39;md:location/md:name&#39;,self.ns).text
+            if event.find(&#39;md:basis/md:name&#39;,self.ns)!=None:
+                eventBasis= event.find(&#39;md:basis/md:name&#39;,self.ns).text
+            if event.find(&#39;md:method/md:name&#39;,self.ns)!=None:
+                eventDevice= event.find(&#39;md:method/md:name&#39;,self.ns).text
+            if event.find(&#34;md:campaign&#34;, self.ns)!=None:
+                campaign=event.find(&#34;md:campaign&#34;, self.ns)
+                if campaign.find(&#39;md:name&#39;,self.ns)!=None:
+                    campaign_name= campaign.find(&#39;md:name&#39;,self.ns).text
+                if campaign.find(&#39;md:URI&#39;,self.ns)!=None:
+                    campaign_URI= campaign.find(&#39;md:URI&#39;,self.ns).text
+                if campaign.find(&#39;md:start&#39;,self.ns)!=None:
+                    campaign_start= campaign.find(&#39;md:start&#39;,self.ns).text
+                else:
+                    campaign_start=None
+                if campaign.find(&#39;md:end&#39;,self.ns)!=None:
+                    campaign_end= campaign.find(&#39;md:end&#39;,self.ns).text
+                else:
+                    campaign_end=None
+                if campaign.find(&#39;md:attribute[@name=&#34;Start location&#34;]&#39;,self.ns)!=None:
+                    startlocation= campaign.find(&#39;md:attribute[@name=&#34;Start location&#34;]&#39;,self.ns).text
+                else:
+                    startlocation=None
+                if campaign.find(&#39;md:attribute[@name=&#34;End location&#34;]&#39;,self.ns)!=None:
+                    endlocation= campaign.find(&#39;md:attribute[@name=&#34;End location&#34;]&#39;,self.ns).text
+                else:
+                    endlocation= None
+                if campaign.find(&#39;md:attribute[@name=&#34;BSH ID&#34;]&#39;,self.ns)!=None:
+                    BSHID= campaign.find(&#39;md:attribute[@name=&#34;BSH ID&#34;]&#39;,self.ns).text
+                else:
+                    BSHID=None
+                if campaign.find(&#39;md:attribute[@name=&#34;Expedition Program&#34;]&#39;,self.ns)!=None:
+                    expeditionprogram= campaign.find(&#39;md:attribute[@name=&#34;Expedition Program&#34;]&#39;,self.ns).text
+                else:
+                    expeditionprogram=None
+                eventCampaign=PanCampaign(campaign_name,campaign_URI,campaign_start,campaign_end,startlocation,endlocation,BSHID,expeditionprogram)
+            else:
+                eventCampaign=None
+
+            self.events.append(PanEvent(eventLabel, 
+                                        eventLatitude, 
+                                        eventLongitude,
+                                        eventLatitude2,
+                                        eventLongitude2,
+                                        eventElevation,
+                                        eventDateTime,
+                                        eventDateTime2,
+                                        eventDevice,
+                                        eventBasis,                                                                     
+                                        eventLocation,
+                                        eventCampaign
+                                        ))
+
+    def _setParameters(self, panXMLMatrixColumn):
+        &#34;&#34;&#34;
+        Initializes the list of parameter objects from the metadata XML info
+        &#34;&#34;&#34;
+        coln=dict()
+        if panXMLMatrixColumn!=None:
+            for matrix in panXMLMatrixColumn:  
+                panparCFName=None
+                paramstr=matrix.find(&#34;md:parameter&#34;, self.ns)
+                panparID=int(self._getID(str(paramstr.get(&#39;id&#39;))))  
+
+                panparShortName=&#39;&#39;;
+                if(paramstr.find(&#39;md:shortName&#39;,self.ns) != None):
+                    panparShortName=paramstr.find(&#39;md:shortName&#39;,self.ns).text
+                    #Rename duplicate column headers
+                    if panparShortName in coln:
+                        coln[panparShortName]+=1
+                        panparShortName=panparShortName+&#39;_&#39;+str(coln[panparShortName])
+                    else:
+                        coln[panparShortName]=1
+                panparType=matrix.get(&#39;type&#39;)
+                panparUnit=None
+                if(paramstr.find(&#39;md:unit&#39;,self.ns)!=None):
+                    panparUnit=paramstr.find(&#39;md:unit&#39;,self.ns).text 
+                panparFormat=matrix.get(&#39;format&#39;)
+                if panparShortName==&#39;Event&#39;:
+                    self.eventInMatrix=True
+                #if panparID in self.CFmapping.index:
+                #    panparCFName=self.CFmapping.at[panparID,&#39;STDNAME&#39;]
+                self.params[panparShortName]=PanParam(panparID,paramstr.find(&#39;md:name&#39;,self.ns).text,panparShortName,panparType,matrix.get(&#39;source&#39;),panparUnit,panparFormat)
+                if panparType==&#39;geocode&#39;:
+                    try:
+                        panGeocode[panparShortName]=0
+                    except:
+                        self.allowNetCDF=False
+                        self.error=&#39;Data set contains duplicate Geocodes&#39;
+                        print(self.error)
+                        
+    def _getRnd(self,pformat):
+        &#34;&#34;&#34;
+        Helper function to get the rounding factor based on the parameter.format information
+        &#34;&#34;&#34;
+        print(pformat)
+        d=0
+        if pformat is not None:
+            m = re.search(&#39;\.[0]+$&#39;, pformat)
+            print(m)
+            if m!=None:
+                d=m.group(0).count(&#39;0&#39;)
+        return d
+        
+    def getEventsAsFrame(self):
+        &#34;&#34;&#34;
+        For more convenient handlicg of event info, this method returns a dataframe containing all events with their attributes as columns
+        &#34;&#34;&#34;
+        df=pd.DataFrame()
+        try:
+            df = pd.DataFrame([ev.__dict__ for ev in self.events ])
+        except:
+            pass
+        return df
+        
+    def setData(self, addEventColumns=True, addQC=False):
+        &#34;&#34;&#34;
+        This method populates the data DataFrame with data from a PANGAEA dataset.
+        In addition to the data given in the tabular ASCII file delivered by PANGAEA.
+        
+        
+        Parameters:
+        -----------
+        addEventColumns : boolean
+            In case Latitude, Longititude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets, 
+            the setData could add these columns to the dataframe using the information given in the metadata for Event. Default is &#39;True&#39;
+        addQC : boolean
+            If this is set to True, pangaeapy adds a QC column in which the quality flags are separated. Each new column is named after the orgininal column plus a &#34;_qc&#34; suffix.
+
+        &#34;&#34;&#34;
+
+        # converting list of parameters` short names (from user input) to the list of parameters` indexes
+        # the list of parameters` indexes is an argument for pd.read_csv
+        if self.paramlist!=None:
+            self.paramlist+=self.defaultparams
+            for parameter in self.paramlist:
+                iter=0
+                for shortName in self.params.keys():
+                    if parameter==shortName:
+                        self.paramlist_index.append(iter)
+                    iter+=1
+            if len(self.paramlist)!=len(self.paramlist_index):
+                self.error=&#34;Error entering parameters`short names!&#34;
+        else:
+            self.paramlist_index=None
+        if self.include_data==True:
+            dataURL=&#34;https://doi.pangaea.de/10.1594/PANGAEA.&#34;+str(self.id)+&#34;?format=textfile&#34;
+            panDataTxt= requests.get(dataURL).text       
+            panData = re.sub(r&#34;/\*(.*)\*/&#34;, &#34;&#34;, panDataTxt, 1, re.DOTALL).strip() 
+            #Read in PANGAEA Data    
+            self.data = pd.read_csv(io.StringIO(panData), index_col=False ,error_bad_lines=False,sep=u&#39;\t&#39;,usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
+            # add geocode/dimension columns from Event
+    
+            if addEventColumns==True and self.topotype!=&#34;not specified&#34;:          
+                if len(self.events)==1:
+                    if &#39;Event&#39; not in self.data.columns:
+                        self.data[&#39;Event&#39;]=self.events[0].label
+                        self.params[&#39;Event&#39;]=PanParam(0,&#39;Event&#39;,&#39;Event&#39;,&#39;string&#39;,&#39;data&#39;,None)
+                if len(self.events)&gt;=1:              
+                    addEvLat=addEvLon=addEvEle=addEvDat=False
+                    if &#39;Event&#39; in self.data.columns:
+                        if &#39;Latitude&#39; not in self.data.columns:
+                            addEvLat=True
+                            self.data[&#39;Latitude&#39;]=np.nan
+                            self.params[&#39;Latitude&#39;]=PanParam(1600,&#39;Latitude&#39;,&#39;Latitude&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;deg&#39;)
+                        if &#39;Longitude&#39; not in self.data.columns: 
+                            addEvLon=True
+                            self.data[&#39;Longitude&#39;]=np.nan
+                            self.params[&#39;Longitude&#39;]=PanParam(1601,&#39;Longitude&#39;,&#39;Longitude&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;deg&#39;)
+                        if &#39;Elevation&#39; not in self.data.columns:  
+                            addEvEle=True
+                            self.data[&#39;Elevation&#39;]=np.nan
+                            self.params[&#39;Elevation&#39;]=PanParam(8128,&#39;Elevation&#39;,&#39;Elevation&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;m&#39;)
+                        if &#39;Date/Time&#39; not in self.data.columns:
+                            self.data[&#39;Date/Time&#39;]=np.nan
+                            self.params[&#39;Date/Time&#39;]=PanParam(1599,&#39;Date/Time&#39;,&#39;Date/Time&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;&#39;)
+                            
+                        for iev,pevent in enumerate(self.events): 
+                            if pevent.latitude is not None and addEvLat==True:
+                                self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Latitude&#39;].isnull()),[&#39;Latitude&#39;]]=self.events[iev].latitude
+                            if pevent.longitude is not None and addEvLon:
+                                self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Longitude&#39;].isnull()),[&#39;Longitude&#39;]]=self.events[iev].longitude
+                            if pevent.elevation is not None and addEvEle:
+                                self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Elevation&#39;].isnull()),[&#39;Elevation&#39;]]=self.events[iev].elevation
+                            if pevent.datetime is not None and addEvDat:
+                                self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Date/Time&#39;].isnull()),[&#39;Date/Time&#39;]]=self.events[iev].datetime
+    
+            # -- delete values with given QC flags
+            if self.deleteFlag!=&#39;&#39;:
+                if self.deleteFlag==&#39;?&#39; or self.deleteFlag==&#39;*&#39;:
+                    self.deleteFlag=&#34;\\&#34;+self.deleteFlag
+                self.data.replace(regex=r&#39;^&#39;+self.deleteFlag+&#39;{1}.*&#39;,value=&#39;&#39;,inplace=True)      
+            # --- Replace Quality Flags for numeric columns   
+            if addQC==False:
+                self.data.replace(regex=r&#39;^[\?/\*#\&lt;\&gt;]&#39;,value=&#39;&#39;,inplace=True)
+            # --- Delete empty columns
+            self.data=self.data.dropna(axis=1, how=&#39;all&#39;)
+            for paramcolumn in list(self.params.keys()):
+                if paramcolumn not in self.data.columns:
+                    del self.params[paramcolumn]
+            # --- add QC columns
+                elif addQC==True:
+                    if self.params[paramcolumn].type==&#39;numeric&#39;:
+                        self.data[[paramcolumn+&#39;_qc&#39;,paramcolumn]]=self.data[paramcolumn].astype(str).str.extract(r&#39;(^[\*/\?])?(.+)&#39;)
+            # --- Adjust Column Data Types
+            self.data = self.data.apply(pd.to_numeric, errors=&#39;ignore&#39;)
+            if &#39;Date/Time&#39; in self.data.columns:
+                self.data[&#39;Date/Time&#39;] = pd.to_datetime(self.data[&#39;Date/Time&#39;], format=&#39;%Y/%m/%dT%H:%M:%S&#39;)
+        
+    def _setCitation(self):
+        citationURL=&#34;https://doi.pangaea.de/10.1594/PANGAEA.&#34;+str(self.id)+&#34;?format=citation_text&amp;charset=UTF-8&#34;
+        r=requests.get(citationURL)
+        if r.status_code!=404:
+            self.citation=r.text
+        
+    def setMetadata(self):
+        &#34;&#34;&#34;
+        The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
+        
+        &#34;&#34;&#34;
+        self._setCitation()
+        metaDataURL=&#34;https://doi.pangaea.de/10.1594/PANGAEA.&#34;+str(self.id)+&#34;?format=metainfo_xml&#34;
+        #metaDataURL=&#34;https://ws.pangaea.de/es/pangaea/panmd/&#34;+str(self.id)
+        r=requests.get(metaDataURL)
+        if r.status_code!=404:
+            try:
+                r.raise_for_status()
+                xmlText=r.text
+                xml = ET.fromstring(xmlText)
+                self.loginstatus=xml.find(&#39;./md:technicalInfo/md:entry[@key=&#34;loginOption&#34;]&#39;,self.ns).get(&#39;value&#39;)
+                if self.loginstatus!=&#39;unrestricted&#39;:
+                    self.error=&#39;Data set is protected&#39;                
+                hierarchyLevel=xml.find(&#39;./md:technicalInfo/md:entry[@key=&#34;hierarchyLevel&#34;]&#39;,self.ns)
+                if hierarchyLevel!=None:
+                    if hierarchyLevel.get(&#39;value&#39;)==&#39;parent&#39;:
+                        self.error=&#39;Data set is of type parent, please select one of its child datasets&#39;
+                        self.isParent=True
+                        self._setChildren()
+                self.title=xml.find(&#34;./md:citation/md:title&#34;, self.ns).text
+                self.year=xml.find(&#34;./md:citation/md:year&#34;, self.ns).text
+                self.date=xml.find(&#34;./md:citation/md:dateTime&#34;, self.ns).text
+                self.doi=self.uri=xml.find(&#34;./md:citation/md:URI&#34;, self.ns).text
+                #extent
+                if xml.find(&#34;./md:extent/md:temporal/md:minDateTime&#34;, self.ns)!=None:
+                    self.mintimeextent=xml.find(&#34;./md:extent/md:temporal/md:minDateTime&#34;, self.ns).text
+                if xml.find(&#34;./md:extent/md:temporal/md:maxDateTime&#34;, self.ns)!=None:
+                    self.maxtimeextent=xml.find(&#34;./md:extent/md:temporal/md:maxDateTime&#34;, self.ns).text
+                
+                topotypeEl=xml.find(&#34;./md:extent/md:topoType&#34;, self.ns)
+                if topotypeEl!=None:
+                    self.topotype=topotypeEl.text
+                else:
+                    self.topotype=None
+                for author in xml.findall(&#34;./md:citation/md:author&#34;, self.ns):
+                    lastname=None
+                    firstname=None
+                    orcid=None
+                    if author.find(&#34;md:lastName&#34;, self.ns)!=None:
+                        lastname=author.find(&#34;md:lastName&#34;, self.ns).text
+                    if author.find(&#34;md:firstName&#34;, self.ns)!=None:
+                        firstname=author.find(&#34;md:firstName&#34;, self.ns).text
+                    if author.find(&#34;md:orcid&#34;, self.ns)!=None:
+                        orcid=author.find(&#34;md:orcid&#34;, self.ns).text
+                    self.authors.append(PanAuthor(lastname, firstname,orcid))
+                for project in xml.findall(&#34;./md:project&#34;, self.ns):
+                    label=None
+                    name=None
+                    URI=None
+                    awardURI=None
+                    if project.find(&#34;md:label&#34;, self.ns)!=None:
+                        label=project.find(&#34;md:label&#34;, self.ns)
+                    if project.find(&#34;md:name&#34;, self.ns)!=None:
+                        name=project.find(&#34;md:name&#34;, self.ns)
+                    if project.find(&#34;md:URI&#34;, self.ns)!=None:
+                        URI=project.find(&#34;md:URI&#34;, self.ns)
+                    if project.find(&#34;md:award/md:URI&#34;, self.ns)!=None:
+                        awardURI=project.find(&#34;md:award/md:URI&#34;, self.ns)
+                    self.projects.append(PanProject(label, name, URI, awardURI))
+                for license in xml.findall(&#34;./md:license&#34;,self.ns):
+                    label=None
+                    name=None
+                    URI=None
+                    if license.find(&#34;md:label&#34;, self.ns)!=None:
+                        label=license.find(&#34;md:label&#34;, self.ns)
+                    if license.find(&#34;md:name&#34;, self.ns)!=None:
+                        name=license.find(&#34;md:name&#34;, self.ns)
+                    if license.find(&#34;md:URI&#34;, self.ns)!=None:
+                        URI=license.find(&#34;md:URI&#34;, self.ns)
+                    self.licenses.append(PanLicense(label, name, URI))
+                panXMLMatrixColumn=xml.findall(&#34;./md:matrixColumn&#34;, self.ns)
+                self._setParameters(panXMLMatrixColumn)
+                panXMLEvents=xml.findall(&#34;./md:event&#34;, self.ns)
+                self._setEvents(panXMLEvents)
+            except requests.exceptions.HTTPError as e:
+                print(e)
+        else:
+            self.error=&#39;Data set does not exist&#39;
+            print(self.error)
+
+    def _setChildren(self):
+        childqueryURL=&#34;https://www.pangaea.de/advanced/search.php?q=incollection:&#34;+str(self.id)+&#34;&amp;count=1000&#34;
+        r = requests.get(childqueryURL)
+        if r.status_code != 404:
+            s = r.json()
+            for p in s[&#39;results&#39;]: 
+                self.children.append(p[&#39;URI&#39;])
+                #print(p[&#39;URI&#39;])
+            
+    def getGeometry(self):
+        &#34;&#34;&#34;
+        Sometimes the topotype attribute has not been set correctly during the curation process. 
+        This method returns the real geometry (topographic type) of the dataset based on the x,y,z and t information of the data frame content.
+        Still a bit experimental..
+        &#34;&#34;&#34;
+        geotype=0
+        zgroup=[&#39;Latitude&#39;,&#39;Longitude&#39;]
+        tgroup=[&#39;Latitude&#39;,&#39;Longitude&#39;]
+        locgrp=[&#39;Latitude&#39;,&#39;Longitude&#39;]
+        p=pz=pt=len(self.data.groupby(locgrp))
+        t=z=None
+        
+        if &#39;Date/Time&#39; in self.data.columns:
+            t=&#39;Date/Time&#39;            
+        if &#39;Depth water&#39; in self.data.columns:
+            z=&#39;Depth water&#39;
+        elif &#39;Depth&#39; in self.data.columns:
+            z=&#39;Depth&#39;
+        elif &#39;Depth ice/snow&#39; in self.data.columns:
+            z=&#39;Depth ice/snow&#39; 
+        elif &#39;Depth soil&#39; in self.data.columns:
+            z=&#39;Depth soil&#39;
+
+        if t!=None:
+            tgroup.append(t)
+            pt=len(self.data.groupby(tgroup))
+        if z!=None:
+            zgroup.append(z)
+            pz=len(self.data.groupby(zgroup))             
+        
+        if p==1:
+            if pt==1 and pz==1:
+                geotype=&#39;point&#39;
+            elif pt&gt;=1:
+                if pz==1 or len(self.events)==1:
+                    geotype=&#39;timeSeries&#39;
+                else: 
+                    geotype=&#39;timeSeriesStack&#39;
+            else:
+                geotype=&#39;profile&#39;
+        else:
+            if p==pz:
+                geotype=&#39;trajectory&#39;
+            elif pt&gt;pz:
+                geotype=&#39;timeSeriesProfile&#39;
+            else:
+                geotype=&#39;trajectoryProfile&#39;
+        return geotype</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="pangaeapy.pandataset.PanDataSet.from_pickle"><code class="name flex">
+<span>def <span class="ident">from_pickle</span></span>(<span>self, cachedir='')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Reads a PanDataSet object from a pickle file</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cachedir</code></strong> :&ensp;<code>str</code></dt>
+<dd>the name of the directory</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def from_pickle(self, cachedir=&#39;&#39;):
+    &#34;&#34;&#34;
+    Reads a PanDataSet object from a pickle file
+    
+    Parameters
+    ----------
+    cachedir : str
+        the name of the directory
+    &#34;&#34;&#34;
+    home = os.path.expanduser(&#34;~&#34;)
+    ret=False
+    if cachedir==&#39;&#39;:
+        cachedir=home+&#39;/&#39;+&#39;pangaeapy_cache&#39;
+
+    if os.path.exists(cachedir+&#39;/&#39;+str(self.id)+&#39;_data.pik&#39;):
+        try:
+            f = open(cachedir+&#39;/&#39;+str(self.id)+&#39;_data.pik&#39;, &#39;rb&#39;)
+            tmp_dict = pickle.load(f)
+            f.close()         
+            self.__dict__.update(tmp_dict)
+            ret=True
+        except:
+            ret=False
+        
+        
+    else:
+        ret=False
+    return ret</code></pre>
+</details>
+</dd>
+<dt id="pangaeapy.pandataset.PanDataSet.getEventsAsFrame"><code class="name flex">
+<span>def <span class="ident">getEventsAsFrame</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>For more convenient handlicg of event info, this method returns a dataframe containing all events with their attributes as columns</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getEventsAsFrame(self):
+    &#34;&#34;&#34;
+    For more convenient handlicg of event info, this method returns a dataframe containing all events with their attributes as columns
+    &#34;&#34;&#34;
+    df=pd.DataFrame()
+    try:
+        df = pd.DataFrame([ev.__dict__ for ev in self.events ])
+    except:
+        pass
+    return df</code></pre>
+</details>
+</dd>
+<dt id="pangaeapy.pandataset.PanDataSet.getGeometry"><code class="name flex">
+<span>def <span class="ident">getGeometry</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Sometimes the topotype attribute has not been set correctly during the curation process.
+This method returns the real geometry (topographic type) of the dataset based on the x,y,z and t information of the data frame content.
+Still a bit experimental..</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def getGeometry(self):
+    &#34;&#34;&#34;
+    Sometimes the topotype attribute has not been set correctly during the curation process. 
+    This method returns the real geometry (topographic type) of the dataset based on the x,y,z and t information of the data frame content.
+    Still a bit experimental..
+    &#34;&#34;&#34;
+    geotype=0
+    zgroup=[&#39;Latitude&#39;,&#39;Longitude&#39;]
+    tgroup=[&#39;Latitude&#39;,&#39;Longitude&#39;]
+    locgrp=[&#39;Latitude&#39;,&#39;Longitude&#39;]
+    p=pz=pt=len(self.data.groupby(locgrp))
+    t=z=None
+    
+    if &#39;Date/Time&#39; in self.data.columns:
+        t=&#39;Date/Time&#39;            
+    if &#39;Depth water&#39; in self.data.columns:
+        z=&#39;Depth water&#39;
+    elif &#39;Depth&#39; in self.data.columns:
+        z=&#39;Depth&#39;
+    elif &#39;Depth ice/snow&#39; in self.data.columns:
+        z=&#39;Depth ice/snow&#39; 
+    elif &#39;Depth soil&#39; in self.data.columns:
+        z=&#39;Depth soil&#39;
+
+    if t!=None:
+        tgroup.append(t)
+        pt=len(self.data.groupby(tgroup))
+    if z!=None:
+        zgroup.append(z)
+        pz=len(self.data.groupby(zgroup))             
+    
+    if p==1:
+        if pt==1 and pz==1:
+            geotype=&#39;point&#39;
+        elif pt&gt;=1:
+            if pz==1 or len(self.events)==1:
+                geotype=&#39;timeSeries&#39;
+            else: 
+                geotype=&#39;timeSeriesStack&#39;
+        else:
+            geotype=&#39;profile&#39;
+    else:
+        if p==pz:
+            geotype=&#39;trajectory&#39;
+        elif pt&gt;pz:
+            geotype=&#39;timeSeriesProfile&#39;
+        else:
+            geotype=&#39;trajectoryProfile&#39;
+    return geotype</code></pre>
+</details>
+</dd>
+<dt id="pangaeapy.pandataset.PanDataSet.setData"><code class="name flex">
+<span>def <span class="ident">setData</span></span>(<span>self, addEventColumns=True, addQC=False)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This method populates the data DataFrame with data from a PANGAEA dataset.
+In addition to the data given in the tabular ASCII file delivered by PANGAEA.</p>
+<h2 id="parameters">Parameters:</h2>
+<p>addEventColumns : boolean
+In case Latitude, Longititude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets,
+the setData could add these columns to the dataframe using the information given in the metadata for Event. Default is 'True'
+addQC : boolean
+If this is set to True, pangaeapy adds a QC column in which the quality flags are separated. Each new column is named after the orgininal column plus a "_qc" suffix.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def setData(self, addEventColumns=True, addQC=False):
+    &#34;&#34;&#34;
+    This method populates the data DataFrame with data from a PANGAEA dataset.
+    In addition to the data given in the tabular ASCII file delivered by PANGAEA.
+    
+    
+    Parameters:
+    -----------
+    addEventColumns : boolean
+        In case Latitude, Longititude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets, 
+        the setData could add these columns to the dataframe using the information given in the metadata for Event. Default is &#39;True&#39;
+    addQC : boolean
+        If this is set to True, pangaeapy adds a QC column in which the quality flags are separated. Each new column is named after the orgininal column plus a &#34;_qc&#34; suffix.
+
+    &#34;&#34;&#34;
+
+    # converting list of parameters` short names (from user input) to the list of parameters` indexes
+    # the list of parameters` indexes is an argument for pd.read_csv
+    if self.paramlist!=None:
+        self.paramlist+=self.defaultparams
+        for parameter in self.paramlist:
+            iter=0
+            for shortName in self.params.keys():
+                if parameter==shortName:
+                    self.paramlist_index.append(iter)
+                iter+=1
+        if len(self.paramlist)!=len(self.paramlist_index):
+            self.error=&#34;Error entering parameters`short names!&#34;
+    else:
+        self.paramlist_index=None
+    if self.include_data==True:
+        dataURL=&#34;https://doi.pangaea.de/10.1594/PANGAEA.&#34;+str(self.id)+&#34;?format=textfile&#34;
+        panDataTxt= requests.get(dataURL).text       
+        panData = re.sub(r&#34;/\*(.*)\*/&#34;, &#34;&#34;, panDataTxt, 1, re.DOTALL).strip() 
+        #Read in PANGAEA Data    
+        self.data = pd.read_csv(io.StringIO(panData), index_col=False ,error_bad_lines=False,sep=u&#39;\t&#39;,usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
+        # add geocode/dimension columns from Event
+
+        if addEventColumns==True and self.topotype!=&#34;not specified&#34;:          
+            if len(self.events)==1:
+                if &#39;Event&#39; not in self.data.columns:
+                    self.data[&#39;Event&#39;]=self.events[0].label
+                    self.params[&#39;Event&#39;]=PanParam(0,&#39;Event&#39;,&#39;Event&#39;,&#39;string&#39;,&#39;data&#39;,None)
+            if len(self.events)&gt;=1:              
+                addEvLat=addEvLon=addEvEle=addEvDat=False
+                if &#39;Event&#39; in self.data.columns:
+                    if &#39;Latitude&#39; not in self.data.columns:
+                        addEvLat=True
+                        self.data[&#39;Latitude&#39;]=np.nan
+                        self.params[&#39;Latitude&#39;]=PanParam(1600,&#39;Latitude&#39;,&#39;Latitude&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;deg&#39;)
+                    if &#39;Longitude&#39; not in self.data.columns: 
+                        addEvLon=True
+                        self.data[&#39;Longitude&#39;]=np.nan
+                        self.params[&#39;Longitude&#39;]=PanParam(1601,&#39;Longitude&#39;,&#39;Longitude&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;deg&#39;)
+                    if &#39;Elevation&#39; not in self.data.columns:  
+                        addEvEle=True
+                        self.data[&#39;Elevation&#39;]=np.nan
+                        self.params[&#39;Elevation&#39;]=PanParam(8128,&#39;Elevation&#39;,&#39;Elevation&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;m&#39;)
+                    if &#39;Date/Time&#39; not in self.data.columns:
+                        self.data[&#39;Date/Time&#39;]=np.nan
+                        self.params[&#39;Date/Time&#39;]=PanParam(1599,&#39;Date/Time&#39;,&#39;Date/Time&#39;,&#39;numeric&#39;,&#39;geocode&#39;,&#39;&#39;)
+                        
+                    for iev,pevent in enumerate(self.events): 
+                        if pevent.latitude is not None and addEvLat==True:
+                            self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Latitude&#39;].isnull()),[&#39;Latitude&#39;]]=self.events[iev].latitude
+                        if pevent.longitude is not None and addEvLon:
+                            self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Longitude&#39;].isnull()),[&#39;Longitude&#39;]]=self.events[iev].longitude
+                        if pevent.elevation is not None and addEvEle:
+                            self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Elevation&#39;].isnull()),[&#39;Elevation&#39;]]=self.events[iev].elevation
+                        if pevent.datetime is not None and addEvDat:
+                            self.data.loc[(self.data[&#39;Event&#39;]== pevent.label) &amp; (self.data[&#39;Date/Time&#39;].isnull()),[&#39;Date/Time&#39;]]=self.events[iev].datetime
+
+        # -- delete values with given QC flags
+        if self.deleteFlag!=&#39;&#39;:
+            if self.deleteFlag==&#39;?&#39; or self.deleteFlag==&#39;*&#39;:
+                self.deleteFlag=&#34;\\&#34;+self.deleteFlag
+            self.data.replace(regex=r&#39;^&#39;+self.deleteFlag+&#39;{1}.*&#39;,value=&#39;&#39;,inplace=True)      
+        # --- Replace Quality Flags for numeric columns   
+        if addQC==False:
+            self.data.replace(regex=r&#39;^[\?/\*#\&lt;\&gt;]&#39;,value=&#39;&#39;,inplace=True)
+        # --- Delete empty columns
+        self.data=self.data.dropna(axis=1, how=&#39;all&#39;)
+        for paramcolumn in list(self.params.keys()):
+            if paramcolumn not in self.data.columns:
+                del self.params[paramcolumn]
+        # --- add QC columns
+            elif addQC==True:
+                if self.params[paramcolumn].type==&#39;numeric&#39;:
+                    self.data[[paramcolumn+&#39;_qc&#39;,paramcolumn]]=self.data[paramcolumn].astype(str).str.extract(r&#39;(^[\*/\?])?(.+)&#39;)
+        # --- Adjust Column Data Types
+        self.data = self.data.apply(pd.to_numeric, errors=&#39;ignore&#39;)
+        if &#39;Date/Time&#39; in self.data.columns:
+            self.data[&#39;Date/Time&#39;] = pd.to_datetime(self.data[&#39;Date/Time&#39;], format=&#39;%Y/%m/%dT%H:%M:%S&#39;)</code></pre>
+</details>
+</dd>
+<dt id="pangaeapy.pandataset.PanDataSet.setID"><code class="name flex">
+<span>def <span class="ident">setID</span></span>(<span>self, id)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Initialize the ID of a data set in case it was not defined in the constructur
+Parameters</p>
+<hr>
+<dl>
+<dt><strong><code>id</code></strong> :&ensp;<code>str</code></dt>
+<dd>The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def setID (self, id):
+    &#34;&#34;&#34;
+    Initialize the ID of a data set in case it was not defined in the constructur
+    Parameters
+    ----------
+    id : str
+        The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
+    &#34;&#34;&#34;
+    if type(id) is str and id.startswith(&#39;10.1594/PANGAEA&#39;):
+        self.id = id[16:]
+    elif type(id) is str and id.startswith(&#39;doi:10.1594/PANGAEA&#39;):
+        #print(id[20:])
+        self.id = id[20:]
+    else:
+        self.id = id</code></pre>
+</details>
+</dd>
+<dt id="pangaeapy.pandataset.PanDataSet.setMetadata"><code class="name flex">
+<span>def <span class="ident">setMetadata</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def setMetadata(self):
+    &#34;&#34;&#34;
+    The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
+    
+    &#34;&#34;&#34;
+    self._setCitation()
+    metaDataURL=&#34;https://doi.pangaea.de/10.1594/PANGAEA.&#34;+str(self.id)+&#34;?format=metainfo_xml&#34;
+    #metaDataURL=&#34;https://ws.pangaea.de/es/pangaea/panmd/&#34;+str(self.id)
+    r=requests.get(metaDataURL)
+    if r.status_code!=404:
+        try:
+            r.raise_for_status()
+            xmlText=r.text
+            xml = ET.fromstring(xmlText)
+            self.loginstatus=xml.find(&#39;./md:technicalInfo/md:entry[@key=&#34;loginOption&#34;]&#39;,self.ns).get(&#39;value&#39;)
+            if self.loginstatus!=&#39;unrestricted&#39;:
+                self.error=&#39;Data set is protected&#39;                
+            hierarchyLevel=xml.find(&#39;./md:technicalInfo/md:entry[@key=&#34;hierarchyLevel&#34;]&#39;,self.ns)
+            if hierarchyLevel!=None:
+                if hierarchyLevel.get(&#39;value&#39;)==&#39;parent&#39;:
+                    self.error=&#39;Data set is of type parent, please select one of its child datasets&#39;
+                    self.isParent=True
+                    self._setChildren()
+            self.title=xml.find(&#34;./md:citation/md:title&#34;, self.ns).text
+            self.year=xml.find(&#34;./md:citation/md:year&#34;, self.ns).text
+            self.date=xml.find(&#34;./md:citation/md:dateTime&#34;, self.ns).text
+            self.doi=self.uri=xml.find(&#34;./md:citation/md:URI&#34;, self.ns).text
+            #extent
+            if xml.find(&#34;./md:extent/md:temporal/md:minDateTime&#34;, self.ns)!=None:
+                self.mintimeextent=xml.find(&#34;./md:extent/md:temporal/md:minDateTime&#34;, self.ns).text
+            if xml.find(&#34;./md:extent/md:temporal/md:maxDateTime&#34;, self.ns)!=None:
+                self.maxtimeextent=xml.find(&#34;./md:extent/md:temporal/md:maxDateTime&#34;, self.ns).text
+            
+            topotypeEl=xml.find(&#34;./md:extent/md:topoType&#34;, self.ns)
+            if topotypeEl!=None:
+                self.topotype=topotypeEl.text
+            else:
+                self.topotype=None
+            for author in xml.findall(&#34;./md:citation/md:author&#34;, self.ns):
+                lastname=None
+                firstname=None
+                orcid=None
+                if author.find(&#34;md:lastName&#34;, self.ns)!=None:
+                    lastname=author.find(&#34;md:lastName&#34;, self.ns).text
+                if author.find(&#34;md:firstName&#34;, self.ns)!=None:
+                    firstname=author.find(&#34;md:firstName&#34;, self.ns).text
+                if author.find(&#34;md:orcid&#34;, self.ns)!=None:
+                    orcid=author.find(&#34;md:orcid&#34;, self.ns).text
+                self.authors.append(PanAuthor(lastname, firstname,orcid))
+            for project in xml.findall(&#34;./md:project&#34;, self.ns):
+                label=None
+                name=None
+                URI=None
+                awardURI=None
+                if project.find(&#34;md:label&#34;, self.ns)!=None:
+                    label=project.find(&#34;md:label&#34;, self.ns)
+                if project.find(&#34;md:name&#34;, self.ns)!=None:
+                    name=project.find(&#34;md:name&#34;, self.ns)
+                if project.find(&#34;md:URI&#34;, self.ns)!=None:
+                    URI=project.find(&#34;md:URI&#34;, self.ns)
+                if project.find(&#34;md:award/md:URI&#34;, self.ns)!=None:
+                    awardURI=project.find(&#34;md:award/md:URI&#34;, self.ns)
+                self.projects.append(PanProject(label, name, URI, awardURI))
+            for license in xml.findall(&#34;./md:license&#34;,self.ns):
+                label=None
+                name=None
+                URI=None
+                if license.find(&#34;md:label&#34;, self.ns)!=None:
+                    label=license.find(&#34;md:label&#34;, self.ns)
+                if license.find(&#34;md:name&#34;, self.ns)!=None:
+                    name=license.find(&#34;md:name&#34;, self.ns)
+                if license.find(&#34;md:URI&#34;, self.ns)!=None:
+                    URI=license.find(&#34;md:URI&#34;, self.ns)
+                self.licenses.append(PanLicense(label, name, URI))
+            panXMLMatrixColumn=xml.findall(&#34;./md:matrixColumn&#34;, self.ns)
+            self._setParameters(panXMLMatrixColumn)
+            panXMLEvents=xml.findall(&#34;./md:event&#34;, self.ns)
+            self._setEvents(panXMLEvents)
+        except requests.exceptions.HTTPError as e:
+            print(e)
+    else:
+        self.error=&#39;Data set does not exist&#39;
+        print(self.error)</code></pre>
+</details>
+</dd>
+<dt id="pangaeapy.pandataset.PanDataSet.to_pickle"><code class="name flex">
+<span>def <span class="ident">to_pickle</span></span>(<span>self, cachedir='')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Writes a PanDataSet object to a pickle file</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>cachedir</code></strong> :&ensp;<code>str</code></dt>
+<dd>the name of the directory</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def to_pickle(self,cachedir=&#39;&#39;):
+    &#34;&#34;&#34;
+    Writes a PanDataSet object to a pickle file
+    
+    Parameters
+    ----------
+    cachedir : str
+        the name of the directory
+    &#34;&#34;&#34;
+    home = os.path.expanduser(&#34;~&#34;)
+    if cachedir==&#39;&#39;:
+        cachedir=home+&#39;/&#39;+&#39;pangaeapy_cache&#39;
+    if not os.path.exists(cachedir):
+        os.makedirs(cachedir)
+    f = open(cachedir+&#39;/&#39;+str(self.id)+&#39;_data.pik&#39;, &#39;wb&#39;)
+    pickle.dump(self.__dict__, f, 2)
+    f.close()</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="pangaeapy.pandataset.PanEvent"><code class="flex name class">
+<span>class <span class="ident">PanEvent</span></span>
+<span>(</span><span>label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, location=None, campaign=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>PANGAEA Event Class.
+An Event can be regarded as a named entity which is defined by the usage of a distinct method or device at a distinct location during a given time interval for scientific purposes.
+More infos on PANGAEA's Evenmts can be found here: <a href="https://wiki.pangaea.de/wiki/Event">https://wiki.pangaea.de/wiki/Event</a></p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>label</code></strong> :&ensp;<code>str</code></dt>
+<dd>A label which is used to name the event</dd>
+<dt><strong><code>latitude</code></strong> :&ensp;<code>float</code></dt>
+<dd>The latitude of the event location</dd>
+<dt><strong><code>longitude</code></strong> :&ensp;<code>float</code></dt>
+<dd>The longitude of the event location</dd>
+<dt><strong><code>elevation</code></strong> :&ensp;<code>float</code></dt>
+<dd>The elevation (relative to sea level) of the event location</dd>
+<dt><strong><code>datetime</code></strong> :&ensp;<code>str</code></dt>
+<dd>The date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format</dd>
+<dt><strong><code>device</code></strong> :&ensp;<code>str</code></dt>
+<dd>The device which was used during the event</dd>
+</dl>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>label</code></strong> :&ensp;<code>str</code></dt>
+<dd>A label which is used to name the event</dd>
+<dt><strong><code>latitude</code></strong> :&ensp;<code>float</code></dt>
+<dd>The start latitude of the event location</dd>
+<dt><strong><code>longitude</code></strong> :&ensp;<code>float</code></dt>
+<dd>The start longitude of the event location</dd>
+<dt><strong><code>latitude2</code></strong> :&ensp;<code>float</code></dt>
+<dd>The end latitude of the event location</dd>
+<dt><strong><code>longitude2</code></strong> :&ensp;<code>float</code></dt>
+<dd>The end longitude of the event location</dd>
+<dt><strong><code>elevation</code></strong> :&ensp;<code>float</code></dt>
+<dd>The elevation (relative to sea level) of the event location</dd>
+<dt><strong><code>datetime</code></strong> :&ensp;<code>str</code></dt>
+<dd>The start date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format</dd>
+<dt><strong><code>datetime2</code></strong> :&ensp;<code>str</code></dt>
+<dd>The end date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format</dd>
+<dt><strong><code>device</code></strong> :&ensp;<code>str</code></dt>
+<dd>The device which was used during the event</dd>
+<dt><strong><code>basis</code></strong> :&ensp;<code>str</code></dt>
+<dd>The basis or platform which was used during the event e.g. a ship</dd>
+<dt><strong><code>location</code></strong> :&ensp;<code>str</code></dt>
+<dd>The location of the event</dd>
+<dt><strong><code>campaign</code></strong> :&ensp;<code><a title="pangaeapy.pandataset.PanCampaign" href="#pangaeapy.pandataset.PanCampaign">PanCampaign</a></code></dt>
+<dd>The campaign during which the event was performed</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class PanEvent:
+    &#34;&#34;&#34; PANGAEA Event Class.
+    An Event can be regarded as a named entity which is defined by the usage of a distinct method or device at a distinct location during a given time interval for scientific purposes.
+    More infos on PANGAEA&#39;s Evenmts can be found here: https://wiki.pangaea.de/wiki/Event
+    
+    Parameters
+    ----------
+    label : str
+        A label which is used to name the event
+    latitude : float
+        The latitude of the event location
+    longitude : float
+        The longitude of the event location
+    elevation : float
+        The elevation (relative to sea level) of the event location
+    datetime : str
+        The date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
+    device : str
+        The device which was used during the event
+        
+    Attributes
+    ----------
+    label : str
+        A label which is used to name the event
+    latitude : float
+        The start latitude of the event location
+    longitude : float
+        The start longitude of the event location
+    latitude2 : float
+        The end latitude of the event location
+    longitude2 : float
+        The end longitude of the event location
+    elevation : float
+        The elevation (relative to sea level) of the event location
+    datetime : str
+        The start date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
+    datetime2 : str
+        The end date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
+    device : str
+        The device which was used during the event
+    basis : str
+        The basis or platform which was used during the event e.g. a ship
+    location : str
+        The location of the event
+    campaign : PanCampaign
+        The campaign during which the event was performed
+    &#34;&#34;&#34;
+    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, location=None, campaign=None):
+        self.label=label
+        if latitude !=None:
+            self.latitude=float(latitude)
+        else:
+            self.latitude=None
+        if longitude !=None:
+            self.longitude=float(longitude)
+        else:
+            self.longitude=None
+        if latitude2 !=None:
+            self.latitude2=float(latitude2)
+        else:
+            self.latitude2=None
+        if longitude2 !=None:
+            self.longitude2=float(longitude2)
+        else:
+            self.longitude2=None
+        if elevation !=None:
+            self.elevation=float(elevation)
+        else:
+            self.elevation=None
+        self.device=device
+        self.basis=basis
+        # -- NEED TO CARE ABOUT datetime2!!!
+        self.datetime=datetime
+        self.datetime2=datetime2
+        self.location=location
+        self.campaign=campaign</code></pre>
+</details>
+</dd>
+<dt id="pangaeapy.pandataset.PanLicense"><code class="flex name class">
+<span>class <span class="ident">PanLicense</span></span>
+<span>(</span><span>label, name, URI=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>PANGAEA License Class
+This class contains the license information for each dataset</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class PanLicense:
+        &#34;&#34;&#34;PANGAEA License Class
+        This class contains the license information for each dataset
+    &#34;&#34;&#34;
+        
+        def __init__(self,label, name, URI=None):
+                self.label=label
+                self.name=name
+                self.URI=URI</code></pre>
+</details>
+</dd>
+<dt id="pangaeapy.pandataset.PanParam"><code class="flex name class">
+<span>class <span class="ident">PanParam</span></span>
+<span>(</span><span>id, name, shortName, param_type, source, unit=None, format=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>PANGAEA Parameter
+Shoud be used to create PANGAEA parameter objects. Parameter is used here to represent 'measured variables'</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>id</code></strong> :&ensp;<code>int</code></dt>
+<dd>the identifier for the parameter</dd>
+<dt><strong><code>name</code></strong> :&ensp;<code>str</code></dt>
+<dd>A long name or title used for the parameter</dd>
+<dt><strong><code>shortName</code></strong> :&ensp;<code>str</code></dt>
+<dd>A short name or label to identify the parameter</dd>
+<dt><strong><code>param_type</code></strong> :&ensp;<code>str</code></dt>
+<dd>indicates the data type of the parameter (string, numeric, datetime etc..)</dd>
+<dt><strong><code>source</code></strong> :&ensp;<code>str</code></dt>
+<dd>defines the category or source for a parameter (e.g. geocode, data, event)&hellip; very PANGAEA specific ;)</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>str</code></dt>
+<dd>the unit of measurement used with this parameter (e.g. m/s, kg etc..)</dd>
+</dl>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>id</code></strong> :&ensp;<code>int</code></dt>
+<dd>the identifier for the parameter</dd>
+<dt><strong><code>name</code></strong> :&ensp;<code>str</code></dt>
+<dd>A long name or title used for the parameter</dd>
+<dt><strong><code>shortName</code></strong> :&ensp;<code>str</code></dt>
+<dd>A short name or label to identify the parameter</dd>
+<dt><strong><code>synonym</code></strong> :&ensp;<code>dict</code></dt>
+<dd>A diconary of synonyms for the parameter whcih e.g. is used by other archives or communities.
+The dict key indicates the namespace (possible values currently are CF and OS)</dd>
+<dt><strong><code>type</code></strong> :&ensp;<code>str</code></dt>
+<dd>indicates the data type of the parameter (string, numeric, datetime etc..)</dd>
+<dt><strong><code>source</code></strong> :&ensp;<code>str</code></dt>
+<dd>defines the category or source for a parameter (e.g. geocode, data, event)&hellip; very PANGAEA specific ;)</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>str</code></dt>
+<dd>the unit of measurement used with this parameter (e.g. m/s, kg etc..)</dd>
+<dt><strong><code>format</code></strong> :&ensp;<code>str</code></dt>
+<dd>the number format string given by PANGAEA e.g ##.000 which defines the displayed precision of the number</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class PanParam:
+    &#34;&#34;&#34; PANGAEA Parameter
+    Shoud be used to create PANGAEA parameter objects. Parameter is used here to represent &#39;measured variables&#39;
+    
+    Parameters
+    ----------
+    id : int
+        the identifier for the parameter
+    name : str
+        A long name or title used for the parameter
+    shortName : str
+        A short name or label to identify the parameter
+    param_type : str
+        indicates the data type of the parameter (string, numeric, datetime etc..)
+    source : str
+        defines the category or source for a parameter (e.g. geocode, data, event)... very PANGAEA specific ;)
+    unit : str
+        the unit of measurement used with this parameter (e.g. m/s, kg etc..)
+    
+    Attributes
+    ----------
+    id : int
+        the identifier for the parameter
+    name : str
+        A long name or title used for the parameter
+    shortName : str
+        A short name or label to identify the parameter
+    synonym : dict
+        A diconary of synonyms for the parameter whcih e.g. is used by other archives or communities. 
+        The dict key indicates the namespace (possible values currently are CF and OS)
+    type : str
+        indicates the data type of the parameter (string, numeric, datetime etc..)
+    source : str
+        defines the category or source for a parameter (e.g. geocode, data, event)... very PANGAEA specific ;)
+    unit : str
+        the unit of measurement used with this parameter (e.g. m/s, kg etc..)
+    format: str
+        the number format string given by PANGAEA e.g ##.000 which defines the displayed precision of the number
+        
+    
+    
+    &#34;&#34;&#34;
+    def __init__(self, id, name, shortName, param_type, source, unit=None, format=None):
+        self.id=id
+        self.name=name
+        self.shortName=shortName
+        # Synonym namespace dict predefined keys are CF: CF variables (), OS:OceanSites, SD:SeaDataNet abbreviations (TEMP, PSAL etc..)
+        ns=(&#39;CF&#39;,&#39;OS&#39;,&#39;SD&#39;)
+        self.synonym=dict.fromkeys(ns)
+        self.type=param_type
+        self.source=source
+        self.unit=unit
+        self.format=format
+
+    def addSynonym(self,ns, name, uri=None, id=None, unit=None):
+        &#34;&#34;&#34;
+        Creates a new synonym for a parameter which is valid within the given name space. Synonyms are stored in the synonym attribute which is a dictionary
+        
+        Parameters
+        ----------
+        name : str
+            the name of the synonym
+        id : str
+            the internal ID of the term used at its auhority ontology
+        uri : str
+            the URI (ideally actionable) leading to its auhority ontology entry/web page
+        ns : str
+            the namespace indicator for the sysnonym
+        unit : str
+            in case another unit expression is used for the synonym parameter within its namespace
+        &#34;&#34;&#34;
+        self.synonym[ns]={&#39;name&#39;:name,&#39;id&#39;:id, &#39;uri&#39;:uri, &#39;unit&#39;:unit}</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="pangaeapy.pandataset.PanParam.addSynonym"><code class="name flex">
+<span>def <span class="ident">addSynonym</span></span>(<span>self, ns, name, uri=None, id=None, unit=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Creates a new synonym for a parameter which is valid within the given name space. Synonyms are stored in the synonym attribute which is a dictionary</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>name</code></strong> :&ensp;<code>str</code></dt>
+<dd>the name of the synonym</dd>
+<dt><strong><code>id</code></strong> :&ensp;<code>str</code></dt>
+<dd>the internal ID of the term used at its auhority ontology</dd>
+<dt><strong><code>uri</code></strong> :&ensp;<code>str</code></dt>
+<dd>the URI (ideally actionable) leading to its auhority ontology entry/web page</dd>
+<dt><strong><code>ns</code></strong> :&ensp;<code>str</code></dt>
+<dd>the namespace indicator for the sysnonym</dd>
+<dt><strong><code>unit</code></strong> :&ensp;<code>str</code></dt>
+<dd>in case another unit expression is used for the synonym parameter within its namespace</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def addSynonym(self,ns, name, uri=None, id=None, unit=None):
+    &#34;&#34;&#34;
+    Creates a new synonym for a parameter which is valid within the given name space. Synonyms are stored in the synonym attribute which is a dictionary
+    
+    Parameters
+    ----------
+    name : str
+        the name of the synonym
+    id : str
+        the internal ID of the term used at its auhority ontology
+    uri : str
+        the URI (ideally actionable) leading to its auhority ontology entry/web page
+    ns : str
+        the namespace indicator for the sysnonym
+    unit : str
+        in case another unit expression is used for the synonym parameter within its namespace
+    &#34;&#34;&#34;
+    self.synonym[ns]={&#39;name&#39;:name,&#39;id&#39;:id, &#39;uri&#39;:uri, &#39;unit&#39;:unit}</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+<dt id="pangaeapy.pandataset.PanProject"><code class="flex name class">
+<span>class <span class="ident">PanProject</span></span>
+<span>(</span><span>label, name, URL=None, awardURI=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>PANGAEA Project Class
+This class creates objects which contain the project context information for each dataset</p>
+<h2 id="parameters">Parameters</h2>
+<dl>
+<dt><strong><code>acronym</code></strong> :&ensp;<code>str</code></dt>
+<dd>The project acronym</dd>
+<dt><strong><code>title</code></strong> :&ensp;<code>str</code></dt>
+<dd>The full title of the project</dd>
+<dt><strong><code>URL</code></strong> :&ensp;<code>str</code></dt>
+<dd>The project website</dd>
+<dt><strong><code>awardURI</code></strong> :&ensp;<code>str</code></dt>
+<dd>The unique identifier of the award e.g. a CORDIS URI</dd>
+</dl>
+<h2 id="attributes">Attributes</h2>
+<dl>
+<dt><strong><code>acronym</code></strong> :&ensp;<code>str</code></dt>
+<dd>The project acronym</dd>
+<dt><strong><code>title</code></strong> :&ensp;<code>str</code></dt>
+<dd>The full title of the project</dd>
+<dt><strong><code>URL</code></strong> :&ensp;<code>str</code></dt>
+<dd>The project website</dd>
+<dt><strong><code>awardURI</code></strong> :&ensp;<code>str</code></dt>
+<dd>The unique identifier of the award e.g. a CORDIS URI</dd>
+</dl></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class PanProject:
+    &#34;&#34;&#34;PANGAEA Project Class
+    This class creates objects which contain the project context information for each dataset
+    
+    Parameters
+    ----------
+    acronym : str
+        The project acronym
+    title : str
+        The full title of the project
+    URL : str
+        The project website
+    awardURI : str
+        The unique identifier of the award e.g. a CORDIS URI
+    
+    
+    Attributes
+    ----------
+    acronym : str
+        The project acronym
+    title : str
+        The full title of the project
+    URL : str
+        The project website
+    awardURI : str
+        The unique identifier of the award e.g. a CORDIS URI
+    
+    &#34;&#34;&#34;
+    def __init__(self,label, name,URL=None, awardURI=None):
+        self.label=label
+        self.name=name
+        self.URL=URL
+        self.awardURI=awardURI</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="pangaeapy" href="index.html">pangaeapy</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="pangaeapy.pandataset.PanAuthor" href="#pangaeapy.pandataset.PanAuthor">PanAuthor</a></code></h4>
+</li>
+<li>
+<h4><code><a title="pangaeapy.pandataset.PanCampaign" href="#pangaeapy.pandataset.PanCampaign">PanCampaign</a></code></h4>
+</li>
+<li>
+<h4><code><a title="pangaeapy.pandataset.PanDataSet" href="#pangaeapy.pandataset.PanDataSet">PanDataSet</a></code></h4>
+<ul class="two-column">
+<li><code><a title="pangaeapy.pandataset.PanDataSet.from_pickle" href="#pangaeapy.pandataset.PanDataSet.from_pickle">from_pickle</a></code></li>
+<li><code><a title="pangaeapy.pandataset.PanDataSet.getEventsAsFrame" href="#pangaeapy.pandataset.PanDataSet.getEventsAsFrame">getEventsAsFrame</a></code></li>
+<li><code><a title="pangaeapy.pandataset.PanDataSet.getGeometry" href="#pangaeapy.pandataset.PanDataSet.getGeometry">getGeometry</a></code></li>
+<li><code><a title="pangaeapy.pandataset.PanDataSet.setData" href="#pangaeapy.pandataset.PanDataSet.setData">setData</a></code></li>
+<li><code><a title="pangaeapy.pandataset.PanDataSet.setID" href="#pangaeapy.pandataset.PanDataSet.setID">setID</a></code></li>
+<li><code><a title="pangaeapy.pandataset.PanDataSet.setMetadata" href="#pangaeapy.pandataset.PanDataSet.setMetadata">setMetadata</a></code></li>
+<li><code><a title="pangaeapy.pandataset.PanDataSet.to_pickle" href="#pangaeapy.pandataset.PanDataSet.to_pickle">to_pickle</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="pangaeapy.pandataset.PanEvent" href="#pangaeapy.pandataset.PanEvent">PanEvent</a></code></h4>
+</li>
+<li>
+<h4><code><a title="pangaeapy.pandataset.PanLicense" href="#pangaeapy.pandataset.PanLicense">PanLicense</a></code></h4>
+</li>
+<li>
+<h4><code><a title="pangaeapy.pandataset.PanParam" href="#pangaeapy.pandataset.PanParam">PanParam</a></code></h4>
+<ul class="">
+<li><code><a title="pangaeapy.pandataset.PanParam.addSynonym" href="#pangaeapy.pandataset.PanParam.addSynonym">addSynonym</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="pangaeapy.pandataset.PanProject" href="#pangaeapy.pandataset.PanProject">PanProject</a></code></h4>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.9.1</a>.</p>
+</footer>
+</body>
+</html>
