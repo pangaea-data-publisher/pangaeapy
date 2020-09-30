@@ -440,11 +440,10 @@ class PanDataSet:
         id : str
             The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
         """
-        if type(id) is str and id.startswith('10.1594/PANGAEA'):
-            self.id = id[16:]
-        elif type(id) is str and id.startswith('doi:10.1594/PANGAEA'):
-            #print(id[20:])
-            self.id = id[20:]
+        idmatch = re.search(r'10\.1594\/PANGAEA\.([0-9]+)$', id)
+        
+        if idmatch is not None:
+            self.id = idmatch[1]
         else:
             self.id = id
     
