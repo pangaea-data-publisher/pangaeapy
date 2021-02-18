@@ -7,6 +7,8 @@ Created on Tue Aug 21 13:31:30 2018
 @author: Egor Gordeev
 @author: Aarthi Balamurugan
 """
+import time
+
 import requests
 import pandas as pd
 import numpy as np
@@ -224,6 +226,9 @@ class PanParam:
         defines the category or source for a parameter (e.g. geocode, data, event)... very PANGAEA specific ;)
     unit : str
         the unit of measurement used with this parameter (e.g. m/s, kg etc..)
+    terms : dict
+        a dictionary containing al related terms for this parameter structure:{term:id}
+
     
     Attributes
     ----------
@@ -234,7 +239,7 @@ class PanParam:
     shortName : str
         A short name or label to identify the parameter
     synonym : dict
-        A diconary of synonyms for the parameter whcih e.g. is used by other archives or communities. 
+        A dictionary of synonyms for the parameter whcih e.g. is used by other archives or communities.
         The dict key indicates the namespace (possible values currently are CF and OS)
     type : str
         indicates the data type of the parameter (string, numeric, datetime etc..)
@@ -244,11 +249,13 @@ class PanParam:
         the unit of measurement used with this parameter (e.g. m/s, kg etc..)
     format: str
         the number format string given by PANGAEA e.g ##.000 which defines the displayed precision of the number
+    terms : dict
+        a dictionary containing al related terms for this parameter {term:id}
         
     
     
     """
-    def __init__(self, id, name, shortName, param_type, source, unit=None, format=None):
+    def __init__(self, id, name, shortName, param_type, source, unit=None, format=None, terms =[]):
         self.id=id
         self.name=name
         self.shortName=shortName
@@ -259,6 +266,7 @@ class PanParam:
         self.source=source
         self.unit=unit
         self.format=format
+        self.terms =terms
 
     def addSynonym(self,ns, name, uri=None, id=None, unit=None):
         """
@@ -356,6 +364,7 @@ class PanDataSet:
         self.date=None
         self.mintimeextent=None
         self.maxtimeextent=None
+        self.topotype = None
         self.authors=[]
         self.error=None
         self.loginstatus='unrestricted';
@@ -535,6 +544,7 @@ class PanDataSet:
         """
         coln=dict()
         if panXMLMatrixColumn!=None:
+            panGeoCode=[]
             for matrix in panXMLMatrixColumn:  
                 panparCFName=None
                 paramstr=matrix.find("md:parameter", self.ns)
@@ -558,14 +568,24 @@ class PanDataSet:
                     self.eventInMatrix=True
                 #if panparID in self.CFmapping.index:
                 #    panparCFName=self.CFmapping.at[panparID,'STDNAME']
-                self.params[panparShortName]=PanParam(panparID,paramstr.find('md:name',self.ns).text,panparShortName,panparType,matrix.get('source'),panparUnit,panparFormat)
+                #Add information about terms/ontologies used:
+                termlist=[]
+                for terminfo in paramstr.findall('md:term', self.ns):
+                    termid = None
+                    termname = None
+                    if terminfo.find("md:name", self.ns) != None:
+                        termname = terminfo.find("md:name", self.ns).text
+                        termid = int(self._getID(str(terminfo.get('id'))))
+                        terminologyid = int(terminfo.get('terminologyId'))
+                        termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid})
+                self.params[panparShortName]=PanParam(panparID,paramstr.find('md:name',self.ns).text,panparShortName,panparType,matrix.get('source'),panparUnit,panparFormat,termlist)
                 if panparType=='geocode':
-                    try:
-                        panGeocode[panparShortName]=0
-                    except:
-                        self.allowNetCDF=False
-                        self.error='Data set contains duplicate Geocodes'
+                    if panparShortName in panGeoCode:
+                        self.allowNetCDF = False
+                        self.error = 'Data set contains duplicate Geocodes'
                         print(self.error)
+                    else:
+                        panGeoCode.append(panparShortName)
                         
     def _getRnd(self,pformat):
         """
@@ -628,8 +648,9 @@ class PanDataSet:
             #Read in PANGAEA Data    
             self.data = pd.read_csv(io.StringIO(panData), index_col=False ,error_bad_lines=False,sep=u'\t',usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
             # add geocode/dimension columns from Event
-    
-            if addEventColumns==True and self.topotype!="not specified":          
+
+            #if addEventColumns==True and self.topotype!="not specified":
+            if addEventColumns==True:
                 if len(self.events)==1:
                     if 'Event' not in self.data.columns:
                         self.data['Event']=self.events[0].label
@@ -700,6 +721,18 @@ class PanDataSet:
         metaDataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=metainfo_xml"
         #metaDataURL="https://ws.pangaea.de/es/pangaea/panmd/"+str(self.id)
         r=requests.get(metaDataURL)
+        if r.status_code==429:
+            print('Received too many requests error (429)...')
+            sleeptime = 1
+            if r.headers.get('retry-after'):
+                sleeptime = r.headers.get('retry-after')
+            print('Sleeping for :'+str(sleeptime)+'sec before retrying the request')
+            if int(sleeptime) < 1:
+                sleeptime=1
+            time.sleep(int(sleeptime))
+            r = requests.get(metaDataURL)
+            print('After repeating request, got status code: '+str(r.status_code))
+
         if r.status_code!=404:
             try:
                 r.raise_for_status()
@@ -833,3 +866,30 @@ class PanDataSet:
             else:
                 geotype='trajectoryProfile'
         return geotype
+
+    def getParamDict(self):
+        paramdict={'shortName':[],'name':[],'unit':[],'type':[],'format':[]}
+        for param_key, param_value in self.params.items():
+            paramdict['shortName'].append(param_key)
+            paramdict['name'].append(param_value.name)
+            paramdict['unit'].append(param_value.unit)
+            paramdict['type'].append(param_value.type)
+            paramdict['format'].append(param_value.format)
+        return paramdict
+
+    """
+            The method returns a set of basic information about the PANGAEA dataset
+    """
+    def info(self):
+        print('Citation:')
+        print(self.citation)
+        print()
+        print('Toptype:')
+        print(self.topotype)
+        print()
+        print('Parameters:')
+        paramdf=pd.DataFrame(self.getParamDict())
+        print(paramdf)
+        print()
+        print('Data: (first 5 rows)')
+        print(self.data.head(5))
