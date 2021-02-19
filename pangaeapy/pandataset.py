@@ -22,6 +22,7 @@ import os
 import operator
 import pickle
 import matplotlib.pyplot as plt
+from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
 
 class PanProject:
     """PANGAEA Project Class
@@ -449,12 +450,15 @@ class PanDataSet:
         id : str
             The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
         """
-        idmatch = re.search(r'10\.1594\/PANGAEA\.([0-9]+)$', id)
-        
-        if idmatch is not None:
-            self.id = idmatch[1]
-        else:
+        if type(id) == int:
             self.id = id
+        else:
+            idmatch = re.search(r'10\.1594\/PANGAEA\.([0-9]+)$', id)
+            if idmatch is not None:
+                self.id = idmatch[1]
+            else:
+                print('Invalid Identifier')
+
     
             
     def _getID(self,panparidstr):
@@ -830,24 +834,23 @@ class PanDataSet:
         p=pz=pt=len(self.data.groupby(locgrp))
         t=z=None
         
-        if 'Date/Time' in self.data.columns:
-            t='Date/Time'            
-        if 'Depth water' in self.data.columns:
-            z='Depth water'
+        if 'Date_Time' in self.data.columns:
+            t='Date_Time'
+        if 'Depth_water' in self.data.columns:
+            z='Depth_water'
         elif 'Depth' in self.data.columns:
             z='Depth'
-        elif 'Depth ice/snow' in self.data.columns:
-            z='Depth ice/snow' 
-        elif 'Depth soil' in self.data.columns:
-            z='Depth soil'
+        elif 'Depth_ice_snow' in self.data.columns:
+            z='Depth_ice_snow'
+        elif 'Depth_soil' in self.data.columns:
+            z='Depth_soil'
 
         if t!=None:
             tgroup.append(t)
             pt=len(self.data.groupby(tgroup))
         if z!=None:
             zgroup.append(z)
-            pz=len(self.data.groupby(zgroup))             
-        
+            pz=len(self.data.groupby(zgroup))
         if p==1:
             if pt==1 and pz==1:
                 geotype='point'
@@ -893,3 +896,7 @@ class PanDataSet:
         print()
         print('Data: (first 5 rows)')
         print(self.data.head(5))
+
+    def to_netcdf(self, filelocation, type='sdn'):
+        netcdfexporter = PanNetCDFExporter(self, filelocation,)
+        netcdfexporter.create(style=type)
