@@ -4,6 +4,7 @@ Created on Wed Sep  5 14:58:00 2018
 
 @author: Robert Huber 
 """
+import json
 import linecache
 
 from netCDF4 import num2date, date2num, Dataset,stringtochar
@@ -14,7 +15,6 @@ import sys
 import math
 from pangaeapy.exporter.pan_exporter import PanExporter
 import traceback
-
 
 class PanNetCDFExporter(PanExporter):
     def PrintException(self):
@@ -42,15 +42,17 @@ class PanNetCDFExporter(PanExporter):
         except Exception as e:
             print('NetCDF main variables creation failed '+str(e))
                       
-    def setParameterSynonyms(self, mappingfile):
-        mapping=pd.read_csv(mappingfile,delimiter='\t',index_col='PANGAEA ID')
+    def setParameterSynonyms(self, mappingfile='\mappings\pan_mappings.json'):
+        print('Trying to set synonyms and standard names')
+        with open(self.module_dir+mappingfile, 'r') as mappingjson:
+            mapping = json.load(mappingjson)
+        #mapping=pd.read_csv(mappingfile,delimiter='\t',index_col='PANGAEA ID')
         for pacronym, param in self.pandataset.params.items():
-            print(param.id)
-            if param.id in mapping.index:
-                print(str(param.id)+" "+mapping.at[param.id,'SDN P01 ID'])
-                cf_name=mapping.at[param.id,'CF standard name']
-                self.pandataset.params[pacronym].addSynonym('CF',cf_name,unit=mapping.at[param.id,'CF unit'])
-                self.pandataset.params[pacronym].addSynonym('SD',mapping.at[param.id,'SDN P01 Name'],id=mapping.at[param.id,'SDN P01 ID'],uri=mapping.at[param.id,'SDN P01 URI'])
+            if str(param.id) in mapping:
+                #print(str(param.id)+" "+mapping.get(str(param.id)).get('SDN P01 ID'))
+                cf_name=mapping.get(str(param.id)).get('CF standard name')
+                self.pandataset.params[pacronym].addSynonym('CF',cf_name,unit=mapping.get(str(param.id)).get('CF unit'))
+                self.pandataset.params[pacronym].addSynonym('SD',mapping.get(str(param.id)).get('SDN P01 Name'),id=mapping.get(str(param.id)).get('SDN P01 ID'),uri=mapping.get(str(param.id)).get('SDN P01 URI'))
         
     def cleanParameterNames(self):
         tempparams ={}
@@ -115,7 +117,6 @@ class PanNetCDFExporter(PanExporter):
                             if ncvarName=='Date_Time':
                                 ncVar.axis='T'                              
                                 ncVar.units=self.time_units
-
                             #Setting the units                                    
                             if p.synonym['CF'] != None:
                                 ncVar.standard_name=p.synonym['CF']['name']
@@ -150,6 +151,7 @@ class PanNetCDFExporter(PanExporter):
     def create(self, style='pan'):
         if isinstance(self.pandataset.data, pd.DataFrame):
             self.cleanParameterNames()
+            self.setParameterSynonyms()
             if 'Event' in self.pandataset.data.columns:                
                 #TODO: Check if data set is in water: depth water or negative elevation of event.                
                 if self.pandataset.topotype=='time series' or self.pandataset.topotype=='profile series' or self.pandataset.topotype=='vertical profile':
@@ -165,6 +167,7 @@ class PanNetCDFExporter(PanExporter):
                 
     def createSDNNetCDF(self):
         print('SDN2');
+        nc = None
         #Determine the maximum number od data rows per event -> SDN's MAXZ, MAXT
         maxr=self.pandataset.data.groupby('Event').size().max()
         try:
@@ -196,7 +199,8 @@ class PanNetCDFExporter(PanExporter):
             events=nc.createVariable('SDN_STATION', 'S1',(u'INSTANCE',u'STRING'+str(MaxStrLen['label'])))
             events.long_name='Event label'
             if 'campaign' in MaxStrLen:
-                campaigns=nc.createVariable('SDN_CRUISE', 'S1',(u'INSTANCE',u'STRING'+str(MaxStrLen['campaign'])))
+                campaign=str(MaxStrLen['campaign'])
+                campaigns=nc.createVariable('SDN_CRUISE', 'S1',(u'INSTANCE',u'STRING'+campaign))
                 campaigns.long_name='Campaign label'
             #Add empty rows to have the same number of rows per event
             self.pandataset.data=pd.concat([
@@ -236,6 +240,7 @@ class PanNetCDFExporter(PanExporter):
             
             self.setSDNVariablesAndValues( nc, ['INSTANCE',maxtype])
             nc.close()
+            print('NetCDF creation successfully finished, file has been created here:' + str(self.filelocation))
         except Exception as e:                       
             if nc is not None:
                 nc.close()

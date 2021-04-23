@@ -340,6 +340,7 @@ class PanDataSet:
         a list of DOIs of all child data sets in case the data set is a parent data set
     """
     def __init__(self, id=None,paramlist=None, deleteFlag='', addQC=False, enable_cache=False, include_data=True):
+        self.module_dir = os.path.dirname(os.path.dirname(__file__))
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
         self.setID(id)
         self.ns= {'md':'http://www.pangaea.de/MetaData'}        
@@ -590,27 +591,17 @@ class PanDataSet:
                         print(self.error)
                     else:
                         panGeoCode.append(panparShortName)
-                        
-    def _getRnd(self,pformat):
-        """
-        Helper function to get the rounding factor based on the parameter.format information
-        """
-        print(pformat)
-        d=0
-        if pformat is not None:
-            m = re.search('\.[0]+$', pformat)
-            print(m)
-            if m!=None:
-                d=m.group(0).count('0')
-        return d
+
         
     def getEventsAsFrame(self):
         """
-        For more convenient handlicg of event info, this method returns a dataframe containing all events with their attributes as columns
+        For more convenient handling of event info, this method returns a dataframe containing all events with their attributes as columns
+        Please note that this version just takes campaign names, not other campaign attributes
         """
         df=pd.DataFrame()
         try:
             df = pd.DataFrame([ev.__dict__ for ev in self.events ])
+            df['campaign'] = df['campaign'].apply(lambda x: x.name)
         except:
             pass
         return df
@@ -897,6 +888,6 @@ class PanDataSet:
         print('Data: (first 5 rows)')
         print(self.data.head(5))
 
-    def to_netcdf(self, filelocation, type='sdn'):
+    def to_netcdf(self, filelocation=None, type='sdn'):
         netcdfexporter = PanNetCDFExporter(self, filelocation,)
         netcdfexporter.create(style=type)
