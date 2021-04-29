@@ -256,7 +256,7 @@ class PanParam:
     
     
     """
-    def __init__(self, id, name, shortName, param_type, source, unit=None, format=None, terms =[]):
+    def __init__(self, id, name, shortName, param_type, source, unit=None, unit_id = None, format=None, terms =[]):
         self.id=id
         self.name=name
         self.shortName=shortName
@@ -266,10 +266,11 @@ class PanParam:
         self.type=param_type
         self.source=source
         self.unit=unit
+        self.unit_id = unit_id
         self.format=format
         self.terms =terms
 
-    def addSynonym(self,ns, name, uri=None, id=None, unit=None):
+    def addSynonym(self,ns, name, uri=None, id=None, unit=None, unit_id = None):
         """
         Creates a new synonym for a parameter which is valid within the given name space. Synonyms are stored in the synonym attribute which is a dictionary
         
@@ -285,8 +286,10 @@ class PanParam:
             the namespace indicator for the sysnonym
         unit : str
             in case another unit expression is used for the synonym parameter within its namespace
+        unit_id : str
+            the id, UI or URN for the unit
         """
-        self.synonym[ns]={'name':name,'id':id, 'uri':uri, 'unit':unit}
+        self.synonym[ns]={'name':name,'id':id, 'uri':uri, 'unit':unit,'unit_id':unit_id}
     
 class PanDataSet:
     """ PANGAEA DataSet
@@ -339,7 +342,7 @@ class PanDataSet:
     children : list
         a list of DOIs of all child data sets in case the data set is a parent data set
     """
-    def __init__(self, id=None,paramlist=None, deleteFlag='', addQC=False, enable_cache=False, include_data=True):
+    def __init__(self, id=None,paramlist=None, deleteFlag='', addQC=False, QCsuffix = None, enable_cache=False, include_data=True):
         self.module_dir = os.path.dirname(os.path.dirname(__file__))
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
         self.setID(id)
@@ -375,6 +378,17 @@ class PanDataSet:
         self.deleteFlag=deleteFlag
         self.children=[]
         self.include_data=include_data
+        self.qc_column_suffix='_QC'
+        if QCsuffix:
+            self.qc_column_suffix = QCsuffix
+        #no symbol = valid(default)
+        #? = questionable(?0.345)
+        #/ = not valid( / 23.56)
+        #* = unknown(*0.999)
+        # = individual definition (#999)
+
+        self.quality_flags={'ok':'valid','?':'questionable','/':'not_valid','*':'unknown'}
+        self.quality_flag_replace={'ok':0,'?':1,'/':2,'*':3}
         if self.id != None:
             gotData=False
             if self.cache==True:
@@ -689,13 +703,25 @@ class PanDataSet:
                 self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
             # --- Delete empty columns
             self.data=self.data.dropna(axis=1, how='all')
+            print(self.params.keys())
             for paramcolumn in list(self.params.keys()):
                 if paramcolumn not in self.data.columns:
                     del self.params[paramcolumn]
             # --- add QC columns
                 elif addQC==True:
-                    if self.params[paramcolumn].type=='numeric':
-                        self.data[[paramcolumn+'_qc',paramcolumn]]=self.data[paramcolumn].astype(str).str.extract(r'(^[\*/\?])?(.+)')
+                    print(paramcolumn,self.params[paramcolumn].type)
+                    #if self.params[paramcolumn].type=='numeric' and (self.params[paramcolumn].source =='data' or paramcolumn=='Depth water'):
+                    if self.params[paramcolumn].type in['numeric','datetime']:
+                        self.data[[paramcolumn + self.qc_column_suffix,paramcolumn]]=self.data[paramcolumn].astype(str).str.extract(r'(^[\*/\?])?(.+)')
+                        self.data[paramcolumn + self.qc_column_suffix].fillna(value='ok', inplace=True)
+                        self.data[paramcolumn + self.qc_column_suffix].replace(to_replace=self.quality_flag_replace, inplace=True)
+                        if self.params[paramcolumn].source =='data':
+                            ptype = 'qc'
+                        else:
+                            #geocodeqc
+                            ptype ='gqc'
+                        self.params[paramcolumn + self.qc_column_suffix] = PanParam(self.params[paramcolumn].id+1000000000,self.params[paramcolumn].name + self.qc_column_suffix,self.params[paramcolumn].shortName + self.qc_column_suffix, source='pangaeapy',param_type=ptype)
+
             # --- Adjust Column Data Types
             self.data = self.data.apply(pd.to_numeric, errors='ignore')
             if 'Date/Time' in self.data.columns:
@@ -887,6 +913,13 @@ class PanDataSet:
         print()
         print('Data: (first 5 rows)')
         print(self.data.head(5))
+
+    def rename_column(self,old_name, new_name):
+        self.params[new_name] = self.params.pop(old_name)
+        self.params[new_name].name = new_name
+        self.params[new_name].shortName = new_name
+        self.data.rename(columns={old_name:new_name}, inplace = True)
+
 
     def to_netcdf(self, filelocation=None, type='sdn'):
         netcdfexporter = PanNetCDFExporter(self, filelocation,)

@@ -13,6 +13,9 @@ import re
 import numpy as np
 import sys
 import math
+
+from pangaeapy import pandataset
+
 from pangaeapy.exporter.pan_exporter import PanExporter
 import traceback
 
@@ -27,7 +30,8 @@ class PanNetCDFExporter(PanExporter):
         print('EXCEPTION IN ({}, LINE {} "{}"): {}'.format(filename, lineno, line.strip(), exc_obj))
     
     def setMainVariables(self,nc):
-        self.time_units = 'hours since 2000-01-01 00:00:00.0'
+        #self.time_units = 'hours since 2000-01-01 00:00:00.0'
+        self.time_units ='days since -4713-01-01T00:00:00Z'
         try:
             nc.title=self.pandataset.title
             nc.id=self.pandataset.doi
@@ -38,7 +42,7 @@ class PanNetCDFExporter(PanExporter):
             #nc.platform_code='DBBH'
            # nc.featureType=self.pandataset.getGeometry()
             nc.principal_investigator=self.pandataset.authors[0].fullname
-            nc.date_update=self.pandataset.date
+            nc.date_update=self.pandataset.date+'+02:00'
         except Exception as e:
             print('NetCDF main variables creation failed '+str(e))
                       
@@ -52,7 +56,7 @@ class PanNetCDFExporter(PanExporter):
                 #print(str(param.id)+" "+mapping.get(str(param.id)).get('SDN P01 ID'))
                 cf_name=mapping.get(str(param.id)).get('CF standard name')
                 self.pandataset.params[pacronym].addSynonym('CF',cf_name,unit=mapping.get(str(param.id)).get('CF unit'))
-                self.pandataset.params[pacronym].addSynonym('SD',mapping.get(str(param.id)).get('SDN P01 Name'),id=mapping.get(str(param.id)).get('SDN P01 ID'),uri=mapping.get(str(param.id)).get('SDN P01 URI'))
+                self.pandataset.params[pacronym].addSynonym('SD',mapping.get(str(param.id)).get('SDN P01 Name'),id=mapping.get(str(param.id)).get('SDN P01 ID'),uri=mapping.get(str(param.id)).get('SDN P01 URI'),unit=mapping.get(str(param.id)).get('SDN Unit Name'), unit_id=mapping.get(str(param.id)).get('SDN Unit URN') )
         
     def cleanParameterNames(self):
         tempparams ={}
@@ -65,37 +69,75 @@ class PanNetCDFExporter(PanExporter):
         self.pandataset.data.columns = self.pandataset.data.columns.str.replace(r'[\[\]]', '', regex=True)
         self.pandataset.data.columns = self.pandataset.data.columns.str.replace('(?![a-zA-Z0-9_]|{MUTF8})([^\x00-\x1F/\x7F-\xFF]|{MUTF8})', '_',regex=True)
 
+    def setSDNQCVariable(self, ncvarName, dims, nc):
+        ncVar = nc.createVariable(ncvarName, 'b', dims, fill_value='57')
+        ncVar.long_name = 'SeaDataNet quality flag'
+        ncVar.flag_values = ', '.join(map(str, self.pandataset.quality_flag_replace.values()))
+        ncVar.flag_meanings = ' '.join(self.pandataset.quality_flags.values())
+        ncVar.sdn_conventions_urn = 'SDN:L20::'
+        ncVar.Conventions = 'https://wiki.pangaea.de/wiki/Quality_flag'
+        return ncVar
+
     def setSDNVariablesAndValues(self, nc, dims):
-        self.cleanParameterNames()
+        var_coordinates =[]
+        eventCoords = self.pandataset.data.groupby(['Event']).min()
+        if 'Date_Time' in self.pandataset.params.keys():
+            ncVar = self.setSDNQCVariable('TIME_SEADATANET_QC', ['INSTANCE'], nc)
+            ncVar[:]=[9]*eventCoords['Date_Time'].size
+            var_coordinates.append('TIME')
         if 'Depth_water' in self.pandataset.data.columns:
             print('Depth available')
+            var_coordinates.append('DEPTH')
         elif 'Elevation' in self.pandataset.data.columns:
             print('Elevation available')
+        if 'Latitude' in self.pandataset.params.keys():
+            ncVar = self.setSDNQCVariable('POSITION_SEADATANET_QC', ['INSTANCE'], nc)
+            #ncVar = nc.createVariable('POSITION_SEADATANET_QC', 'b', ['INSTANCE'], fill_value='57')
+            ncVar[:]=[9]*eventCoords['Latitude'].size
+            var_coordinates.append('LATITUDE')
+        if 'Longitude' in self.pandataset.params.keys():
+            var_coordinates.append('LONGITUDE')
+
+        crsVar = nc.createVariable('crs', 'i')
+        crsVar.grid_mapping_name = "latitude_longitude"
+        crsVar.epsg_code = "EPSG:4326"
+        crsVar.semi_major_axis = 6378137.0
+        crsVar.inverse_flattening = 298.257223563
+        crsVar.assignValue(0)
+        self.cleanParameterNames()
+
         for ncvarName, p in self.pandataset.params.items():
             #ncvarName=re.sub(r'[\[\]]','',ncvarName)
             #ncvarName=re.sub('(?![a-zA-Z0-9_]|{MUTF8})([^\x00-\x1F/\x7F-\xFF]|{MUTF8})','_',ncvarName)
             if ncvarName not in list(nc.dimensions.keys()) and ncvarName!='Event':
-                if p.type=='numeric' or ncvarName=='Date_Time':
+                if p.type in ['qc','numeric'] or ncvarName=='Date_Time' or ncvarName.endswith(self.pandataset.qc_column_suffix):
                     try:
                         if not self.pandataset.data[ncvarName].isnull().all():
                             if nc.featureType=='profile':
                                 if ncvarName in ['Latitude','Longitude','Date_Time']:
-                                    eventCoords=self.pandataset.data.groupby(['Event']).min()
-                                    ncVar=nc.createVariable(ncvarName,'f4',['INSTANCE'])
                                     if ncvarName=='Latitude':
+                                        ncVar = nc.createVariable(ncvarName, 'f4', ['INSTANCE'])
                                         ncVar[:]=eventCoords['Latitude'].values
                                     elif ncvarName=='Longitude':
+                                        ncVar = nc.createVariable(ncvarName, 'f4', ['INSTANCE'])
                                         ncVar[:]=eventCoords['Longitude'].values
                                     elif ncvarName=='Date_Time':
+                                        ncVar = nc.createVariable(ncvarName, 'd', ['INSTANCE'])
                                         ncVar[:]=date2num(eventCoords['Date_Time'].dt.to_pydatetime(),units=self.time_units,calendar='standard')
                                 else:
                                     #make sure values to fill the nc var has the same shape (dimensions) as the variable
                                     dimshape=[]
                                     for dim in dims:
                                         dimshape.append(nc.dimensions[dim].size)
-                                    ncVar=nc.createVariable(ncvarName,'f4',dims)
-                                    ncValues =  np.reshape(self.pandataset.data[ncvarName].values, dimshape)
-                                    ncVar[:]=ncValues
+                                    if ncvarName.endswith(self.pandataset.qc_column_suffix):
+                                        ncVar = self.setSDNQCVariable(ncvarName, dims, nc)
+                                    else:
+                                        ncVar=nc.createVariable(ncvarName,'f4',dims)
+                                        ncVar.coordinates = ' '.join(var_coordinates)
+                                    if ncvarName+self.pandataset.qc_column_suffix in self.pandataset.data.columns:
+                                        ncVar.ancillary_variables =ncvarName+self.pandataset.qc_column_suffix
+                                    ncValues = np.reshape(self.pandataset.data[ncvarName].values, dimshape)
+                                    ncVar[:] = ncValues
                             elif nc.featureType=='timeSeries':
                                 ncVar=nc.createVariable(ncvarName,'f4',dims)
                                 if ncvarName=='Date_Time':
@@ -109,28 +151,50 @@ class PanNetCDFExporter(PanExporter):
                             if ncvarName=='Latitude':
                                 ncVar.units='degrees_north'
                                 ncVar.axis='Y'
+                                ncVar.sdn_uom_name = 'Degrees north'
+                                ncVar.sdn_uom_urn = 'SDN:P06::DEGN'
+                                ncVar.ancillary_variables = "POSITION_SEADATANET_QC"
+                                ncVar.grid_mapping = "crs"
                             if ncvarName=='Longitude':
                                 ncVar.units='degrees_east'
                                 ncVar.axis='X'
+                                ncVar.sdn_uom_name = 'Degrees east'
+                                ncVar.sdn_uom_urn = 'SDN:P06::DEGE'
+                                ncVar.ancillary_variables = "POSITION_SEADATANET_QC"
+                                ncVar.grid_mapping = "crs"
                             if ncvarName=='Depth_water':
                                 ncVar.axis='Z'
+                                ncVar.ancillary_variables = "DEPTH_SEADATANET_QC"
                             if ncvarName=='Date_Time':
+                                ncVar.sdn_uom_name = 'Days'
+                                ncVar.sdn_uom_urn = 'SDN:P06::UTAA'
                                 ncVar.axis='T'                              
                                 ncVar.units=self.time_units
+                                ncVar.long_name = 'Chronological Julian Date'
+                                ncVar.ancillary_variables = "TIME_SEADATANET_QC"
+                                ncVar.calendar='julian'
                             #Setting the units                                    
                             if p.synonym['CF'] != None:
-                                ncVar.standard_name=p.synonym['CF']['name']
-                                if isinstance(p.synonym['CF']['unit'], str) ==True and not hasattr(ncVar, 'units'):
-                                    p.unit=p.synonym['CF']['unit'] 
+                                if p.synonym['CF'].get('name'):
+                                    ncVar.standard_name=p.synonym['CF'].get('name')
+                                    if isinstance(p.synonym['CF']['unit'], str) ==True and not hasattr(ncVar, 'units'):
+                                        p.unit=p.synonym['CF']['unit']
                             if p.synonym['SD'] != None:
                                 ncVar.sdn_parameter_name=p.synonym['SD']['name']
                                 ncVar.sdn_parameter_urn=p.synonym['SD']['id']
-                            ncVar.long_name=p.name
+                            if not hasattr(ncVar,'long_name'):
+                                ncVar.long_name=p.name
                             if not hasattr(ncVar, 'units'):
                                 if p.unit!=None:
                                     ncVar.units=p.unit
+                                    if p.synonym.get('SD'):
+                                        if  p.synonym['SD'].get('unit'):
+                                            ncVar.sdn_uom_name = p.synonym['SD']['unit']
+                                            ncVar.sdn_uom_urn = p.synonym['SD']['unit_id']
                                 else:
-                                    ncVar.units='1' 
+                                    ncVar.units='1'
+                                    ncVar.sdn_uom_name = 'Dimensionless'
+                                    ncVar.sdn_uom_urn = 'SDN:P06:UUUU'
                         #cleaning and renaming mandatory variables
                         if 'Latitude' in nc.variables:
                             nc.renameVariable('Latitude','LATITUDE')
@@ -140,6 +204,8 @@ class PanNetCDFExporter(PanExporter):
                             nc.renameVariable('Date_Time','TIME')
                         if 'Depth_water' in nc.variables:
                             nc.renameVariable('Depth_water','DEPTH')
+                        if 'Depth_water'+self.pandataset.qc_column_suffix in nc.variables:
+                            nc.renameVariable('Depth_water'+self.pandataset.qc_column_suffix,'DEPTH'+self.pandataset.qc_column_suffix)
                                     
                     except Exception as e:  
                         print('NetCDF Variable creation failed for Param: '+ncvarName+', ERROR: '+str(e))
