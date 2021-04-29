@@ -364,6 +364,7 @@ class PanDataSet:
         self._geocodes={1599:'Date_Time',1600:'Latitude',1601:'Longitude',1619:'Depth water'}
         self.data =pd.DataFrame()
         self.title=None
+	self.moratorium=None
         self.citation=None
         self.year=None
         self.date=None
@@ -769,6 +770,8 @@ class PanDataSet:
                         self.isParent=True
                         self._setChildren()
                 self.title=xml.find("./md:citation/md:title", self.ns).text
+		if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns) != None:
+			self.moratorium=xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns).get('value')
                 self.year=xml.find("./md:citation/md:year", self.ns).text
                 self.date=xml.find("./md:citation/md:dateTime", self.ns).text
                 self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
