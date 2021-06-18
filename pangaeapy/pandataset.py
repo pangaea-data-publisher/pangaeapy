@@ -341,6 +341,12 @@ class PanDataSet:
         indicates if this dataset is a parent data set within a collection of child data sets
     children : list
         a list of DOIs of all child data sets in case the data set is a parent data set
+	moratorium : str
+		a label which provides the date until the dataset is under moratorium
+	datastatus : str
+		a label which provides the detail about the status of the dataset whether it is published or in review
+	registrystatus : str
+		a string which indicates the registration status of a dataset
     """
     def __init__(self, id=None,paramlist=None, deleteFlag='', addQC=False, QCsuffix = None, enable_cache=False, include_data=True):
         self.module_dir = os.path.dirname(os.path.dirname(__file__))
@@ -364,6 +370,9 @@ class PanDataSet:
         self._geocodes={1599:'Date_Time',1600:'Latitude',1601:'Longitude',1619:'Depth water'}
         self.data =pd.DataFrame()
         self.title=None
+        self.moratorium=None;
+        self.datastatus=None;
+        self.registrystatus=None;
         self.citation=None
         self.year=None
         self.date=None
@@ -769,6 +778,10 @@ class PanDataSet:
                         self.isParent=True
                         self._setChildren()
                 self.title=xml.find("./md:citation/md:title", self.ns).text
+                self.datastatus=xml.find('./md:technicalInfo/md:entry[@key="status"]',self.ns).get('value')
+                self.registrystatus=xml.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]',self.ns).get('value')
+                if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns) != None:
+                    self.moratorium=xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns).get('value')
                 self.year=xml.find("./md:citation/md:year", self.ns).text
                 self.date=xml.find("./md:citation/md:dateTime", self.ns).text
                 self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
