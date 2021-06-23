@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='pangaeapy',
-    version='0.0.4',
+    version='0.0.5',
     install_requires=['numpy','pandas','matplotlib','requests','netcdf4'],
     packages=['pangaeapy', 'pangaeapy.src', 'pangaeapy.src.exporter','pangaeapy.src.export', 'pangaeapy.src.mappings'],
     url='https://github.com/pangaea-data-publisher/pangaeapy',
