@@ -20,7 +20,7 @@ descr = """
 # Setup
 setuptools.setup(
     name="pangaeapy",
-    version="0.0.3",
+    version="0.0.4",
     author="PANGAEA® - Data Pub­lisher for Earth & En­vir­on­mental Sci­ence,Robert Huber,Markus Stocker,Egor Gordeev",
     author_email="rhuber@uni-bremen.de",
     description=descr,

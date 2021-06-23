@@ -712,7 +712,7 @@ class PanDataSet:
                 self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
             # --- Delete empty columns
             self.data=self.data.dropna(axis=1, how='all')
-            print(self.params.keys())
+            #print(self.params.keys())
             for paramcolumn in list(self.params.keys()):
                 if paramcolumn not in self.data.columns:
                     del self.params[paramcolumn]
