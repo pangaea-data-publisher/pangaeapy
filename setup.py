@@ -2,9 +2,11 @@ from setuptools import setup
 
 setup(
     name='pangaeapy',
-    version='0.0.5',
+    version='0.0.7',
     install_requires=['numpy','pandas','matplotlib','requests','netcdf4'],
-    packages=['pangaeapy', 'pangaeapy.src', 'pangaeapy.src.exporter','pangaeapy.src.export', 'pangaeapy.src.mappings'],
+    packages=['pangaeapy.src.data','pangaeapy.src.exporter','pangaeapy.src.export','pangaeapy.src.mappings'],
+    package_data={'pangaeapy.src.mappings': ['*.json'], 'pangaeapy.src.data':['*.csv']},
+    include_package_data=True,
     url='https://github.com/pangaea-data-publisher/pangaeapy',
     license='OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',
     author='Robert Huber',
