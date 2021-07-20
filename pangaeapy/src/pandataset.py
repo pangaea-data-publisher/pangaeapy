@@ -225,6 +225,8 @@ class PanParam:
         the unit of measurement used with this parameter (e.g. m/s, kg etc..)
     terms : dict
         a dictionary containing al related terms for this parameter structure:{term:id}
+    comment : str
+        an optional comment explaining some details of the parameter
 
     
     Attributes
@@ -248,11 +250,13 @@ class PanParam:
         the number format string given by PANGAEA e.g ##.000 which defines the displayed precision of the number
     terms : dict
         a dictionary containing al related terms for this parameter {term:id}
+    comment : str
+        an optional comment explaining some details of the parameter
         
     
     
     """
-    def __init__(self, id, name, shortName, param_type, source, unit=None, unit_id = None, format=None, terms =[]):
+    def __init__(self, id, name, shortName, param_type, source, unit=None, unit_id = None, format=None, terms =[], comment=None):
         self.id=id
         self.name=name
         self.shortName=shortName
@@ -265,6 +269,7 @@ class PanParam:
         self.unit_id = unit_id
         self.format=format
         self.terms =terms
+        self.comment = comment
 
     def addSynonym(self,ns, name, uri=None, id=None, unit=None, unit_id = None):
         """
@@ -320,7 +325,9 @@ class PanDataSet:
     citation : str
         the full citation of the dataset including e.g. author, year, title etc..
     params : list of PanParam
-        a list of all PanParam objects (the parameters) used in this dataset    
+        a list of all PanParam objects (the parameters) used in this dataset
+    parameters : list of PanParam
+        synonym for self.params
     events : list of PanEvent
         a list of all PanEvent objects (the events) used in this dataset
     projects : list of PanProject
@@ -356,6 +363,7 @@ class PanDataSet:
         self.uri='' #the doi
         self.isParent=False
         self.params=dict()
+        self.parameters = self.params
         self.defaultparams=['Latitude','Longitude','Event','Elevation','Date/Time']
         self.paramlist=paramlist
         self.paramlist_index=[]
@@ -577,16 +585,20 @@ class PanDataSet:
                 panparShortName='';
                 if(paramstr.find('md:shortName',self.ns) != None):
                     panparShortName=paramstr.find('md:shortName',self.ns).text
+                    panparIndex = panparShortName
                     #Rename duplicate column headers
                     if panparShortName in coln:
                         coln[panparShortName]+=1
-                        panparShortName=panparShortName+'_'+str(coln[panparShortName])
+                        panparIndex=panparShortName+'_'+str(coln[panparShortName])
                     else:
                         coln[panparShortName]=1
                 panparType=matrix.get('type')
                 panparUnit=None
                 if(paramstr.find('md:unit',self.ns)!=None):
-                    panparUnit=paramstr.find('md:unit',self.ns).text 
+                    panparUnit=paramstr.find('md:unit',self.ns).text
+                panparComment=None
+                if(matrix.find('md:comment',self.ns)!=None):
+                    panparComment=matrix.find('md:comment',self.ns).text
                 panparFormat=matrix.get('format')
                 if panparShortName=='Event':
                     self.eventInMatrix=True
@@ -602,7 +614,9 @@ class PanDataSet:
                         termid = int(self._getID(str(terminfo.get('id'))))
                         terminologyid = int(terminfo.get('terminologyId'))
                         termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid})
-                self.params[panparShortName]=PanParam(panparID,paramstr.find('md:name',self.ns).text,panparShortName,panparType,matrix.get('source'),panparUnit,panparFormat,termlist)
+
+                self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment)
+                self.parameters = self.params
                 if panparType=='geocode':
                     if panparShortName in panGeoCode:
                         self.allowNetCDF = False
@@ -896,6 +910,10 @@ class PanDataSet:
                 geotype='trajectoryProfile'
         return geotype
 
+
+    """
+            The method returns translates the parameter object list into a dictionary 
+    """
     def getParamDict(self):
         paramdict={'shortName':[],'name':[],'unit':[],'type':[],'format':[]}
         for param_key, param_value in self.params.items():
@@ -931,5 +949,19 @@ class PanDataSet:
 
 
     def to_netcdf(self, filelocation=None, type='sdn'):
+        """
+        This method creates a NetCDF file using PANGAEA data. It offers two different flavors: SeaDataNet NetCDF and an
+        experimental internal format using NetCDF 4 groups.
+        Currently the method only supports simple types such as timeseries and profiles.
+        The method created files are named as follows: [PANGAEA ID]_[type].cf
+
+        Parameters:
+        -----------
+        filelocation : str
+            Indicates the location (directory) where the NetCDF file will be saved
+        type : str
+            This parameter sets the NetCDF profile type. Allowed values are 'sdn' (SeaDataNet) and 'pan' (PANGAEA style)
+        """
+
         netcdfexporter = PanNetCDFExporter(self, filelocation,)
         netcdfexporter.create(style=type)
