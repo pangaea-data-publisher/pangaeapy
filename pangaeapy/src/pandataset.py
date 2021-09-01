@@ -54,9 +54,9 @@ class PanProject:
         self.URL=URL
         self.awardURI=awardURI
 		
-class PanLicense:
-	"""PANGAEA License Class
-	This class contains the license information for each dataset
+class PanLicence:
+	"""PANGAEA Licence Class
+	This class contains the licence information for each dataset
     """
 	
 	def __init__(self,label, name, URI=None):
@@ -350,6 +350,8 @@ class PanDataSet:
 		a label which provides the detail about the status of the dataset whether it is published or in review
 	registrystatus : str
 		a string which indicates the registration status of a dataset
+	licence : PanLicence
+	    a licence object, usually creative commons
     """
     def __init__(self, id=None,paramlist=None, deleteFlag='', addQC=False, QCsuffix = None, enable_cache=False, include_data=True):
         self.module_dir = os.path.dirname(os.path.dirname(__file__))
@@ -369,7 +371,7 @@ class PanDataSet:
         self.paramlist_index=[]
         self.events=[]
         self.projects=[]
-        self.licenses=[]
+        self.licence=None
         #allowed geocodes for netcdf generation which are used as xarray dimensions not needed in the moment
         self._geocodes={1599:'Date_Time',1600:'Latitude',1601:'Longitude',1619:'Depth water'}
         self.data =pd.DataFrame()
@@ -823,25 +825,27 @@ class PanDataSet:
                     URI=None
                     awardURI=None
                     if project.find("md:label", self.ns)!=None:
-                        label=project.find("md:label", self.ns)
+                        label=project.find("md:label", self.ns).text
                     if project.find("md:name", self.ns)!=None:
-                        name=project.find("md:name", self.ns)
+                        name=project.find("md:name", self.ns).text
                     if project.find("md:URI", self.ns)!=None:
-                        URI=project.find("md:URI", self.ns)
+                        URI=project.find("md:URI", self.ns).text
                     if project.find("md:award/md:URI", self.ns)!=None:
-                        awardURI=project.find("md:award/md:URI", self.ns)
+                        awardURI=project.find("md:award/md:URI", self.ns).text
                     self.projects.append(PanProject(label, name, URI, awardURI))
-                for license in xml.findall("./md:license",self.ns):
+                if xml.find("./md:license",self.ns) != None:
+                    license = xml.find("./md:license",self.ns)
                     label=None
                     name=None
                     URI=None
                     if license.find("md:label", self.ns)!=None:
-                        label=license.find("md:label", self.ns)
+                        label=license.find("md:label", self.ns).text
                     if license.find("md:name", self.ns)!=None:
-                        name=license.find("md:name", self.ns)
+                        name=license.find("md:name", self.ns).text
                     if license.find("md:URI", self.ns)!=None:
-                        URI=license.find("md:URI", self.ns)
-                    self.licenses.append(PanLicense(label, name, URI))
+                        URI=license.find("md:URI", self.ns).text
+                    self.licence = PanLicence(label, name, URI)
+
                 panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
                 self._setParameters(panXMLMatrixColumn)
                 panXMLEvents=xml.findall("./md:event", self.ns)
