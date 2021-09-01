@@ -318,6 +318,8 @@ class PanDataSet:
         The PANGAEA DOI
     title : str
         The title of the dataset
+    abstract: str
+        the abstract or summary of the dataset
     year : int
         The publication year of the dataset
     authors : list of PanAuthor
@@ -376,9 +378,10 @@ class PanDataSet:
         self._geocodes={1599:'Date_Time',1600:'Latitude',1601:'Longitude',1619:'Depth water'}
         self.data =pd.DataFrame()
         self.title=None
-        self.moratorium=None;
-        self.datastatus=None;
-        self.registrystatus=None;
+        self.abstract = None
+        self.moratorium=None
+        self.datastatus=None
+        self.registrystatus=None
         self.citation=None
         self.year=None
         self.date=None
@@ -387,7 +390,7 @@ class PanDataSet:
         self.topotype = None
         self.authors=[]
         self.error=None
-        self.loginstatus='unrestricted';
+        self.loginstatus='unrestricted'
         self.allowNetCDF=True        
         self.eventInMatrix=False
         self.deleteFlag=deleteFlag
@@ -790,6 +793,8 @@ class PanDataSet:
                         self.isParent=True
                         self._setChildren()
                 self.title=xml.find("./md:citation/md:title", self.ns).text
+                if xml.find("./md:abstract", self.ns)!=None:
+                    self.abstract = xml.find("./md:abstract", self.ns).text
                 self.datastatus=xml.find('./md:technicalInfo/md:entry[@key="status"]',self.ns).get('value')
                 self.registrystatus=xml.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]',self.ns).get('value')
                 if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns) != None:
