@@ -19,6 +19,7 @@ import os
 
 import pickle
 from pangaeapy.src.exporter.pan_netcdf_exporter import PanNetCDFExporter
+from pangaeapy.src.exporter.pan_frictionless_exporter import PanFrictionlessExporter
 
 class PanProject:
     """PANGAEA Project Class
@@ -315,6 +316,8 @@ class PanDataSet:
     id : str
         The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
     uri : str
+        The PANGAEA DOI (alternative label)
+    doi : str
         The PANGAEA DOI
     title : str
         The title of the dataset
@@ -364,7 +367,7 @@ class PanDataSet:
         #moddir = os.path.dirname(os.path.abspath(__file__))
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
         self.cache=enable_cache
-        self.uri='' #the doi
+        self.uri = self.doi = '' #the doi
         self.isParent=False
         self.params=dict()
         self.parameters = self.params
@@ -974,3 +977,21 @@ class PanDataSet:
 
         netcdfexporter = PanNetCDFExporter(self, filelocation,)
         netcdfexporter.create(style=type)
+
+    def to_frictionless(self, filelocation=None, compress = False):
+        """
+        This method creates a frictionless data package (https://specs.frictionlessdata.io/data-package) file using PANGAEA metadata and data.
+        A package will be saved as directory
+        The method created directories are named as follows: [PANGAEA ID]_frictionless
+
+        Parameters:
+        -----------
+        filelocation : str
+            Indicates the location (directory) where the NetCDF file will be saved
+        compress : Boolean
+            If the directory shall be zip compressed or not
+        """
+
+        frictionless_exporter = PanFrictionlessExporter(self, filelocation)
+        ret= frictionless_exporter.create()
+        return ret
