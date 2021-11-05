@@ -35,6 +35,9 @@ class PanProject:
         The project website
     awardURI : str
         The unique identifier of the award e.g. a CORDIS URI
+    id : int
+        internal project id
+
     
     
     Attributes
@@ -47,13 +50,16 @@ class PanProject:
         The project website
     awardURI : str
         The unique identifier of the award e.g. a CORDIS URI
+    id : int
+        internal project id
     
     """
-    def __init__(self,label, name,URL=None, awardURI=None):
+    def __init__(self,label, name,URL=None, awardURI=None, id=None):
         self.label=label
         self.name=name
         self.URL=URL
         self.awardURI=awardURI
+        self.id = id
 		
 class PanLicence:
 	"""PANGAEA Licence Class
@@ -77,6 +83,8 @@ class PanAuthor:
         The authors's last name
     ORCID : str
         The unique ORCID identifier assigned by orcid.org
+    id : int
+        The PANGAEA internal id
     
     Attributes
     ----------
@@ -88,12 +96,15 @@ class PanAuthor:
         Combination of lastname, firstname. This attribute is created by the constructor
     ORCID : str
         The unique ORCID identifier assigned by orcid.org
+    id : int
+        The PANGAEA internal id
     """
-    def __init__(self,lastname, firstname=None, orcid=None):
+    def __init__(self,lastname, firstname=None, orcid=None, id=None):
         self.lastname=lastname
         self.firstname=firstname
         self.fullname=self.lastname
         self.ORCID=orcid
+        self.id = id
         if firstname!=None and  firstname!='':
             self.fullname+=', '+self.firstname
 
@@ -826,7 +837,10 @@ class PanDataSet:
                         firstname=author.find("md:firstName", self.ns).text
                     if author.find("md:orcid", self.ns)!=None:
                         orcid=author.find("md:orcid", self.ns).text
-                    self.authors.append(PanAuthor(lastname, firstname,orcid))
+                    authorid=author.get('id')
+                    if authorid:
+                        authorid=int(authorid.replace('dataset.author',''))
+                    self.authors.append(PanAuthor(lastname, firstname,orcid,authorid))
                 for project in xml.findall("./md:project", self.ns):
                     label=None
                     name=None
@@ -840,7 +854,9 @@ class PanDataSet:
                         URI=project.find("md:URI", self.ns).text
                     if project.find("md:award/md:URI", self.ns)!=None:
                         awardURI=project.find("md:award/md:URI", self.ns).text
-                    self.projects.append(PanProject(label, name, URI, awardURI))
+                    if project.get('id'):
+                        projectid=str(project.get('id')).replace('project','')
+                    self.projects.append(PanProject(label, name, URI, awardURI,int(projectid)))
                 if xml.find("./md:license",self.ns) != None:
                     license = xml.find("./md:license",self.ns)
                     label=None
