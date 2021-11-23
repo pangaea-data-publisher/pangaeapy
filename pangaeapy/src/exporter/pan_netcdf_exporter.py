@@ -12,6 +12,7 @@ import pandas as pd
 import re
 import numpy as np
 import sys
+import os
 
 from pangaeapy.src.exporter.pan_exporter import PanExporter
 
@@ -43,9 +44,9 @@ class PanNetCDFExporter(PanExporter):
         except Exception as e:
             print('NetCDF main variables creation failed '+str(e))
                       
-    def setParameterSynonyms(self, mappingfile='\mappings\pan_mappings.json'):
+    def setParameterSynonyms(self, mappingfile=['mappings','pan_mappings.json']):
         print('Trying to set synonyms and standard names')
-        with open(self.module_dir+mappingfile, 'r') as mappingjson:
+        with open(os.path.join(self.module_dir,*mappingfile), 'r') as mappingjson:
             mapping = json.load(mappingjson)
         #mapping=pd.read_csv(mappingfile,delimiter='\t',index_col='PANGAEA ID')
         for pacronym, param in self.pandataset.params.items():
