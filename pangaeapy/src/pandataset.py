@@ -7,7 +7,9 @@ Created on Tue Aug 21 13:31:30 2018
 @author: Egor Gordeev
 @author: Aarthi Balamurugan
 """
+import json
 import time
+from collections import OrderedDict
 
 import requests
 import pandas as pd
@@ -239,6 +241,10 @@ class PanParam:
         a dictionary containing al related terms for this parameter structure:{term:id}
     comment : str
         an optional comment explaining some details of the parameter
+    PI : dict
+        the responsible PI name of the parameter
+    dataseries : int
+        the dataseries (column id)
 
     
     Attributes
@@ -264,11 +270,15 @@ class PanParam:
         a dictionary containing al related terms for this parameter {term:id}
     comment : str
         an optional comment explaining some details of the parameter
+    PI : dict
+        the responsible PI name of the parameter
+    dataseries : int
+        the dataseries (column id)
         
     
     
     """
-    def __init__(self, id, name, shortName, param_type, source, unit=None, unit_id = None, format=None, terms =[], comment=None):
+    def __init__(self, id, name, shortName, param_type, source, unit=None, unit_id = None, format=None, terms =[], comment=None, PI = dict(), dataseries = None):
         self.id=id
         self.name=name
         self.shortName=shortName
@@ -282,6 +292,8 @@ class PanParam:
         self.format=format
         self.terms =terms
         self.comment = comment
+        self.PI = PI
+        self.dataseries = dataseries
 
     def addSynonym(self,ns, name, uri=None, id=None, unit=None, unit_id = None):
         """
@@ -321,6 +333,8 @@ class PanDataSet:
         If set to True, PanDataSet objects are cached as pickle files on the local home directory within a directory called 'pangaeapy_cache' in order to avoid unnecessary downloads.
     include_data : boolean
         determines if data table is downloaded and added to the self.data dataframe. If you are interested in metadata only set this to False
+    expand_terms : boolean
+        indicates if found ontology terms for parameters shall be expanded, i.p. add their hierarchy terms / classification
         
     Attributes
     ----------
@@ -369,8 +383,9 @@ class PanDataSet:
 	licence : PanLicence
 	    a licence object, usually creative commons
     """
-    def __init__(self, id=None,paramlist=None, deleteFlag='', addQC=False, QCsuffix = None, enable_cache=False, include_data=True):
+    def __init__(self, id=None,paramlist=None, deleteFlag='', addQC=False, QCsuffix = None, enable_cache=False, include_data=True, expand_terms=False):
         self.module_dir = os.path.dirname(os.path.dirname(__file__))
+        self.id = None
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
         self.setID(id)
         self.ns= {'md':'http://www.pangaea.de/MetaData'}        
@@ -411,6 +426,8 @@ class PanDataSet:
         self.children=[]
         self.include_data=include_data
         self.qc_column_suffix='_QC'
+        self.expand_terms = expand_terms
+        self.lastupdate = None
         if QCsuffix:
             self.qc_column_suffix = QCsuffix
         #no symbol = valid(default)
@@ -423,15 +440,24 @@ class PanDataSet:
         self.quality_flag_replace={'ok':0,'?':1,'/':2,'*':3}
         if self.id != None:
             gotData=False
+            #setting up the chache directory in the users home folder
+            homedir = os.path.expanduser("~")
+            self.cachedir = os.path.join(homedir,'pangaeapy_cache')
+            if not os.path.exists(self.cachedir):
+                os.makedirs(self.cachedir)
+
             if self.cache==True:
                 print('Caching activated..trying to load data and metadata from cache')
                 gotData=self.from_pickle()
+            else:
+                #delete existing cache
+                self.drop_pickle()
             if not gotData:        
                 #print('trying to load data and metadata from PANGAEA')
                 self.setMetadata()
-                self.defaultparams=[s for s in self.defaultparams if s in self.params.keys()]            
                 if self.loginstatus=='unrestricted' and self.isParent!=True:
                     self.setData(addQC=addQC)
+                    self.defaultparams = [s for s in self.defaultparams if s in self.params.keys()]
                     if self.paramlist!=None:
                         if  len(self.paramlist)!=len(self.paramlist_index):
                             print('PROBLEM: '+self.error)
@@ -439,25 +465,20 @@ class PanDataSet:
                        self.to_pickle() 
                 else:
                     print('PROBLEM: '+self.error)
+
+    def drop_pickle(self):
+        if os.path.exists(os.path.join(self.cachedir ,str(self.id)+'_data.pik')):
+            os.remove(os.path.join(self.cachedir ,str(self.id)+'_data.pik'))
                 
-                
-    def from_pickle(self, cachedir=''):
+    def from_pickle(self):
         """
         Reads a PanDataSet object from a pickle file
-        
-        Parameters
-        ----------
-        cachedir : str
-            the name of the directory
-        """
-        home = os.path.expanduser("~")
-        ret=False
-        if cachedir=='':
-            cachedir=home+'/'+'pangaeapy_cache'
 
-        if os.path.exists(cachedir+'/'+str(self.id)+'_data.pik'):
+        """
+        ret=False
+        if os.path.exists(os.path.join(self.cachedir ,str(self.id)+'_data.pik')):
             try:
-                f = open(cachedir+'/'+str(self.id)+'_data.pik', 'rb')
+                f = open(os.path.join(self.cachedir ,str(self.id)+'_data.pik'), 'rb')
                 tmp_dict = pickle.load(f)
                 f.close()         
                 self.__dict__.update(tmp_dict)
@@ -470,21 +491,13 @@ class PanDataSet:
             ret=False
         return ret
                 
-    def to_pickle(self,cachedir=''):
+    def to_pickle(self):
         """
         Writes a PanDataSet object to a pickle file
-        
-        Parameters
-        ----------
-        cachedir : str
-            the name of the directory
+
         """
-        home = os.path.expanduser("~")
-        if cachedir=='':
-            cachedir=home+'/'+'pangaeapy_cache'
-        if not os.path.exists(cachedir):
-            os.makedirs(cachedir)
-        f = open(cachedir+'/'+str(self.id)+'_data.pik', 'wb')
+
+        f = open(os.path.join(self.cachedir ,str(self.id)+'_data.pik'), 'wb')
         pickle.dump(self.__dict__, f, 2)
         f.close()
         
@@ -500,29 +513,28 @@ class PanDataSet:
         if type(id) == int:
             self.id = id
         else:
-            idmatch = re.search(r'10\.1594\/PANGAEA\.([0-9]+)$', id)
+            idmatch = re.search(r'10\.1594\/PANGAEA\.([0-9]+)$', id,re.IGNORECASE)
             if idmatch is not None:
                 self.id = idmatch[1]
             else:
                 print('Invalid Identifier')
 
-    
-            
-    def _getID(self,panparidstr):
-        panparidstr=panparidstr[panparidstr.rfind('.')+1:]
-        panparId=re.match(r"([a-z]+)([0-9]+)",panparidstr)
-        if panparId:
-            return panparId.group(2)
-        else:
-            return False
-        
+
+    def _getIDParts(self, idstr):
+        #returns dict extracted from panmd id strings e.g
+        #col13.ds10866878.param7387
+        ret = dict()
+        if isinstance(idstr, str):
+            idmatches = re.findall(r"([a-z]+)([0-9]+)", idstr)
+            if idmatches:
+                ret = dict(idmatches)
+        return ret
     
     def _setEvents(self, panXMLEvents):
         """
         Initializes the list of Events from a metadata XML file for a given pangaea dataset. 
         """
         for event in panXMLEvents:
-
             eventElevation=eventDateTime=eventDateTime2 = None
             eventDevice=eventLabel=eventBasis = None
             campaign_name= campaign_URI=campaign_start=campaign_end = None
@@ -593,14 +605,21 @@ class PanDataSet:
         """
         Initializes the list of parameter objects from the metadata XML info
         """
+        expandedTerms=dict()
         coln=dict()
         if panXMLMatrixColumn!=None:
             panGeoCode=[]
             for matrix in panXMLMatrixColumn:  
                 panparCFName=None
                 paramstr=matrix.find("md:parameter", self.ns)
-                panparID=int(self._getID(str(paramstr.get('id'))))  
-
+                #panparID=int(self._getID(str(paramstr.get('id'))))
+                paramidparts = self._getIDParts(str(paramstr.get('id')))
+                panparID = None
+                dataseriesID = None
+                if paramidparts.get('param'):
+                    panparID = int(paramidparts.get('param'))
+                if paramidparts.get('ds'):
+                    dataseriesID = int(paramidparts.get('ds'))
                 panparShortName='';
                 if(paramstr.find('md:shortName',self.ns) != None):
                     panparShortName=paramstr.find('md:shortName',self.ns).text
@@ -618,6 +637,13 @@ class PanDataSet:
                 panparComment=None
                 if(matrix.find('md:comment',self.ns)!=None):
                     panparComment=matrix.find('md:comment',self.ns).text
+                panparPI = None
+                panparPI_firstname,panparPI_lastname = None, None
+                if(matrix.find('md:PI', self.ns) != None):
+                    if(matrix.find('md:PI/md:firstName', self.ns) !=None):
+                        panparPI_firstname= matrix.find('md:PI/md:firstName', self.ns).text
+                    panparPI_lastname = matrix.find('md:PI/md:lastName', self.ns).text
+                    panparPI = ', '.join(filter(None, [panparPI_lastname,panparPI_firstname]))
                 panparFormat=matrix.get('format')
                 if panparShortName=='Event':
                     self.eventInMatrix=True
@@ -630,11 +656,39 @@ class PanDataSet:
                     termname = None
                     if terminfo.find("md:name", self.ns) != None:
                         termname = terminfo.find("md:name", self.ns).text
-                        termid = int(self._getID(str(terminfo.get('id'))))
+                        termidparts = self._getIDParts(str(terminfo.get('id')))
+                        if termidparts.get('term'):
+                            termid = int(termidparts.get('term'))
                         terminologyid = int(terminfo.get('terminologyId'))
-                        termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid})
-
-                self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment)
+                        if self.expand_terms:
+                            if isinstance(termid,int):
+                                if termid not in expandedTerms:
+                                    try:
+                                        termr = requests.get('https://ws.pangaea.de/es/pangaea-terms/term/'+str(termid))
+                                        termJSON = termr.json()
+                                        if termJSON.get('_source'):
+                                            expandedTerms[termid] = []
+                                            if termJSON['_source'].get('main_topics'):
+                                                if isinstance(termJSON['_source'].get('main_topics'), list):
+                                                    expandedTerms[termid].extend(termJSON['_source'].get('main_topics'))
+                                                else:
+                                                    expandedTerms[termid].append(termJSON['_source'].get('main_topics'))
+                                            if termJSON['_source'].get('topics'):
+                                                if isinstance( termJSON['_source'].get('topics'), list):
+                                                    expandedTerms[termid].extend(termJSON['_source'].get('topics'))
+                                                else:
+                                                    expandedTerms[termid].append(termJSON['_source'].get('topics'))
+                                    except Exception as e:
+                                        print('Failed loading and parsing PANGAEA Term JSON: '+str(e))
+                        if self.expand_terms:
+                            if expandedTerms.get(termid):
+                                classification =expandedTerms.get(termid)
+                            else:
+                                classification = []
+                            termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid,'classification':classification})
+                        else:
+                            termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid})
+                self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID)
                 self.parameters = self.params
                 if panparType=='geocode':
                     if panparShortName in panGeoCode:
@@ -720,8 +774,7 @@ class PanDataSet:
                         if 'Date/Time' not in self.data.columns:
                             self.data['Date/Time']=np.nan
                             self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','numeric','geocode','')
-                            
-                        for iev,pevent in enumerate(self.events): 
+                        for iev,pevent in enumerate(self.events):
                             if pevent.latitude is not None and addEvLat==True:
                                 self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isnull()),['Latitude']]=self.events[iev].latitude
                             if pevent.longitude is not None and addEvLon:
@@ -730,7 +783,6 @@ class PanDataSet:
                                 self.data.loc[(self.data['Event']== pevent.label) & (self.data['Elevation'].isnull()),['Elevation']]=self.events[iev].elevation
                             if pevent.datetime is not None and addEvDat:
                                 self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isnull()),['Date/Time']]=self.events[iev].datetime
-    
             # -- delete values with given QC flags
             if self.deleteFlag!='':
                 if self.deleteFlag=='?' or self.deleteFlag=='*':
@@ -741,13 +793,12 @@ class PanDataSet:
                 self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
             # --- Delete empty columns
             self.data=self.data.dropna(axis=1, how='all')
-            #print(self.params.keys())
+
             for paramcolumn in list(self.params.keys()):
                 if paramcolumn not in self.data.columns:
                     del self.params[paramcolumn]
             # --- add QC columns
                 elif addQC==True:
-                    print(paramcolumn,self.params[paramcolumn].type)
                     #if self.params[paramcolumn].type=='numeric' and (self.params[paramcolumn].source =='data' or paramcolumn=='Depth water'):
                     if self.params[paramcolumn].type in['numeric','datetime']:
                         self.data[[paramcolumn + self.qc_column_suffix,paramcolumn]]=self.data[paramcolumn].astype(str).str.extract(r'(^[\*/\?])?(.+)')
@@ -759,7 +810,6 @@ class PanDataSet:
                             #geocodeqc
                             ptype ='gqc'
                         self.params[paramcolumn + self.qc_column_suffix] = PanParam(self.params[paramcolumn].id+1000000000,self.params[paramcolumn].name + self.qc_column_suffix,self.params[paramcolumn].shortName + self.qc_column_suffix, source='pangaeapy',param_type=ptype)
-
             # --- Adjust Column Data Types
             self.data = self.data.apply(pd.to_numeric, errors='ignore')
             if 'Date/Time' in self.data.columns:
@@ -799,7 +849,9 @@ class PanDataSet:
                 xml = ET.fromstring(xmlText)
                 self.loginstatus=xml.find('./md:technicalInfo/md:entry[@key="loginOption"]',self.ns).get('value')
                 if self.loginstatus!='unrestricted':
-                    self.error='Data set is protected'                
+                    self.error='Data set is protected'
+                if xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns)!= None:
+                    self.lastupdate = xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns).get('value')
                 hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
                 if hierarchyLevel!=None:
                     if hierarchyLevel.get('value')=='parent':
@@ -815,6 +867,8 @@ class PanDataSet:
                     self.moratorium=xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns).get('value')
                 self.year=xml.find("./md:citation/md:year", self.ns).text
                 self.date=xml.find("./md:citation/md:dateTime", self.ns).text
+                if self.lastupdate == None:
+                    self.lastupdate = self.date
                 self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
                 #extent
                 if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns)!=None:
