@@ -5,10 +5,9 @@ import os
 import json
 
 class PanFrictionlessExporter(PanExporter):
-
-    def create_csv(self, filelocation=None):
+    def create_csv(self):
         print(self.pandataset.data.head())
-        csv = self.pandataset.data.to_csv(filelocation+'\\data.csv', index=False)
+        csv = self.pandataset.data.to_csv(os.path.join(self.filelocation,+'data.csv'), index=False)
         print(csv)
 
     def create_tableschema_json(self):
@@ -30,7 +29,7 @@ class PanFrictionlessExporter(PanExporter):
             schema['fields'].append(field)
         return schema
 
-    def create_package_json(self, filelocation=None):
+    def create_package_json(self):
         panauthors = []
         for author in self.pandataset.authors:
             panauthors.append({'title': author.firstname + ' ' + author.lastname, 'role': 'author'})
@@ -54,7 +53,7 @@ class PanFrictionlessExporter(PanExporter):
         package['resources'] =resources
 
 
-        with open(filelocation+'\\package.json', 'w') as fp:
+        with open(os.path.join(self.filelocation,'package.json'), 'w') as fp:
             json.dump(package,fp)
         print(package)
 
@@ -62,8 +61,7 @@ class PanFrictionlessExporter(PanExporter):
         ret = False
         if not self.pandataset.isParent:
             if self.pandataset.loginstatus == 'unrestricted':
-
-                frictionless_folder = self.filelocation + '\\frictionless'+str(self.pandataset.id)
+                frictionless_folder = os.path.join(self.filelocation,'frictionless'+str(self.pandataset.id))
                 if os.path.exists(frictionless_folder):
                     shutil.rmtree(frictionless_folder)
                 os.makedirs(frictionless_folder)

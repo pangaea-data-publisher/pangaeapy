@@ -6,6 +6,7 @@ Created on Wed Sep  5 14:58:00 2018
 """
 import json
 import linecache
+from io import BytesIO
 
 from netCDF4 import date2num, Dataset,stringtochar
 import pandas as pd
@@ -315,8 +316,9 @@ class PanNetCDFExporter(PanExporter):
     def createPANNetCDF(self):
         dim=dict()
         nc = None
+        in_memory_cf = BytesIO()
         try:
-            nc = Dataset(self.filelocation+'\\nc'+str(self.pandataset.id)+'_pan.nc','w',format='NETCDF4')
+            nc = Dataset(self.filelocation+'\\nc'+str(self.pandataset.id)+'_pan.nc','w',diskless=True, format='NETCDF4')
             self.cleanParameterNames()
             self.setMainVariables(nc)
             ##### PANGAEA STYLE ######

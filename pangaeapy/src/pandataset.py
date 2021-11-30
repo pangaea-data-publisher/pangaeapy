@@ -14,7 +14,7 @@ from collections import OrderedDict
 import requests
 import pandas as pd
 import numpy as np
-import xml.etree.ElementTree as ET
+import lxml.etree as ET
 import re
 import io
 import os
@@ -22,7 +22,7 @@ import os
 import pickle
 from pangaeapy.src.exporter.pan_netcdf_exporter import PanNetCDFExporter
 from pangaeapy.src.exporter.pan_frictionless_exporter import PanFrictionlessExporter
-
+from pangaeapy.src.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
 class PanProject:
     """PANGAEA Project Class
     This class creates objects which contain the project context information for each dataset
@@ -245,6 +245,9 @@ class PanParam:
         the responsible PI name of the parameter
     dataseries : int
         the dataseries (column id)
+    colno : int
+        the column number
+
 
     
     Attributes
@@ -274,11 +277,13 @@ class PanParam:
         the responsible PI name of the parameter
     dataseries : int
         the dataseries (column id)
+    colno : int
+        the column number
         
     
     
     """
-    def __init__(self, id, name, shortName, param_type, source, unit=None, unit_id = None, format=None, terms =[], comment=None, PI = dict(), dataseries = None):
+    def __init__(self, id, name, shortName, param_type, source, unit=None, unit_id = None, format=None, terms =[], comment=None, PI = dict(), dataseries = None, colno = None):
         self.id=id
         self.name=name
         self.shortName=shortName
@@ -294,6 +299,7 @@ class PanParam:
         self.comment = comment
         self.PI = PI
         self.dataseries = dataseries
+        self.colno = colno
 
     def addSynonym(self,ns, name, uri=None, id=None, unit=None, unit_id = None):
         """
@@ -377,7 +383,7 @@ class PanDataSet:
 	moratorium : str
 		a label which provides the date until the dataset is under moratorium
 	datastatus : str
-		a label which provides the detail about the status of the dataset whether it is published or in review
+		a label which provides the detail about the status of the dataset whether it is published or in review or deleted
 	registrystatus : str
 		a string which indicates the registration status of a dataset
 	licence : PanLicence
@@ -386,6 +392,7 @@ class PanDataSet:
     def __init__(self, id=None,paramlist=None, deleteFlag='', addQC=False, QCsuffix = None, enable_cache=False, include_data=True, expand_terms=False):
         self.module_dir = os.path.dirname(os.path.dirname(__file__))
         self.id = None
+        self.logging = []
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
         self.setID(id)
         self.ns= {'md':'http://www.pangaea.de/MetaData'}        
@@ -418,7 +425,8 @@ class PanDataSet:
         self.maxtimeextent=None
         self.topotype = None
         self.authors=[]
-        self.error=None
+        #replacing error list
+
         self.loginstatus='unrestricted'
         self.allowNetCDF=True        
         self.eventInMatrix=False
@@ -428,6 +436,7 @@ class PanDataSet:
         self.qc_column_suffix='_QC'
         self.expand_terms = expand_terms
         self.lastupdate = None
+        self.metaxml = None
         if QCsuffix:
             self.qc_column_suffix = QCsuffix
         #no symbol = valid(default)
@@ -460,11 +469,13 @@ class PanDataSet:
                     self.defaultparams = [s for s in self.defaultparams if s in self.params.keys()]
                     if self.paramlist!=None:
                         if  len(self.paramlist)!=len(self.paramlist_index):
-                            print('PROBLEM: '+self.error)
+                            self.logging.append({'WARNING':'Inconsistent number of detected parameters, expected: '+str(len(self.paramlist))+' vs '+str(len(self.paramlist_index))})
                     if self.cache==True:
                        self.to_pickle() 
                 else:
-                    print('PROBLEM: '+self.error)
+                    self.logging.append({'WARNING':'Dataset is either restricted or of type "parent"'})
+        else:
+            self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
 
     def drop_pickle(self):
         if os.path.exists(os.path.join(self.cachedir ,str(self.id)+'_data.pik')):
@@ -517,6 +528,7 @@ class PanDataSet:
             if idmatch is not None:
                 self.id = idmatch[1]
             else:
+                self.logging.append({'ERROR': 'Invalid Identifier or DOI: '+str(id)})
                 print('Invalid Identifier')
 
 
@@ -611,6 +623,7 @@ class PanDataSet:
             panGeoCode=[]
             for matrix in panXMLMatrixColumn:  
                 panparCFName=None
+                colno = matrix.get('col')
                 paramstr=matrix.find("md:parameter", self.ns)
                 #panparID=int(self._getID(str(paramstr.get('id'))))
                 paramidparts = self._getIDParts(str(paramstr.get('id')))
@@ -618,6 +631,8 @@ class PanDataSet:
                 dataseriesID = None
                 if paramidparts.get('param'):
                     panparID = int(paramidparts.get('param'))
+                elif paramidparts.get('geocode'):
+                    panparID = int(paramidparts.get('geocode'))
                 if paramidparts.get('ds'):
                     dataseriesID = int(paramidparts.get('ds'))
                 panparShortName='';
@@ -679,7 +694,8 @@ class PanDataSet:
                                                 else:
                                                     expandedTerms[termid].append(termJSON['_source'].get('topics'))
                                     except Exception as e:
-                                        print('Failed loading and parsing PANGAEA Term JSON: '+str(e))
+                                        self.logging.append({'WARNING':'Failed loading and parsing PANGAEA Term JSON: '+str(e)})
+                                        #print('Failed loading and parsing PANGAEA Term JSON: '+str(e))
                         if self.expand_terms:
                             if expandedTerms.get(termid):
                                 classification =expandedTerms.get(termid)
@@ -688,13 +704,12 @@ class PanDataSet:
                             termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid,'classification':classification})
                         else:
                             termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid})
-                self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID)
+                self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID, colno = colno)
                 self.parameters = self.params
                 if panparType=='geocode':
                     if panparShortName in panGeoCode:
                         self.allowNetCDF = False
-                        self.error = 'Data set contains duplicate Geocodes'
-                        print(self.error)
+                        self.logging.append({'WARNING': 'Data set contains duplicate Geocodes'})
                     else:
                         panGeoCode.append(panparShortName)
 
@@ -739,7 +754,7 @@ class PanDataSet:
                         self.paramlist_index.append(iter)
                     iter+=1
             if len(self.paramlist)!=len(self.paramlist_index):
-                self.error="Error entering parameters`short names!"
+                self.logging.append({'WARNING': 'Error entering parameters`short names, inconsitent number of parameters'})
         else:
             self.paramlist_index=None
         if self.include_data==True:
@@ -772,6 +787,7 @@ class PanDataSet:
                             self.data['Elevation']=np.nan
                             self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','geocode','m')
                         if 'Date/Time' not in self.data.columns:
+                            addEvDat=True
                             self.data['Date/Time']=np.nan
                             self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','numeric','geocode','')
                         for iev,pevent in enumerate(self.events):
@@ -820,17 +836,20 @@ class PanDataSet:
         r=requests.get(citationURL)
         if r.status_code!=404:
             self.citation=r.text
+        else:
+            self.logging.append({'WARNING':'Could not retrieve citation info from PANGAEA'})
         
     def setMetadata(self):
         """
         The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
         
         """
-        self._setCitation()
         metaDataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=metainfo_xml"
         #metaDataURL="https://ws.pangaea.de/es/pangaea/panmd/"+str(self.id)
         r=requests.get(metaDataURL)
         if r.status_code==429:
+            self.logging.append({'WARNING':'Received too many requests error (429)...'})
+
             print('Received too many requests error (429)...')
             sleeptime = 1
             if r.headers.get('retry-after'):
@@ -840,99 +859,112 @@ class PanDataSet:
                 sleeptime=1
             time.sleep(int(sleeptime))
             r = requests.get(metaDataURL)
+            self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
+
             print('After repeating request, got status code: '+str(r.status_code))
 
         if r.status_code!=404:
             try:
                 r.raise_for_status()
                 xmlText=r.text
-                xml = ET.fromstring(xmlText)
-                self.loginstatus=xml.find('./md:technicalInfo/md:entry[@key="loginOption"]',self.ns).get('value')
-                if self.loginstatus!='unrestricted':
-                    self.error='Data set is protected'
-                if xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns)!= None:
-                    self.lastupdate = xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns).get('value')
-                hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
-                if hierarchyLevel!=None:
-                    if hierarchyLevel.get('value')=='parent':
-                        self.error='Data set is of type parent, please select one of its child datasets'
-                        self.isParent=True
-                        self._setChildren()
-                self.title=xml.find("./md:citation/md:title", self.ns).text
-                if xml.find("./md:abstract", self.ns)!=None:
-                    self.abstract = xml.find("./md:abstract", self.ns).text
-                self.datastatus=xml.find('./md:technicalInfo/md:entry[@key="status"]',self.ns).get('value')
-                self.registrystatus=xml.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]',self.ns).get('value')
-                if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns) != None:
-                    self.moratorium=xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns).get('value')
-                self.year=xml.find("./md:citation/md:year", self.ns).text
-                self.date=xml.find("./md:citation/md:dateTime", self.ns).text
-                if self.lastupdate == None:
-                    self.lastupdate = self.date
-                self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
-                #extent
-                if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns)!=None:
-                    self.mintimeextent=xml.find("./md:extent/md:temporal/md:minDateTime", self.ns).text
-                if xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns)!=None:
-                    self.maxtimeextent=xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns).text
-                
-                topotypeEl=xml.find("./md:extent/md:topoType", self.ns)
-                if topotypeEl!=None:
-                    self.topotype=topotypeEl.text
-                else:
-                    self.topotype=None
-                for author in xml.findall("./md:citation/md:author", self.ns):
-                    lastname=None
-                    firstname=None
-                    orcid=None
-                    if author.find("md:lastName", self.ns)!=None:
-                        lastname=author.find("md:lastName", self.ns).text
-                    if author.find("md:firstName", self.ns)!=None:
-                        firstname=author.find("md:firstName", self.ns).text
-                    if author.find("md:orcid", self.ns)!=None:
-                        orcid=author.find("md:orcid", self.ns).text
-                    authorid=author.get('id')
-                    if authorid:
-                        authorid=int(authorid.replace('dataset.author',''))
-                    self.authors.append(PanAuthor(lastname, firstname,orcid,authorid))
-                for project in xml.findall("./md:project", self.ns):
-                    label=None
-                    name=None
-                    URI=None
-                    awardURI=None
-                    if project.find("md:label", self.ns)!=None:
-                        label=project.find("md:label", self.ns).text
-                    if project.find("md:name", self.ns)!=None:
-                        name=project.find("md:name", self.ns).text
-                    if project.find("md:URI", self.ns)!=None:
-                        URI=project.find("md:URI", self.ns).text
-                    if project.find("md:award/md:URI", self.ns)!=None:
-                        awardURI=project.find("md:award/md:URI", self.ns).text
-                    if project.get('id'):
-                        projectid=str(project.get('id')).replace('project','')
-                    self.projects.append(PanProject(label, name, URI, awardURI,int(projectid)))
-                if xml.find("./md:license",self.ns) != None:
-                    license = xml.find("./md:license",self.ns)
-                    label=None
-                    name=None
-                    URI=None
-                    if license.find("md:label", self.ns)!=None:
-                        label=license.find("md:label", self.ns).text
-                    if license.find("md:name", self.ns)!=None:
-                        name=license.find("md:name", self.ns).text
-                    if license.find("md:URI", self.ns)!=None:
-                        URI=license.find("md:URI", self.ns).text
-                    self.licence = PanLicence(label, name, URI)
+                self.metaxml =xmlText
+                xml = ET.fromstring(xmlText.encode())
+                #dataset_status = None
+                if xml.find('./md:technicalInfo/md:entry[@key="status"]',self.ns) is not None:
+                    self.datastatus = xml.find('./md:technicalInfo/md:entry[@key="status"]',self.ns).get('value')
+                if self.datastatus not in['deleted', None]:
+                    self.loginstatus=xml.find('./md:technicalInfo/md:entry[@key="loginOption"]',self.ns).get('value')
+                    if self.loginstatus!='unrestricted':
+                        self.logging.append({'WARNING': 'Data set is protected'})
+                    if xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns)!= None:
+                        self.lastupdate = xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns).get('value')
+                    hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
+                    if hierarchyLevel!=None:
+                        if hierarchyLevel.get('value')=='parent':
+                            self.logging.append({'WARNING':'Data set is of type parent, please select one of its child datasets'})
+                            self.isParent=True
+                            self._setChildren()
+                    self.title=xml.find("./md:citation/md:title", self.ns).text
+                    if xml.find("./md:abstract", self.ns)!=None:
+                        self.abstract = xml.find("./md:abstract", self.ns).text
+                    self.registrystatus=xml.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]',self.ns).get('value')
+                    if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns) != None:
+                        self.moratorium=xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns).get('value')
+                    self.year=xml.find("./md:citation/md:year", self.ns).text
+                    self.date=xml.find("./md:citation/md:dateTime", self.ns).text
+                    if self.lastupdate == None:
+                        self.lastupdate = self.date
+                    self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
+                    #extent
+                    if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns)!=None:
+                        self.mintimeextent=xml.find("./md:extent/md:temporal/md:minDateTime", self.ns).text
+                    if xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns)!=None:
+                        self.maxtimeextent=xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns).text
 
-                panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
-                self._setParameters(panXMLMatrixColumn)
-                panXMLEvents=xml.findall("./md:event", self.ns)
-                self._setEvents(panXMLEvents)
+                    topotypeEl=xml.find("./md:extent/md:topoType", self.ns)
+                    if topotypeEl!=None:
+                        self.topotype=topotypeEl.text
+                    else:
+                        self.topotype=None
+                    for author in xml.findall("./md:citation/md:author", self.ns):
+                        lastname=None
+                        firstname=None
+                        orcid=None
+                        if author.find("md:lastName", self.ns)!=None:
+                            lastname=author.find("md:lastName", self.ns).text
+                        if author.find("md:firstName", self.ns)!=None:
+                            firstname=author.find("md:firstName", self.ns).text
+                        if author.find("md:orcid", self.ns)!=None:
+                            orcid=author.find("md:orcid", self.ns).text
+                        authorid=author.get('id')
+                        if authorid:
+                            authorid=int(authorid.replace('dataset.author',''))
+                        self.authors.append(PanAuthor(lastname, firstname,orcid,authorid))
+                    for project in xml.findall("./md:project", self.ns):
+                        label=None
+                        name=None
+                        URI=None
+                        awardURI=None
+                        if project.find("md:label", self.ns)!=None:
+                            label=project.find("md:label", self.ns).text
+                        if project.find("md:name", self.ns)!=None:
+                            name=project.find("md:name", self.ns).text
+                        if project.find("md:URI", self.ns)!=None:
+                            URI=project.find("md:URI", self.ns).text
+                        if project.find("md:award/md:URI", self.ns)!=None:
+                            awardURI=project.find("md:award/md:URI", self.ns).text
+                        if project.get('id'):
+                            projectid=str(project.get('id')).replace('project','')
+                        self.projects.append(PanProject(label, name, URI, awardURI,int(projectid)))
+                    if xml.find("./md:license",self.ns) != None:
+                        license = xml.find("./md:license",self.ns)
+                        label=None
+                        name=None
+                        URI=None
+                        if license.find("md:label", self.ns)!=None:
+                            label=license.find("md:label", self.ns).text
+                        if license.find("md:name", self.ns)!=None:
+                            name=license.find("md:name", self.ns).text
+                        if license.find("md:URI", self.ns)!=None:
+                            URI=license.find("md:URI", self.ns).text
+                        self.licence = PanLicence(label, name, URI)
+
+                    panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
+                    self._setParameters(panXMLMatrixColumn)
+                    panXMLEvents=xml.findall("./md:event", self.ns)
+                    self._setEvents(panXMLEvents)
+                else:
+                    self.logging.append({'ERROR': 'Dataset is deleted or of unknown status: ' + str(self.datastatus)})
             except requests.exceptions.HTTPError as e:
-                print(e)
+                self.logging.append({'ERROR': 'Failed to retrieve metadata information: '+str(e)})
+            except ET.ParseError as e:
+                self.logging.append({'ERROR': 'Failed to parse metadata information: '+str(e)})
+            if self.datastatus not in ['deleted', None]:
+                self._setCitation()
+
         else:
-            self.error='Data set does not exist'
-            print(self.error)
+            self.logging.append({'ERROR': 'Data set does not exist, 404'})
+            self.id = None
 
     def _setChildren(self):
         childqueryURL="https://www.pangaea.de/advanced/search.php?q=incollection:"+str(self.id)+"&count=1000"
@@ -1057,11 +1089,32 @@ class PanDataSet:
         Parameters:
         -----------
         filelocation : str
-            Indicates the location (directory) where the NetCDF file will be saved
+            Indicates the location (directory) where the frictionless file will be saved
         compress : Boolean
             If the directory shall be zip compressed or not
         """
 
         frictionless_exporter = PanFrictionlessExporter(self, filelocation)
         ret= frictionless_exporter.create()
+        return ret
+
+    def to_dwca(self, save=False):
+        """
+        This method creates a Darwin Core Archive file using PANGAEA metadata and data.
+        A package will be saved as directory
+        The method created directories are named as follows: [PANGAEA ID]_dwca
+
+        Parameters:
+        -----------
+        filelocation : str
+            Indicates the location (directory) where the DwC-A file will be saved
+        compress : Boolean
+            If the directory shall be zip compressed or not
+        """
+        dwca_exporter = PanDarwinCoreAchiveExporter(self)
+        ret = dwca_exporter.create()
+        if save:
+            dwca_exporter.save()
+        #print(dwca_exporter.logging)
+        self.logging.extend(dwca_exporter.logging)
         return ret
