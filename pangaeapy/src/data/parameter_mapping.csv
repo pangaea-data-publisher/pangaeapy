@@ -227,5 +227,5 @@ particulate phase]",http://vocab.nerc.ac.uk/collection/P01/current/DSF6KGXX,,fmo
 particulate phase]",http://vocab.nerc.ac.uk/collection/P01/current/DSF6KGXX,,fmol l-1,,
 103326,Helium-3,fmol/kg,SDN:P06::FMKG,Femtomoles per kilogram,SDN:P01::DHE3XX01,"Enrichment of helium-3 {3He CAS 14762-55-1} in the water body [dissolved 
 plus reactive particulate phase]",http://vocab.nerc.ac.uk/collection/P01/current/DHE3XX01,,fmol kg-1,,
-795,d13C,‰ PDB,SDN:P06::UPPT,	Parts per thousand,SDN:P01::D14CMIXX,"Enrichment of carbon-14 {14C CAS 14762-75-5} in the water body [dissolved 
+795,Δδ13C,‰ PDB,SDN:P06::UPPT,	Parts per thousand,SDN:P01::D14CMIXX,"Enrichment of carbon-14 {14C CAS 14762-75-5} in the water body [dissolved
 plus reactive particulate phase]",http://vocab.nerc.ac.uk/collection/P01/current/D14CMIXX,,1.00E-03,,
