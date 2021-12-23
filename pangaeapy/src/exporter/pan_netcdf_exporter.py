@@ -316,7 +316,6 @@ class PanNetCDFExporter(PanExporter):
     def createPANNetCDF(self):
         dim=dict()
         nc = None
-        in_memory_cf = BytesIO()
         try:
             nc = Dataset(self.filelocation+'\\nc'+str(self.pandataset.id)+'_pan.nc','w',diskless=True, format='NETCDF4')
             self.cleanParameterNames()
