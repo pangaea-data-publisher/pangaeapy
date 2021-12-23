@@ -762,7 +762,7 @@ class PanDataSet:
             panDataTxt= requests.get(dataURL).text       
             panData = re.sub(r"/\*(.*)\*/", "", panDataTxt, 1, re.DOTALL).strip() 
             #Read in PANGAEA Data    
-            self.data = pd.read_csv(io.StringIO(panData), index_col=False ,error_bad_lines=False,sep=u'\t',usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
+            self.data = pd.read_csv(io.StringIO(panData), index_col=False , on_bad_lines='skip',sep=u'\t',usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
             # add geocode/dimension columns from Event
 
             #if addEventColumns==True and self.topotype!="not specified":
