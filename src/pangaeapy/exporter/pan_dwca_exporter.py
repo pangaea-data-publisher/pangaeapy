@@ -1,11 +1,10 @@
-import csv
 import os
 import re
 from collections import OrderedDict
 
 import lxml.etree
 import lxml.etree as et
-from pangaeapy.src.exporter.pan_exporter import PanExporter
+from pangaeapy.exporter.pan_exporter import PanExporter
 from zipfile import ZipFile
 from io import BytesIO
 
@@ -178,7 +177,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         ret = False
         if self.pandataset.metaxml:
             try:
-                eml_xslt = os.path.join(os.path.dirname(__file__),'xslt','panmd2eml.xslt')
+                eml_xslt = os.path.join(os.path.dirname(__file__), 'xslt', 'panmd2eml.xslt')
                 xslt = et.parse(eml_xslt)
                 panxml = et.fromstring(self.pandataset.metaxml.encode())
                 transform = et.XSLT(xslt)

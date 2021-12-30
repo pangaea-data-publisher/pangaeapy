@@ -7,9 +7,7 @@ Created on Tue Aug 21 13:31:30 2018
 @author: Egor Gordeev
 @author: Aarthi Balamurugan
 """
-import json
 import time
-from collections import OrderedDict
 
 import requests
 import pandas as pd
@@ -20,9 +18,9 @@ import io
 import os
 
 import pickle
-from pangaeapy.src.exporter.pan_netcdf_exporter import PanNetCDFExporter
-from pangaeapy.src.exporter.pan_frictionless_exporter import PanFrictionlessExporter
-from pangaeapy.src.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
+from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
+from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
+from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
 class PanProject:
     """PANGAEA Project Class
     This class creates objects which contain the project context information for each dataset
@@ -456,7 +454,7 @@ class PanDataSet:
                 os.makedirs(self.cachedir)
 
             if self.cache==True:
-                print('Caching activated..trying to load data and metadata from cache')
+                self.logging.append({'INFO':'Caching activated..trying to load data and metadata from cache'})
                 gotData=self.from_pickle()
             else:
                 #delete existing cache
@@ -529,7 +527,7 @@ class PanDataSet:
                 self.id = idmatch[1]
             else:
                 self.logging.append({'ERROR': 'Invalid Identifier or DOI: '+str(id)})
-                print('Invalid Identifier')
+                #print('Invalid Identifier')
 
 
     def _getIDParts(self, idstr):
@@ -798,7 +796,7 @@ class PanDataSet:
                             if pevent.elevation is not None and addEvEle:
                                 self.data.loc[(self.data['Event']== pevent.label) & (self.data['Elevation'].isnull()),['Elevation']]=self.events[iev].elevation
                             if pevent.datetime is not None and addEvDat:
-                                self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isnull()),['Date/Time']]=self.events[iev].datetime
+                                self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isnull()),['Date/Time']]=str(self.events[iev].datetime)
             # -- delete values with given QC flags
             if self.deleteFlag!='':
                 if self.deleteFlag=='?' or self.deleteFlag=='*':
@@ -850,18 +848,18 @@ class PanDataSet:
         if r.status_code==429:
             self.logging.append({'WARNING':'Received too many requests error (429)...'})
 
-            print('Received too many requests error (429)...')
+            #print('Received too many requests error (429)...')
             sleeptime = 1
             if r.headers.get('retry-after'):
                 sleeptime = r.headers.get('retry-after')
-            print('Sleeping for :'+str(sleeptime)+'sec before retrying the request')
+            #print('Sleeping for :'+str(sleeptime)+'sec before retrying the request')
             if int(sleeptime) < 1:
                 sleeptime=1
             time.sleep(int(sleeptime))
             r = requests.get(metaDataURL)
             self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
 
-            print('After repeating request, got status code: '+str(r.status_code))
+            #print('After repeating request, got status code: '+str(r.status_code))
 
         if r.status_code!=404:
             try:

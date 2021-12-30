@@ -22,9 +22,11 @@ Given a DOI, pangaeapy uses PANGAEA’s web services to automatically load PANGA
 
 
 ## Usage
+
 ```python
-import pangaeapy.src.pandataset as pd
-ds= pd.PanDataSet(787140)
+import src.pangaeapy.pandataset as pd
+
+ds = pd.PanDataSet(787140)
 print(ds.title)
 print(ds.data.head())
 ```

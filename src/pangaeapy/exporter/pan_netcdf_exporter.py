@@ -6,7 +6,6 @@ Created on Wed Sep  5 14:58:00 2018
 """
 import json
 import linecache
-from io import BytesIO
 
 from netCDF4 import date2num, Dataset,stringtochar
 import pandas as pd
@@ -15,10 +14,11 @@ import numpy as np
 import sys
 import os
 
-from pangaeapy.src.exporter.pan_exporter import PanExporter
+from pangaeapy.exporter.pan_exporter import PanExporter
 
 
 class PanNetCDFExporter(PanExporter):
+    style = 'sdn'
     def PrintException(self):
         exc_type, exc_obj, tb = sys.exc_info()
         f = tb.tb_frame
@@ -43,10 +43,12 @@ class PanNetCDFExporter(PanExporter):
             nc.principal_investigator=self.pandataset.authors[0].fullname
             nc.date_update=self.pandataset.date+'+02:00'
         except Exception as e:
-            print('NetCDF main variables creation failed '+str(e))
+            self.logging.append({'ERROR': 'NetCDF main variables creation failed '+str(e)})
+            #print('NetCDF main variables creation failed '+str(e))
                       
     def setParameterSynonyms(self, mappingfile=['mappings','pan_mappings.json']):
-        print('Trying to set synonyms and standard names')
+        self.logging.append({'INFO': 'Trying to set synonyms and standard names'})
+        #print('Trying to set synonyms and standard names')
         with open(os.path.join(self.module_dir,*mappingfile), 'r') as mappingjson:
             mapping = json.load(mappingjson)
         #mapping=pd.read_csv(mappingfile,delimiter='\t',index_col='PANGAEA ID')
@@ -69,8 +71,10 @@ class PanNetCDFExporter(PanExporter):
         self.pandataset.data.columns = self.pandataset.data.columns.str.replace('(?![a-zA-Z0-9_]|{MUTF8})([^\x00-\x1F/\x7F-\xFF]|{MUTF8})', '_',regex=True)
 
     def setSDNQCVariable(self, ncvarName, dims, nc):
+        if not ncvarName.endswith('_SEADATANET_QC'):
+            ncvarName = ncvarName.replace('_QC','_SEADATANET_QC')
         ncVar = nc.createVariable(ncvarName, 'b', dims, fill_value='57')
-        ncVar.long_name = 'SeaDataNet quality flag'
+        ncVar.long_name = 'SeaDataNet measurand quality flag'
         ncVar.flag_values = ', '.join(map(str, self.pandataset.quality_flag_replace.values()))
         ncVar.flag_meanings = ' '.join(self.pandataset.quality_flags.values())
         ncVar.sdn_conventions_urn = 'SDN:L20::'
@@ -85,10 +89,11 @@ class PanNetCDFExporter(PanExporter):
             ncVar[:]=[9]*eventCoords['Date_Time'].size
             var_coordinates.append('TIME')
         if 'Depth_water' in self.pandataset.data.columns:
-            print('Depth available')
+            #print('Depth available')
             var_coordinates.append('DEPTH')
         elif 'Elevation' in self.pandataset.data.columns:
-            print('Elevation available')
+            #print('Elevation available')
+            self.logging.append({'WARNING': 'Elevation instead of Depth avaialable'})
         if 'Latitude' in self.pandataset.params.keys():
             ncVar = self.setSDNQCVariable('POSITION_SEADATANET_QC', ['INSTANCE'], nc)
             #ncVar = nc.createVariable('POSITION_SEADATANET_QC', 'b', ['INSTANCE'], fill_value='57')
@@ -144,11 +149,12 @@ class PanNetCDFExporter(PanExporter):
                                 else:
                                     ncVar[:]=self.pandataset.data[ncvarName].values
                             else:
-                                print('feature type not supported')
+                                self.logging.append({'ERROR':'NetCDF Feature type not supported'})
                                 break   
                             #some attributes and units forlat lon depth and time
                             if ncvarName=='Latitude':
                                 ncVar.units='degrees_north'
+                                ncVar.long_name='Latitude'
                                 ncVar.axis='Y'
                                 ncVar.sdn_uom_name = 'Degrees north'
                                 ncVar.sdn_uom_urn = 'SDN:P06::DEGN'
@@ -156,6 +162,7 @@ class PanNetCDFExporter(PanExporter):
                                 ncVar.grid_mapping = "crs"
                             if ncvarName=='Longitude':
                                 ncVar.units='degrees_east'
+                                ncVar.long_name ='Longitude'
                                 ncVar.axis='X'
                                 ncVar.sdn_uom_name = 'Degrees east'
                                 ncVar.sdn_uom_urn = 'SDN:P06::DEGE'
@@ -164,6 +171,7 @@ class PanNetCDFExporter(PanExporter):
                             if ncvarName=='Depth_water':
                                 ncVar.axis='Z'
                                 ncVar.ancillary_variables = "DEPTH_SEADATANET_QC"
+                                ncVar.positive='down'
                             if ncvarName=='Date_Time':
                                 ncVar.sdn_uom_name = 'Days'
                                 ncVar.sdn_uom_urn = 'SDN:P06::UTAA'
@@ -171,6 +179,7 @@ class PanNetCDFExporter(PanExporter):
                                 ncVar.units=self.time_units
                                 ncVar.long_name = 'Chronological Julian Date'
                                 ncVar.ancillary_variables = "TIME_SEADATANET_QC"
+                                ncVar.long_name = 'SeaDataNet measurand qualifier flags'
                                 ncVar.calendar='julian'
                             #Setting the units                                    
                             if p.synonym['CF'] != None:
@@ -206,37 +215,53 @@ class PanNetCDFExporter(PanExporter):
                         if 'Depth_water'+self.pandataset.qc_column_suffix in nc.variables:
                             nc.renameVariable('Depth_water'+self.pandataset.qc_column_suffix,'DEPTH'+self.pandataset.qc_column_suffix)
                                     
-                    except Exception as e:  
-                        print('NetCDF Variable creation failed for Param: '+ncvarName+', ERROR: '+str(e))
-                        self.PrintException()
+                    except Exception as e:
+                        self.logging.append({'ERROR': 'NetCDF Variable creation failed for Param: ' + ncvarName + ', ERROR: ' + str(e)})
+                        #self.PrintException()
                         break    
-#    def setDimensionVariables(self, target):
 
-        
     def create(self, style='pan'):
+        self.style = style
         if isinstance(self.pandataset.data, pd.DataFrame):
             self.cleanParameterNames()
             self.setParameterSynonyms()
             if 'Event' in self.pandataset.data.columns:                
                 #TODO: Check if data set is in water: depth water or negative elevation of event.                
                 if self.pandataset.topotype=='time series' or self.pandataset.topotype=='profile series' or self.pandataset.topotype=='vertical profile':
-                    print('topotype OK')
                     if style=='pan':
                         self.createPANNetCDF()
                     elif style=='sdn':
                         self.createSDNNetCDF()                        
                 else:
-                    print('NetCDF Variable creation failed: Invalid Topotype (has to be profile, timeseries or series of profiles) but is: '+str(self.pandataset.topotype))
+                    self.logging.append({'ERROR': 'NetCDF Variable creation failed: Invalid Topotype (has to be profile, timeseries or series of profiles) but is: '+str(self.pandataset.topotype)})
             else:
-                print('NetCDF Variable creation failed: Event column is missing')
+                self.logging.append({'ERROR': 'NetCDF Variable creation failed: Event column is missing'})
+
+    def save(self):
+        if isinstance(self.file, memoryview):
+            try:
+                with open(os.path.join(self.filelocation,str('netcdf_'+str(self.style)+'_'+str(self.pandataset.id)+'.nc')),'wb') as f:
+                    #print(f.name)
+                    f.write(self.file)
+                    f.close()
+                    self.logging.append({'SUCCESS': 'Saved NetCDF at: ' + str(os.path.join(self.filelocation,str('netcdf_pangaea_'+str(self.pandataset.id)+'.nc')))})
+                    return True
+            except Exception as e:
+                self.logging.append({'ERROR': 'Could not save, NetCDF: '+str(e)})
+        else:
+            self.logging.append({'ERROR':'Could not save, NetCDF file is not a memoryview-object'})
+            return False
+        #print(type(self.file))
                 
     def createSDNNetCDF(self):
-        print('SDN2');
+        #print('SDN2');
+        self.logging.append({'INFO':'Trying to create a SeaDataNet NetCDF file'})
         nc = None
         #Determine the maximum number od data rows per event -> SDN's MAXZ, MAXT
         maxr=self.pandataset.data.groupby('Event').size().max()
         try:
-            nc = Dataset(self.filelocation+'\\nc'+str(self.pandataset.id)+'_sdn.nc','w',format='NETCDF3_CLASSIC')
+            #nc = Dataset(self.filelocation+'\\nc'+str(self.pandataset.id)+'_sdn.nc','w',format='NETCDF3_CLASSIC')
+            nc = Dataset(str(self.pandataset.id)+'_sdn.nc',mode = 'w', memory=1028,format='NETCDF3_CLASSIC')
             nc.Conventions='SeaDataNet_1.0 CF-1.6'
             evfr=self.pandataset.getEventsAsFrame()
             MaxStrLen=dict()
@@ -304,12 +329,12 @@ class PanNetCDFExporter(PanExporter):
             sdn_cdi_id[:]=stringtochar(np.array(cdi_ids,'S'+str(MaxStrLen['cdi_id'])))
             
             self.setSDNVariablesAndValues( nc, ['INSTANCE',maxtype])
-            nc.close()
-            print('NetCDF creation successfully finished, file has been created here:' + str(self.filelocation))
+            self.file = nc.close()
+            self.logging.append({'SUCCESS':'NetCDF creation successfully finished, file has been created here:' + str(self.filelocation)})
         except Exception as e:                       
             if nc is not None:
                 nc.close()
-            print('NetCDF creation failed'+str(e))
+            self.logging.append({'ERROR':'NetCDF creation failed'+str(e)})
             self.PrintException()
     
         
@@ -323,7 +348,7 @@ class PanNetCDFExporter(PanExporter):
             ##### PANGAEA STYLE ######
             eventGroup= self.pandataset.data.groupby('Event')
             for eventName, eventFrame in eventGroup:
-                print('Trying to create NetCDF Dimensions and Variables for Event: '+str(eventName)) 
+                self.logging.append({'INFO':'Trying to create NetCDF Dimensions and Variables for Event: '+str(eventName)})
                 eventFrame.columns = eventFrame.columns.str.replace('/','_')    
                 eventFrame.columns = eventFrame.columns.str.replace(r'[\[\]]','', regex=True)
                 topotypeOK=False
@@ -370,8 +395,8 @@ class PanNetCDFExporter(PanExporter):
                             ncDatVar[:]=date2num(eventFrame['Date_Time'].dt.to_pydatetime(),units=self.time_units,calendar='standard') 
                         else:
                             ncDatVar[:]=date2num(eventFrame['Date_Time'].iloc[0].to_pydatetime(),units=self.time_units,calendar='standard') 
-                    except Exception as e:                     
-                        print('NetCDF grouping failed '+str(e))
+                    except Exception as e:
+                        self.logging.append({'ERROR':'NetCDF grouping failed '+str(e)})
                         self.PrintException()
                         break
                     
@@ -393,16 +418,16 @@ class PanNetCDFExporter(PanExporter):
                                             ncVar.units='1'
                                         ncVar[:]=eventFrame[ncvarName].values
                                 except Exception as e:
-                                    print('NetCDF Variable creation failed for Event: '+eventName+' Param: '+ncvarName+', ERROR: '+str(e))
+                                    self.logging.append({'ERROR':'NetCDF Variable creation failed for Event: '+eventName+' Param: '+ncvarName+', ERROR: '+str(e)})
                                     #print(eventFrame[ncvarName])
                                     self.PrintException()
                                     break
                 else:
-                    print('NetCDF Variable creation failed: Topotype could not be verified, Dataset was probably wrongly labelled as '+str(self.pandataset.topotype))
-            nc.close()     
-            print('NetCDF created at:'+self.filelocation)
+                    self.logging.append({'ERROR':'NetCDF Variable creation failed: Topotype could not be verified, Dataset was probably wrongly labelled as '+str(self.pandataset.topotype)})
+            self.file = nc.close()
+            self.logging.append({'SUCCESS': 'PAN style NetCDF created'})
         except Exception as e:                       
             if nc is not None:
                 nc.close()   
-            print('NetCDF creation failed'+str(e))
+            self.logging.append({'ERROR':'NetCDF creation failed'+str(e)})
 
