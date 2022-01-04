@@ -1,13 +1,14 @@
 PANGAEA ID,PANGAEA Name,PANGAEA Unit,SDN Unit URN,SDN Unit Name,SDN P01 ID,SDN P01 Name,SDN P01 URI,CF standard name,CF unit,EMODNET,EMODNET long name
 1599,DATE/TIME,,SDN:P06::UTAA,Days,SDN:P01::CJDY1101,Julian Date (chronological),http://vocab.nerc.ac.uk/collection/P01/current/CJDY1101,time,,TIME,Time
-1600,LATITUDE,,SDN:P06::UAAA,Degrees,SDN:P01::ALATZZ01,Latitude north,http://vocab.nerc.ac.uk/collection/P01/current/ALATZZ01,latitude,,LATITUDE,Latitude of each location
-1601,LONGITUDE,,SDN:P06::UAAA,Degrees,SDN:P01::ALONZZ01,Longitude east,http://vocab.nerc.ac.uk/collection/P01/current/ALONZZ01,longitude,,LONGITUDE,Longitude of each location
+1600,LATITUDE,,SDN:P06::DEGN,Degrees north,SDN:P01::ALATZZ01,Latitude north,http://vocab.nerc.ac.uk/collection/P01/current/ALATZZ01,latitude,,LATITUDE,Latitude of each location
+1601,LONGITUDE,,SDN:P06::DEGE,Degrees east,SDN:P01::ALONZZ01,Longitude east,http://vocab.nerc.ac.uk/collection/P01/current/ALONZZ01,longitude,,LONGITUDE,Longitude of each location
 1619,"DEPTH, water",m,SDN:P06::ULAA,Metres,SDN:P01::ADEPZZ01,Depth (spatial coordinate) relative to water surface in the water body,http://vocab.nerc.ac.uk/collection/P01/current/ADEPZZ01,depth,m,DEPH,Depth
 2268,"Depth, bathymetric",m,SDN:P06::ULAA,Metres,SDN:P01::BATHDPTH,Sea-floor depth (below mean sea level) {bathymetric depth},http://vocab.nerc.ac.uk/collection/P01/current/BATHDPTH,depth,m,DEPH,Depth
+8128,ELEVATION,m,SDN:P06::ULAA,Metres,SDN:P01::AHSLZZ01,Height (spatial coordinate) relative to sea level,https://vocab.nerc.ac.uk/collection/P01/current/AHSLZZ01,altitude,m,,
 715,"Pressure, water",dbar,SDN:P06::UPDB,Decibars,SDN:P01::PRESPR01,"Pressure (spatial coordinate) exerted by the water body by profiling 
 pressure sensor and correction to read zero at sea level",http://vocab.nerc.ac.uk/collection/P01/current/PRESPR01,sea_water_pressure,bar,PRES,Sea pressure
 717,"Temperature, water",°C,SDN:P06::UPAA,Degrees Celsius,SDN:P01::TEMPPR01,Temperature of the water body,http://vocab.nerc.ac.uk/collection/P01/current/TEMPPR01,sea_water_temperature,Celsius,TEMP,Sea temperature
-716,Salinity,,SDN:P06:UUUU,Dimensionless,SDN:P01::PSLTZZ01,Practical salinity of the water body,http://vocab.nerc.ac.uk/collection/P01/current/PSLTZZ01,sea_water_practical_salinity,1,PSAL,Practical salinity
+716,Salinity,,SDN:P06::UUUU,Dimensionless,SDN:P01::PSLTZZ01,Practical salinity of the water body,http://vocab.nerc.ac.uk/collection/P01/current/PSLTZZ01,sea_water_practical_salinity,1,PSAL,Practical salinity
 1882,Conductivity,mS/cm,SDN:P06::MSPM,MilliSiemens per centimetre,SDN:P01::CNDCZZ01,Electrical conductivity of the water body,http://vocab.nerc.ac.uk/collection/P01/current/CNDCZZ01,sea_water_electrical_conductivity,msiemens cm-1,CNDC,Electrical conductivity
 796,"Density, sigma-theta(0)",kg/m**3,SDN:P06::UKMC,Kilograms per cubic metre,SDN:P01::SIGTEQ01,"Sigma-theta of the water body by computation from salinity and potential 
 temperature using UNESCO algorithm",http://vocab.nerc.ac.uk/collection/P01/current/SIGTEQ01,sea_water_sigma_theta,kg m-3,DENS,Sea density (sigma-theta)
@@ -156,7 +157,7 @@ water body [unknown phase]",http://vocab.nerc.ac.uk/collection/P01/current/AMONZ
 143493,"Alkalinity, total",µmol/l,SDN:P06::UPOX,Micromoles per litre,SDN:P01::ALKYZZXX,Total alkalinity per unit volume of the water body,http://vocab.nerc.ac.uk/collection/P01/current/ALKYZZXX,sea_water_alkalinity_expressed_as_mole_equivalent,umol l-1,ALKY,Total alkalinity
 80114,"Alkalinity, total",µmol/kg,SDN:P06::KGUM,Micromoles per kilogram,SDN:P01::MDMAP014,Total alkalinity per unit mass of the water body,http://vocab.nerc.ac.uk/collection/P01/current/MDMAP014,sea_water_alkalinity_per_unit_mass,umol kg-1,ALKW,Total alkalinity
 87074,"Alkalinity, total",mmol/kg,SDN:P06::MMKG,Millimoles per kilogram,SDN:P01::MDMAP014,Total alkalinity per unit mass of the water body,http://vocab.nerc.ac.uk/collection/P01/current/MDMAP014,sea_water_alkalinity_per_unit_mass,mmol kg-1,ALKW,Total alkalinity
-764,pH,,SDN:P06::UUPH,pH units,SDN:P01::PHXXZZXX,pH per unit volume of the water body,http://vocab.nerc.ac.uk/collection/P01/current/PHXXZZXX,sea_water_ph_reported_on_total_scale,1,PHPH,Ph
+764,pH,,SDN:P06::UUPH,pH units,SDN:P01::PHXXZZXX,pH (unspecified scale) of the water body,http://vocab.nerc.ac.uk/collection/P01/current/PHXXZZXX,sea_water_ph_reported_on_total_scale,1,PHPH,Ph
 29222,"Irradiance, downward",W/m**2,SDN:P06::UFAA,Watts per square metre,SDN:P01::LWRDZZ01,"Downwelling vector irradiance as energy of electromagnetic radiation 
 (longwave) in the atmosphere",http://vocab.nerc.ac.uk/collection/P01/current/LWRDZZ01,downwelling_spherical_irradiance_in_sea_water,W m-2,,
 24209,"Irradiance, downward PAR",umol/m**2/s,SDN:P06::UM2S,Micromoles per square metre per second,SDN:P01::LWRDZZ01,"Downwelling vector irradiance as energy of electromagnetic radiation 
@@ -227,5 +228,5 @@ particulate phase]",http://vocab.nerc.ac.uk/collection/P01/current/DSF6KGXX,,fmo
 particulate phase]",http://vocab.nerc.ac.uk/collection/P01/current/DSF6KGXX,,fmol l-1,,
 103326,Helium-3,fmol/kg,SDN:P06::FMKG,Femtomoles per kilogram,SDN:P01::DHE3XX01,"Enrichment of helium-3 {3He CAS 14762-55-1} in the water body [dissolved 
 plus reactive particulate phase]",http://vocab.nerc.ac.uk/collection/P01/current/DHE3XX01,,fmol kg-1,,
-795,Δδ13C,‰ PDB,SDN:P06::UPPT,	Parts per thousand,SDN:P01::D14CMIXX,"Enrichment of carbon-14 {14C CAS 14762-75-5} in the water body [dissolved
+795,Δδ13C,‰ PDB,SDN:P06::UPPT,	Parts per thousand,SDN:P01::D14CMIXX,"Enrichment of carbon-14 {14C CAS 14762-75-5} in the water body [dissolved 
 plus reactive particulate phase]",http://vocab.nerc.ac.uk/collection/P01/current/D14CMIXX,,1.00E-03,,

@@ -331,8 +331,6 @@ class PanDataSet:
     deleteFlag : str
         in case quality flags are avialable, this parameter defines a flag for which data should not be included in the data dataFrame.
         Possible values are listed here: https://wiki.pangaea.de/wiki/Quality_flag
-    addQC : boolean
-        adds a QC column for each parameter which contains QC flags
     enable_cache : boolean
         If set to True, PanDataSet objects are cached as pickle files on the local home directory within a directory called 'pangaeapy_cache' in order to avoid unnecessary downloads.
     include_data : boolean
@@ -387,7 +385,7 @@ class PanDataSet:
 	licence : PanLicence
 	    a licence object, usually creative commons
     """
-    def __init__(self, id=None,paramlist=None, deleteFlag='', addQC=False, QCsuffix = None, enable_cache=False, include_data=True, expand_terms=False):
+    def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False, include_data=True, expand_terms=False):
         self.module_dir = os.path.dirname(os.path.dirname(__file__))
         self.id = None
         self.logging = []
@@ -410,7 +408,8 @@ class PanDataSet:
         self.licence=None
         #allowed geocodes for netcdf generation which are used as xarray dimensions not needed in the moment
         self._geocodes={1599:'Date_Time',1600:'Latitude',1601:'Longitude',1619:'Depth water'}
-        self.data =pd.DataFrame()
+        self.data = pd.DataFrame()
+        self.qcdata = pd.DataFrame()
         self.title=None
         self.abstract = None
         self.moratorium=None
@@ -431,12 +430,10 @@ class PanDataSet:
         self.deleteFlag=deleteFlag
         self.children=[]
         self.include_data=include_data
-        self.qc_column_suffix='_QC'
         self.expand_terms = expand_terms
         self.lastupdate = None
         self.metaxml = None
-        if QCsuffix:
-            self.qc_column_suffix = QCsuffix
+
         #no symbol = valid(default)
         #? = questionable(?0.345)
         #/ = not valid( / 23.56)
@@ -463,7 +460,7 @@ class PanDataSet:
                 #print('trying to load data and metadata from PANGAEA')
                 self.setMetadata()
                 if self.loginstatus=='unrestricted' and self.isParent!=True:
-                    self.setData(addQC=addQC)
+                    self.setData()
                     self.defaultparams = [s for s in self.defaultparams if s in self.params.keys()]
                     if self.paramlist!=None:
                         if  len(self.paramlist)!=len(self.paramlist_index):
@@ -693,7 +690,6 @@ class PanDataSet:
                                                     expandedTerms[termid].append(termJSON['_source'].get('topics'))
                                     except Exception as e:
                                         self.logging.append({'WARNING':'Failed loading and parsing PANGAEA Term JSON: '+str(e)})
-                                        #print('Failed loading and parsing PANGAEA Term JSON: '+str(e))
                         if self.expand_terms:
                             if expandedTerms.get(termid):
                                 classification =expandedTerms.get(termid)
@@ -725,7 +721,7 @@ class PanDataSet:
             pass
         return df
         
-    def setData(self, addEventColumns=True, addQC=False):
+    def setData(self, addEventColumns=True):
         """
         This method populates the data DataFrame with data from a PANGAEA dataset.
         In addition to the data given in the tabular ASCII file delivered by PANGAEA.
@@ -736,15 +732,13 @@ class PanDataSet:
         addEventColumns : boolean
             In case Latitude, Longititude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets, 
             the setData could add these columns to the dataframe using the information given in the metadata for Event. Default is 'True'
-        addQC : boolean
-            If this is set to True, pangaeapy adds a QC column in which the quality flags are separated. Each new column is named after the orgininal column plus a "_qc" suffix.
 
         """
 
         # converting list of parameters` short names (from user input) to the list of parameters` indexes
         # the list of parameters` indexes is an argument for pd.read_csv
         if self.paramlist!=None:
-            self.paramlist+=self.defaultparams
+            self.paramlist += self.defaultparams
             for parameter in self.paramlist:
                 iter=0
                 for shortName in self.params.keys():
@@ -780,7 +774,7 @@ class PanDataSet:
                             addEvLon=True
                             self.data['Longitude']=np.nan
                             self.params['Longitude']=PanParam(1601,'Longitude','Longitude','numeric','geocode','deg')
-                        if 'Elevation' not in self.data.columns:  
+                        if 'Elevation' not in self.data.columns:
                             addEvEle=True
                             self.data['Elevation']=np.nan
                             self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','geocode','m')
@@ -801,34 +795,57 @@ class PanDataSet:
             if self.deleteFlag!='':
                 if self.deleteFlag=='?' or self.deleteFlag=='*':
                     self.deleteFlag="\\"+self.deleteFlag
-                self.data.replace(regex=r'^'+self.deleteFlag+'{1}.*',value='',inplace=True)      
-            # --- Replace Quality Flags for numeric columns   
-            if addQC==False:
-                self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
+                self.data.replace(regex=r'^'+self.deleteFlag+'{1}.*',value='',inplace=True)
+
             # --- Delete empty columns
             self.data=self.data.dropna(axis=1, how='all')
+            # --- Preserve QC Flags in self.qcdata DataDrame and
+            # --- Replace Quality Flags for numeric columns
+
 
             for paramcolumn in list(self.params.keys()):
                 if paramcolumn not in self.data.columns:
                     del self.params[paramcolumn]
-            # --- add QC columns
-                elif addQC==True:
-                    #if self.params[paramcolumn].type=='numeric' and (self.params[paramcolumn].source =='data' or paramcolumn=='Depth water'):
-                    if self.params[paramcolumn].type in['numeric','datetime']:
-                        self.data[[paramcolumn + self.qc_column_suffix,paramcolumn]]=self.data[paramcolumn].astype(str).str.extract(r'(^[\*/\?])?(.+)')
-                        self.data[paramcolumn + self.qc_column_suffix].fillna(value='ok', inplace=True)
-                        self.data[paramcolumn + self.qc_column_suffix].replace(to_replace=self.quality_flag_replace, inplace=True)
-                        if self.params[paramcolumn].source =='data':
-                            ptype = 'qc'
-                        else:
-                            #geocodeqc
-                            ptype ='gqc'
-                        self.params[paramcolumn + self.qc_column_suffix] = PanParam(self.params[paramcolumn].id+1000000000,self.params[paramcolumn].name + self.qc_column_suffix,self.params[paramcolumn].shortName + self.qc_column_suffix, source='pangaeapy',param_type=ptype)
+
+            self.setQCDataFrame()
+            self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
+
             # --- Adjust Column Data Types
             self.data = self.data.apply(pd.to_numeric, errors='ignore')
             if 'Date/Time' in self.data.columns:
                 self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y/%m/%dT%H:%M:%S')
-        
+
+    def setQCDataFrame(self):
+        for paramcolumn in list(self.params.keys()):
+            if self.params[paramcolumn].type in ['numeric', 'datetime']:
+                self.qcdata[paramcolumn] = self.data[paramcolumn].astype(
+                    str).str.extract(r'(^[\*/\?])?(.+)')[0]
+                #self.qcdata[paramcolumn].fillna(value='ok', inplace=True)
+                self.qcdata[paramcolumn].replace(to_replace=self.quality_flag_replace, inplace=True)
+        self.qcdata = self.qcdata.dropna(how='all')
+        self.qcdata.fillna(0,inplace=True)
+
+    def addQCParamsAndColumns(self, qc_suffix='_QC', excludeColumns=[]):
+        #self.data.replace(regex=r'^[\?/\*#\<\>]', value='', inplace=True)
+        if excludeColumns:
+            joincolumns = list(set(self.data.columns) & set(set(self.qcdata.columns) - set(excludeColumns)))
+        else:
+            joincolumns = self.data.columns
+        self.data = self.data.join(self.qcdata,rsuffix=qc_suffix)
+        for paramcolumn in self.qcdata[joincolumns]:
+            if self.params[paramcolumn].source == 'data':
+                ptype = 'qc'
+            else:
+                # geocodeqc
+                ptype = 'gqc'
+            self.data[paramcolumn + qc_suffix].fillna(0)
+            self.params[paramcolumn + qc_suffix] = PanParam(self.params[paramcolumn].id + 1000000000,
+                                                            self.params[
+                                                                paramcolumn].name + qc_suffix,
+                                                            self.params[
+                                                                paramcolumn].shortName + qc_suffix,
+                                                            source='pangaeapy', param_type=ptype)
+
     def _setCitation(self):
         citationURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=citation_text&charset=UTF-8"
         r=requests.get(citationURL)
@@ -843,23 +860,17 @@ class PanDataSet:
         
         """
         metaDataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=metainfo_xml"
-        #metaDataURL="https://ws.pangaea.de/es/pangaea/panmd/"+str(self.id)
         r=requests.get(metaDataURL)
         if r.status_code==429:
             self.logging.append({'WARNING':'Received too many requests error (429)...'})
-
-            #print('Received too many requests error (429)...')
             sleeptime = 1
             if r.headers.get('retry-after'):
                 sleeptime = r.headers.get('retry-after')
-            #print('Sleeping for :'+str(sleeptime)+'sec before retrying the request')
             if int(sleeptime) < 1:
                 sleeptime=1
             time.sleep(int(sleeptime))
             r = requests.get(metaDataURL)
             self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
-
-            #print('After repeating request, got status code: '+str(r.status_code))
 
         if r.status_code!=404:
             try:
@@ -1054,10 +1065,12 @@ class PanDataSet:
         print(self.data.head(5))
 
     def rename_column(self,old_name, new_name):
-        self.params[new_name] = self.params.pop(old_name)
-        self.params[new_name].name = new_name
-        self.params[new_name].shortName = new_name
-        self.data.rename(columns={old_name:new_name}, inplace = True)
+        if self.params.get(old_name):
+            self.params[new_name] = self.params.pop(old_name)
+            self.params[new_name].name = new_name
+            self.params[new_name].shortName = new_name
+            self.data.rename(columns={old_name:new_name}, inplace = True)
+            self.qcdata.rename(columns={old_name: new_name}, inplace=True)
 
 
     def to_netcdf(self, filelocation=None, type='sdn'):
