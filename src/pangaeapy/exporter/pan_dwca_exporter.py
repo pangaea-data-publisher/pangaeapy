@@ -152,7 +152,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         xml='<archive xmlns="http://rs.tdwg.org/dwc/text/" metadata="eml.xml">' \
             '<core encoding="UTF-8" fieldsTerminatedBy="|" linesTerminatedBy="\n" ' \
             'fieldsEnclosedBy="" ignoreHeaderLines="1" rowType="http://rs.tdwg.org/dwc/terms/Occurrence">' \
-            '<files><location>96900_data.tab</location></files>' \
+            '<files><location>'+str(self.pandataset.id)+'_data.tab</location></files>' \
             '<id index="0"/>'
         index=1
         try:
