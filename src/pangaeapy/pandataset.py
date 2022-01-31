@@ -148,7 +148,7 @@ class PanEvent:
         The end date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
     device : str
         The device which was used during the event
-    basis : str
+    basis : PanBasis
         The basis or platform which was used during the event e.g. a ship
     location : str
         The location of the event
@@ -184,6 +184,26 @@ class PanEvent:
         self.datetime2=datetime2
         self.location=location
         self.campaign=campaign
+        
+class PanBasis:
+    """PANGAEA Basis class
+	The basis or platform which was used during the event e.g. a ship
+	
+	name : str
+        The name of the platform
+    URI : str
+        The platform URI
+    callSign : str
+        A unique identifier of the platform(alphabet)
+    IMOnumber : str
+        A seven digit unique identifier for the platform
+	"""
+    def __init__(self,name=None, URI=None, callSign=None, IMOnumber=None):
+        
+        self.name=name
+        self.URI=URI
+        self.callSign=callSign
+        self.IMOnumber=IMOnumber
 		
 class PanCampaign:
     """PANGAEA Campaign class
@@ -413,6 +433,8 @@ class PanDataSet:
         self.title=None
         self.abstract = None
         self.moratorium=None
+        self.curationlevel=None;
+        self.processinglevel=None;
         self.datastatus=None
         self.registrystatus=None
         self.citation=None
@@ -543,7 +565,8 @@ class PanDataSet:
         """
         for event in panXMLEvents:
             eventElevation=eventDateTime=eventDateTime2 = None
-            eventDevice=eventLabel=eventBasis = None
+            eventDevice=eventLabel = None
+            basis_name= basis_URI = basis_callsign= basis_imonumber = None
             campaign_name= campaign_URI=campaign_start=campaign_end = None
             eventLongitude=eventLatitude=eventLatitude2=eventLongitude2=eventLocation = None
             startlocation =endlocation=BSHID=expeditionprogram = None
@@ -566,10 +589,29 @@ class PanDataSet:
                 eventLabel= event.find('md:label',self.ns).text
             if event.find('md:location/md:name',self.ns)!=None:
                 eventLocation= event.find('md:location/md:name',self.ns).text
-            if event.find('md:basis/md:name',self.ns)!=None:
-                eventBasis= event.find('md:basis/md:name',self.ns).text
             if event.find('md:method/md:name',self.ns)!=None:
                 eventDevice= event.find('md:method/md:name',self.ns).text
+            if event.find('md:basis',self.ns)!=None:
+                basis= event.find('md:basis',self.ns)
+                if basis.find('md:name',self.ns)!=None:
+                    basis_name= basis.find('md:name',self.ns).text
+                else:
+                    basis_name=None
+                if basis.find('md:URI',self.ns)!=None:
+                    basis_URI= basis.find('md:URI',self.ns).text
+                else:
+                    basis_URI=None
+                if basis.find('md:callSign',self.ns)!=None:
+                    basis_callsign= basis.find('md:callSign',self.ns).text
+                else:
+                    basis_callsign=None
+                if basis.find('md:IMOnumber',self.ns)!=None:
+                    basis_imonumber= basis.find('md:IMOnumber',self.ns).text
+                else:
+                    basis_imonumber=None
+                eventBasis=PanBasis(basis_name,basis_URI,basis_callsign,basis_imonumber)
+            else:
+                eventBasis=None
             if event.find("md:campaign", self.ns)!=None:
                 campaign=event.find("md:campaign", self.ns)
                 if campaign.find('md:name',self.ns)!=None:
@@ -899,6 +941,10 @@ class PanDataSet:
                     self.registrystatus=xml.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]',self.ns).get('value')
                     if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns) != None:
                         self.moratorium=xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns).get('value')
+                    if xml.find('./md:status/md:curationLevel/md:name',self.ns)!=None:
+                        self.curationlevel= xml.find('./md:status/md:curationLevel/md:name',self.ns).text
+                    if xml.find('./md:status/md:processingLevel/md:name',self.ns)!=None:
+                        self.processinglevel= xml.find('./md:status/md:processingLevel/md:name',self.ns).text
                     self.year=xml.find("./md:citation/md:year", self.ns).text
                     self.date=xml.find("./md:citation/md:dateTime", self.ns).text
                     if self.lastupdate == None:
