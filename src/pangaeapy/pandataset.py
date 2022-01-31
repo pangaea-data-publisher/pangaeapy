@@ -1073,7 +1073,7 @@ class PanDataSet:
             self.qcdata.rename(columns={old_name: new_name}, inplace=True)
 
 
-    def to_netcdf(self, filelocation=None, type='sdn'):
+    def to_netcdf(self, filelocation=None, save = True, type='sdn'):
         """
         This method creates a NetCDF file using PANGAEA data. It offers two different flavors: SeaDataNet NetCDF and an
         experimental internal format using NetCDF 4 groups.
@@ -1086,12 +1086,21 @@ class PanDataSet:
             Indicates the location (directory) where the NetCDF file will be saved
         type : str
             This parameter sets the NetCDF profile type. Allowed values are 'sdn' (SeaDataNet) and 'pan' (PANGAEA style)
+        save : Boolean
+            If the file shall be saved on disk (filelocation or home directory/pan_export by default)
         """
+        ret = None
+        netcdfexporter = PanNetCDFExporter(self, filelocation=filelocation)
+        if type == 'sdn':
+            netcdfexporter.renameSDNDimVars()
+            netcdfexporter.pandataset.addQCParamsAndColumns(qc_suffix='_SEADATANET_QC',
+                                                excludeColumns=['LATITUDE', 'LONGITUDE', 'TIME'])
+        ret = netcdfexporter.create(style=type)
+        if save:
+            netcdfexporter.save()
+        return ret
 
-        netcdfexporter = PanNetCDFExporter(self, filelocation,)
-        netcdfexporter.create(style=type)
-
-    def to_frictionless(self, filelocation=None, compress = False):
+    def to_frictionless(self, filelocation=None, save = True):
         """
         This method creates a frictionless data package (https://specs.frictionlessdata.io/data-package) file using PANGAEA metadata and data.
         A package will be saved as directory
@@ -1101,15 +1110,17 @@ class PanDataSet:
         -----------
         filelocation : str
             Indicates the location (directory) where the frictionless file will be saved
-        compress : Boolean
-            If the directory shall be zip compressed or not
+        save : Boolean
+            If the file shall be saved on disk (filelocation or home directory/pan_export by default)
         """
 
         frictionless_exporter = PanFrictionlessExporter(self, filelocation)
         ret= frictionless_exporter.create()
+        if save:
+            frictionless_exporter.save()
         return ret
 
-    def to_dwca(self, save=False):
+    def to_dwca(self, save = True):
         """
         This method creates a Darwin Core Archive file using PANGAEA metadata and data.
         A package will be saved as directory
@@ -1119,8 +1130,8 @@ class PanDataSet:
         -----------
         filelocation : str
             Indicates the location (directory) where the DwC-A file will be saved
-        compress : Boolean
-            If the directory shall be zip compressed or not
+        save : Boolean
+            If the file shall be saved on disk (filelocation or home directory/pan_export by default)
         """
         dwca_exporter = PanDarwinCoreAchiveExporter(self)
         ret = dwca_exporter.create()
