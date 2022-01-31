@@ -28,3 +28,7 @@ class PanExporter:
     #save the file  at self.filelocation
     def save(self):
         return True
+
+    #return a string representation of the export file
+    def __str__(self):
+        return ''
