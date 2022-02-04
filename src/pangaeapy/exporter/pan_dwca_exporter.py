@@ -14,11 +14,13 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         super(PanDarwinCoreAchiveExporter, self).__init__(*args, **kwargs)
 
         self.dwcnames = {'Event': 'EventID', 'Latitude': 'decimalLatitude', 'Longitude': 'decimalLongitude',
-                    'Date/Time': 'eventDate', 'Elevation': 'minimumElevationInMeters'}
+                    'Date/Time': 'eventDate'}
         self.dwcfields = ['id', 'modified', 'institutionCode', 'CollectionCode', 'datasetID', 'basisOfRecord', 'catalogNumber',
                      'recordedBy', 'eventDate', 'scientificName', 'kingdom', 'geodeticDatum', 'decimalLatitude',
-                     'decimalLongitude', 'minimumElevationInMeters', 'organismQuantity', 'organismQuantityType']
-
+                     'decimalLongitude', 'organismQuantity', 'organismQuantityType']
+        self.taxon_lifestages = ['adult','juvenile','larvae','eggs']
+        self.taxon_sex = ['male','female']
+        self.taxon_attributes = self.taxon_lifestages + self.taxon_sex
         self.chronostrat_params = [21496, 21497, 21498, 20544, 21197]
         # XYZ zone
         self.biostrat_params = [4491, 15398, 15501, 20543, 21181, 85701, 51065, 57117, 57648, 86368, 89835, 121195,
@@ -28,6 +30,17 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         # absolute dated ages
         self.absstrat_params = [2205, 5506, 6167, 6168, 6169, 6170, 70169, 102659, 130805, 145907]
         self.taxonomic_coverage = []
+
+    def set_elevation_column(self):
+        ret = 'pos'
+        verticaldirection = {'Depth water':'neg', 'Elevation':'pos'}
+        for vgeo, vdir in verticaldirection.items():
+            if vgeo in self.pandataset.data.columns:
+                ret = vdir
+                self.dwcnames[vgeo] = 'minimumElevationInMeters'
+                self.dwcfields.append('minimumElevationInMeters')
+                break
+        return ret
 
     def check_unit(self, unitexpr):
         unitre = '^([#%])(?:\/((?:[0-9]+\s)?(?:[kdcm]?m{1,2}\*{2}[23]|m?l|k?g)))?(?:\/(d|m|y|a|ka|day|week|month|year){1})?$'
@@ -63,27 +76,50 @@ class PanDarwinCoreAchiveExporter(PanExporter):
 
     def get_taxon_columns(self):
         taxoncolumns = OrderedDict()
+        taxon_attr_regex = r'(.*?)((?:,\s?)'+str('|(?:,\s?)'.join(self.taxon_attributes))+')$'
+        print(taxon_attr_regex)
         for pkey, param in self.pandataset.params.items():
             # full match of taxon name with parameter only
             # TODO: extend to some adjectives e.g. juvenile, adult etc..
+
             try:
                 for term in param.terms:
+                    name_parts = re.split(r',\s?',param.name)
+                    taxon_candidate = param.name
+                    taxon_attribute = None
+                    if len(name_parts) == 2:
+                        if name_parts[1] in self.taxon_attributes:
+                            taxon_candidate = name_parts[0]
+                            taxon_attribute = name_parts[1]
                     # add: #/m3 etc, %/m3 etc
                     is_valid_unit,  dimension = self.check_unit(param.unit)
-                    if param.name == term.get('name') and is_valid_unit:
+
+                    if taxon_candidate == term.get('name') and is_valid_unit:
                         if term.get('classification'):
                             if 'Biological Classification' in term.get('classification'):
                                 kingdom = list({'Animalia', 'Archaea', 'Bacteria', 'Chromista', 'Fungi', 'Plantae', 'Protozoa',
                                                 'Viruses'} & set(term.get('classification')))[0]
                                 if kingdom not in self.taxonomic_coverage:
                                     self.taxonomic_coverage.append(kingdom)
-                                taxoncolumns[pkey] = {'taxon': param.name, 'series': param.dataseries, 'author': param.PI,
+
+                                taxoncolumns[pkey] = {'taxon': taxon_candidate, 'series': param.dataseries, 'author': param.PI,
                                                       'kingdom': kingdom, 'colno': param.colno, 'unit': param.unit,'dimension': dimension}
+                                if taxon_attribute:
+                                    if taxon_attribute in self.taxon_sex:
+                                        taxoncolumns[pkey]['sex'] = taxon_attribute
+                                        if 'sex' not in self.dwcfields:
+                                            self.dwcfields.append('sex')
+                                    if taxon_attribute in self.taxon_lifestages:
+                                        taxoncolumns[pkey]['lifestage'] = taxon_attribute
+                                        if 'lifeStage' not in self.dwcfields:
+                                            self.dwcfields.append('lifeStage')
                     break
+
             except Exception as e:
                 self.logging.append({'WARNING': 'Failed to identify taxonomic information in parameter: '+str(pkey)})
         if len(taxoncolumns) <= 0:
             self.logging.append({'WARNING': 'Could not identify taxonomic information in this dataset'})
+        print(taxoncolumns)
         return taxoncolumns
 
     def get_context_info(self):
@@ -110,6 +146,8 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         basisofrecord, geologicalcontextid = self.get_context_info()
         selectedcolumns = []
         geocolumns = self.pandataset.defaultparams
+        if 'Depth water' in self.pandataset.data.columns:
+            geocolumns.append('Depth water')
         if len(taxoncolumns) > 0:
             selectedcolumns.extend(geocolumns)
             selectedcolumns.extend(taxoncolumns.keys())
@@ -118,6 +156,8 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             geocolumns.append('index')
             taxonframe = taxonframe.melt(id_vars=geocolumns, value_vars=list(taxoncolumns.keys()), var_name='Colname',
                                          value_name='organismQuantity')
+
+            print(taxonframe.columns)
             taxonframe['index'] += 1
             taxonframe['id'] = taxonframe['index'].astype(str) + '_' + taxonframe['Colname'].apply(
                 lambda x: taxoncolumns.get(x).get('colno')).astype(str)
@@ -135,12 +175,25 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             taxonframe['kingdom'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('kingdom'))
             taxonframe['organismQuantityType'] = 'individuals (' + taxonframe['Colname'].apply(
                 lambda x: taxoncolumns.get(x).get('unit')).astype(str) + ')'
+            try:
+                if 'sex' in self.dwcfields:
+                    taxonframe['sex'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('sex'))
+
+                if 'lifeStage' in self.dwcfields:
+                    taxonframe['lifeStage'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('lifestage'))
+            except Exception as e:
+                print(e)
             dwcfields= self.dwcfields
             if geologicalcontextid:
                 taxonframe['geologicalContextID'] = geologicalcontextid
                 dwcfields.append('geologicalContextID')
+            elevation_direction = self.set_elevation_column()
             taxonframe.rename(columns=self.dwcnames, inplace=True)
             taxonframe = taxonframe[dwcfields]
+            print(taxonframe.columns)
+
+            if elevation_direction == 'neg' and 'minimumElevationInMeters' in taxonframe.columns:
+                taxonframe['minimumElevationInMeters'] = taxonframe['minimumElevationInMeters'] * -1
             dwcdata = taxonframe.to_csv(index=False,sep='|',line_terminator='\n',date_format ='%Y-%m-%dT%H:%M:%S', encoding='utf-8')
             return dwcdata
         else:
@@ -244,6 +297,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                     #print(f.name)
                     f.write(self.file.getbuffer())
                     f.close()
+                    self.logging.append({'INFO': 'Saved DwC-A Zip: ' + os.path.join(self.filelocation,str('dwca_pangaea_'+str(self.pandataset.id)+'.zip'))})
                     return True
             except Exception as e:
                 self.logging.append({'ERROR': 'Could not save, DwC-A Zip: '+str(e)})

@@ -3,7 +3,9 @@
 	<xsl:output method="xml" version="1.0" encoding="UTF-8" indent="yes"/>
 	<xsl:template match="/">
 		<eml:eml xmlns:eml="eml://ecoinformatics.org/eml-2.1.1" xmlns:dc="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="eml://ecoinformatics.org/eml-2.1.1 http://rs.gbif.org/schema/eml-gbif-profile/1.1/eml.xsd" system="http://www.pangaea.de" scope="system" xml:lang="eng">
-			<xsl:attribute name="packageId"><xsl:value-of select="md:MetaData/md:citation/md:URI"/></xsl:attribute>
+			<xsl:attribute name="packageId">
+				<xsl:value-of select="md:MetaData/md:citation/md:URI"/>
+			</xsl:attribute>
 			<dataset>
 				<alternateIdentifier>
 					<xsl:value-of select="md:MetaData/md:citation/md:URI"/>
@@ -58,13 +60,15 @@
 				</distribution>
 				<coverage>
 				<geographicCoverage>
-				<!--
 				<geographicDescription>
-				Events/Sites: <xsl:for-each select="md:MetaData/md:event">
-				<xsl:value-of select="md:label"/>; 
+				<xsl:for-each select="md:MetaData/md:event">
+					<xsl:text>Event: </xsl:text>
+					<xsl:value-of select="md:label"/>
+					<xsl:text>, </xsl:text>
+					<xsl:value-of select="md:location"/>
+					<xsl:text>;	</xsl:text>
 				</xsl:for-each>
 				</geographicDescription>
-				-->
 				<boundingCoordinates>
 				<westBoundingCoordinate>
 				<xsl:value-of select="md:MetaData/md:extent/md:geographic/md:westBoundLongitude"/>
