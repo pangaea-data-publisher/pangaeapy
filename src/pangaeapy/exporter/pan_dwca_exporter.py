@@ -77,7 +77,6 @@ class PanDarwinCoreAchiveExporter(PanExporter):
     def get_taxon_columns(self):
         taxoncolumns = OrderedDict()
         taxon_attr_regex = r'(.*?)((?:,\s?)'+str('|(?:,\s?)'.join(self.taxon_attributes))+')$'
-        print(taxon_attr_regex)
         for pkey, param in self.pandataset.params.items():
             # full match of taxon name with parameter only
             # TODO: extend to some adjectives e.g. juvenile, adult etc..
@@ -119,7 +118,6 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                 self.logging.append({'WARNING': 'Failed to identify taxonomic information in parameter: '+str(pkey)})
         if len(taxoncolumns) <= 0:
             self.logging.append({'WARNING': 'Could not identify taxonomic information in this dataset'})
-        print(taxoncolumns)
         return taxoncolumns
 
     def get_context_info(self):
@@ -157,7 +155,6 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             taxonframe = taxonframe.melt(id_vars=geocolumns, value_vars=list(taxoncolumns.keys()), var_name='Colname',
                                          value_name='organismQuantity')
 
-            print(taxonframe.columns)
             taxonframe['index'] += 1
             taxonframe['id'] = taxonframe['index'].astype(str) + '_' + taxonframe['Colname'].apply(
                 lambda x: taxoncolumns.get(x).get('colno')).astype(str)
@@ -190,7 +187,6 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             elevation_direction = self.set_elevation_column()
             taxonframe.rename(columns=self.dwcnames, inplace=True)
             taxonframe = taxonframe[dwcfields]
-            print(taxonframe.columns)
 
             if elevation_direction == 'neg' and 'minimumElevationInMeters' in taxonframe.columns:
                 taxonframe['minimumElevationInMeters'] = taxonframe['minimumElevationInMeters'] * -1
