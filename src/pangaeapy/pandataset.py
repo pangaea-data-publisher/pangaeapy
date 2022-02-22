@@ -8,6 +8,7 @@ Created on Tue Aug 21 13:31:30 2018
 @author: Aarthi Balamurugan
 """
 import time
+import datetime
 
 import requests
 import pandas as pd
@@ -16,6 +17,7 @@ import lxml.etree as ET
 import re
 import io
 import os
+import textwrap
 
 import pickle
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
@@ -474,13 +476,19 @@ class PanDataSet:
 
             if self.cache==True:
                 self.logging.append({'INFO':'Caching activated..trying to load data and metadata from cache'})
-                gotData=self.from_pickle()
+                if self.check_pickle():
+                    gotData=self.from_pickle()
+                else:
+                    self.drop_pickle()
+                    gotData = False
             else:
                 #delete existing cache
                 self.drop_pickle()
             if not gotData:        
                 #print('trying to load data and metadata from PANGAEA')
-                self.setMetadata()
+                # check if title is already there, otherwise load metadata
+                if not self.title:
+                    self.setMetadata()
                 if self.loginstatus=='unrestricted' and self.isParent!=True:
                     self.setData()
                     self.defaultparams = [s for s in self.defaultparams if s in self.params.keys()]
@@ -488,15 +496,58 @@ class PanDataSet:
                         if  len(self.paramlist)!=len(self.paramlist_index):
                             self.logging.append({'WARNING':'Inconsistent number of detected parameters, expected: '+str(len(self.paramlist))+' vs '+str(len(self.paramlist_index))})
                     if self.cache==True:
-                       self.to_pickle() 
+                        self.to_pickle()
                 else:
                     self.logging.append({'WARNING':'Dataset is either restricted or of type "parent"'})
         else:
             self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
 
+    def get_pickle_path(self):
+        dirs = textwrap.wrap(str(self.id).zfill(8), 2)
+        dirpath = os.path.join(self.cachedir,*dirs)
+        try:
+            os.makedirs(dirpath)
+        except Exception as e:
+            pass
+        return os.path.join(dirpath , str(self.id) + '_data.pik')
+
+    def check_pickle(self, expirydays = 1):
+        '''
+        Verifies if a cached pickle files needs to be refreshed (reloaded)
+        Files are checked after 24 hrs earliest but only updated in case the metadata indicates changes occured
+
+        Parameters
+        ----------
+        expirydays
+
+        Returns bool
+        -------
+
+        '''
+        ret = True
+        pickle_location = self.get_pickle_path()
+        if os.path.exists(pickle_location):
+            pickle_time = os.path.getmtime(pickle_location)
+            if int(time.time()) - int(pickle_time) >= (expirydays * 86400):
+                # afer 24 hrs check if data set has changed so refresh the cached pickle
+                self.setMetadata()
+                #2016-10-08T05:40:17
+                try:
+                    lastupdatets = time.mktime(datetime.datetime.strptime(self.lastupdate, "%Y-%m-%dT%H:%M:%S").timetuple())
+                    print(int(lastupdatets) , int(pickle_time))
+                    if int(lastupdatets) >= int(pickle_time):
+                        ret = False
+                        self.logging.append(
+                            {'INFO': 'Dataset cache expired, refreshing cache'})
+                except Exception as e:
+                    print(e)
+                    ret = False
+                    pass
+            return ret
+
     def drop_pickle(self):
-        if os.path.exists(os.path.join(self.cachedir ,str(self.id)+'_data.pik')):
-            os.remove(os.path.join(self.cachedir ,str(self.id)+'_data.pik'))
+        if os.path.exists(self.get_pickle_path()):
+            os.remove(self.get_pickle_path())
                 
     def from_pickle(self):
         """
@@ -504,17 +555,19 @@ class PanDataSet:
 
         """
         ret=False
-        if os.path.exists(os.path.join(self.cachedir ,str(self.id)+'_data.pik')):
+        pickle_path = self.get_pickle_path()
+        if os.path.exists(pickle_path):
             try:
-                f = open(os.path.join(self.cachedir ,str(self.id)+'_data.pik'), 'rb')
+                f = open(pickle_path, 'rb')
                 tmp_dict = pickle.load(f)
+                tmp_dict['logging'] = []
                 f.close()         
                 self.__dict__.update(tmp_dict)
+                self.logging.append({'INFO':'Loading data and metadata from cache: '+str(pickle_path)})
                 ret=True
             except:
+                self.logging.append({'WARNING':'Loading data and metadata from cache failed'})
                 ret=False
-            
-            
         else:
             ret=False
         return ret
@@ -525,8 +578,9 @@ class PanDataSet:
 
         """
 
-        f = open(os.path.join(self.cachedir ,str(self.id)+'_data.pik'), 'wb')
+        f = open(self.get_pickle_path(), 'wb')
         pickle.dump(self.__dict__, f, 2)
+        self.logging.append({'INFO': 'Saved cache (pickle) file at: ' + str(self.get_pickle_path())})
         f.close()
         
     
