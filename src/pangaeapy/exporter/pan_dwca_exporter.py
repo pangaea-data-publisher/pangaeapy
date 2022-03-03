@@ -29,6 +29,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         self.agecomment_params = [643]
         # absolute dated ages
         self.absstrat_params = [2205, 5506, 6167, 6168, 6169, 6170, 70169, 102659, 130805, 145907]
+        self.taxonomic_ontologies = [1,2]
         self.taxonomic_coverage = []
 
     def set_elevation_column(self):
@@ -80,7 +81,6 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         for pkey, param in self.pandataset.params.items():
             # full match of taxon name with parameter only
             # TODO: extend to some adjectives e.g. juvenile, adult etc..
-
             try:
                 for term in param.terms:
                     name_parts = re.split(r',\s?',param.name)
@@ -93,7 +93,8 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                     # add: #/m3 etc, %/m3 etc
                     is_valid_unit,  dimension = self.check_unit(param.unit)
 
-                    if taxon_candidate == term.get('name') and is_valid_unit:
+                    if taxon_candidate.lower() == str(term.get('name')).lower() and is_valid_unit:
+
                         if term.get('classification'):
                             if 'Biological Classification' in term.get('classification'):
                                 kingdom = list({'Animalia', 'Archaea', 'Bacteria', 'Chromista', 'Fungi', 'Plantae', 'Protozoa',
