@@ -75,6 +75,9 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                                     dimension += ' per time'
                 except Exception as e:
                     self.logging.append({'WARNING': 'Unit check failed: '+str(e)})
+        else:
+            dimension = 'relative abundance'
+            istaxonrelated =True
         return istaxonrelated, dimension
 
     def get_taxon_columns(self):
@@ -100,7 +103,14 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                     # add: #/m3 etc, %/m3 etc
                     is_valid_unit,  dimension = self.check_unit(param.unit)
 
-                    if taxon_candidate.lower() == str(term.get('name')).lower() and is_valid_unit:
+                    test_taxon = taxon_candidate
+
+                    if taxon_candidate.endswith(' sp.'):
+                        test_taxon  = taxon_candidate.replace(' sp.','').strip()
+                    if taxon_candidate.endswith(' spp.'):
+                        test_taxon  = taxon_candidate.replace(' spp.','').strip()
+
+                    if test_taxon .lower() == str(term.get('name')).lower() and is_valid_unit:
                         if term.get('classification'):
                             if 'Biological Classification' in term.get('classification'):
                                 kingdom = list({'Animalia', 'Archaea', 'Bacteria', 'Chromista', 'Fungi', 'Plantae', 'Protozoa',
@@ -177,8 +187,9 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             taxonframe['scientificName'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('taxon'))
             taxonframe['geodeticDatum'] = 'WGS84'
             taxonframe['kingdom'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('kingdom'))
-            taxonframe['organismQuantityType'] = 'individuals (' + taxonframe['Colname'].apply(
-                lambda x: taxoncolumns.get(x).get('unit')).astype(str) + ')'
+            #taxonframe['organismQuantityType'] = 'individuals (' + taxonframe['Colname'].apply(
+            #    lambda x: taxoncolumns.get(x).get('unit')).astype(str) + ')'
+            taxonframe['organismQuantityType'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('dimension'))
             try:
                 if 'sex' in self.dwcfields:
                     taxonframe['sex'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('sex'))
@@ -197,6 +208,9 @@ class PanDarwinCoreAchiveExporter(PanExporter):
 
             if elevation_direction == 'neg' and 'minimumElevationInMeters' in taxonframe.columns:
                 taxonframe['minimumElevationInMeters'] = taxonframe['minimumElevationInMeters'] * -1
+
+            taxonframe = taxonframe[taxonframe['organismQuantity'].notna()]
+
             dwcdata = taxonframe.to_csv(index=False,sep='|',line_terminator='\n',date_format ='%Y-%m-%dT%H:%M:%S', encoding='utf-8')
             return dwcdata
         else:
