@@ -21,6 +21,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         self.taxon_lifestages = ['adult','juvenile','larvae','eggs']
         self.taxon_sex = ['male','female']
         self.taxon_attributes = self.taxon_lifestages + self.taxon_sex
+        self.taxon_attributes.append('total')
         self.chronostrat_params = [21496, 21497, 21498, 20544, 21197]
         # XYZ zone
         self.biostrat_params = [4491, 15398, 15501, 20543, 21181, 85701, 51065, 57117, 57648, 86368, 89835, 121195,
@@ -31,6 +32,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         self.absstrat_params = [2205, 5506, 6167, 6168, 6169, 6170, 70169, 102659, 130805, 145907]
         self.taxonomic_ontologies = [1,2]
         self.taxonomic_coverage = []
+        self.known_synonyms = {'Coccolithophoridae':'Coccolithophorida'}
 
     def set_elevation_column(self):
         ret = 'pos'
@@ -84,17 +86,21 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             try:
                 for term in param.terms:
                     name_parts = re.split(r',\s?',param.name)
-                    taxon_candidate = param.name
+                    taxon_candidate = str(param.name)
+
                     taxon_attribute = None
                     if len(name_parts) == 2:
                         if name_parts[1] in self.taxon_attributes:
                             taxon_candidate = name_parts[0]
                             taxon_attribute = name_parts[1]
+                    if taxon_candidate in self.known_synonyms:
+                        taxon_candidate = self.known_synonyms.get(taxon_candidate)
+
+
                     # add: #/m3 etc, %/m3 etc
                     is_valid_unit,  dimension = self.check_unit(param.unit)
 
                     if taxon_candidate.lower() == str(term.get('name')).lower() and is_valid_unit:
-
                         if term.get('classification'):
                             if 'Biological Classification' in term.get('classification'):
                                 kingdom = list({'Animalia', 'Archaea', 'Bacteria', 'Chromista', 'Fungi', 'Plantae', 'Protozoa',
