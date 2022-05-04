@@ -149,7 +149,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                         basisofrecord = 'FossilSpecimen'
                         geologicalcontextid = 'http://purl.obolibrary.org/obo/ENVO_00002164'
                     if int(param.id) in [1]:
-                        basisofrecord = 'FossilSpecimen'
+                        #basisofrecord = 'FossilSpecimen'
                         geologicalcontextid = 'http://purl.obolibrary.org/obo/ENVO_00002007'
         except Exception as e:
             self.logging.append({'INFO': 'Failed to identify basisOfRecord based on used geocodes, keep HumanObservation by default'})
