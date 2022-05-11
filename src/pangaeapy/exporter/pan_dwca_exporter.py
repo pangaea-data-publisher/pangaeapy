@@ -146,7 +146,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             for param in self.pandataset.params.values():
                 if param.id:
                     if int(param.id) in geocontext_params:
-                        basisofrecord = 'FossilSpecimen'
+                        #basisofrecord = 'FossilSpecimen'
                         geologicalcontextid = 'http://purl.obolibrary.org/obo/ENVO_00002164'
                     if int(param.id) in [1]:
                         #basisofrecord = 'FossilSpecimen'
