@@ -914,13 +914,19 @@ class PanDataSet:
                 self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y/%m/%dT%H:%M:%S')
 
     def setQCDataFrame(self):
+        tmp_qc_column_list = []
         try:
             for paramcolumn in list(self.params.keys()):
                 if self.params[paramcolumn].type in ['numeric', 'datetime']:
-                    self.qcdata[paramcolumn] = self.data[paramcolumn].astype(
+                    tmp_qc_series = self.data[paramcolumn].astype(
                         str).str.extract(r'(^[\*/\?])?(.+)')[0]
+                    #self.qcdata[paramcolumn] = self.data[paramcolumn].astype(
+                    #    str).str.extract(r'(^[\*/\?])?(.+)')[0]
                     #self.qcdata[paramcolumn].fillna(value='ok', inplace=True)
-                    self.qcdata[paramcolumn].replace(to_replace=self.quality_flag_replace, inplace=True)
+                    tmp_qc_series.replace(to_replace=self.quality_flag_replace, inplace=True)
+                    tmp_qc_column_list.append(tmp_qc_series)
+                    #self.qcdata[paramcolumn].replace(to_replace=self.quality_flag_replace, inplace=True)
+            self.qcdata = pd.concat(tmp_qc_column_list, axis=1)
             self.qcdata = self.qcdata.dropna(how='all')
             self.qcdata.fillna(0,inplace=True)
         except Exception as e:
