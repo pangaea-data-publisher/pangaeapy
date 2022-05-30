@@ -101,12 +101,14 @@ class PanAuthor:
     id : int
         The PANGAEA internal id
     """
-    def __init__(self,lastname, firstname=None, orcid=None, id=None):
+    def __init__(self,lastname, firstname=None, orcid=None, id=None, affiliations=None):
         self.lastname=lastname
         self.firstname=firstname
         self.fullname=self.lastname
         self.ORCID=orcid
         self.id = id
+        if affiliations:
+            self.affiliations = affiliations
         if firstname!=None and  firstname!='':
             self.fullname+=', '+self.firstname
 
@@ -157,8 +159,9 @@ class PanEvent:
     campaign : PanCampaign
         The campaign during which the event was performed
     """
-    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, location=None, campaign=None):
-        self.label=label
+    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, location=None, campaign=None, id = None, deviceid = None):
+        self.label = label
+        self.id = id
         if latitude !=None:
             self.latitude=float(latitude)
         else:
@@ -179,8 +182,9 @@ class PanEvent:
             self.elevation=float(elevation)
         else:
             self.elevation=None
-        self.device=device
-        self.basis=basis
+        self.device = device
+        self.deviceid = deviceid
+        self.basis = basis
         # -- NEED TO CARE ABOUT datetime2!!!
         self.datetime=datetime
         self.datetime2=datetime2
@@ -267,6 +271,8 @@ class PanParam:
         the dataseries (column id)
     colno : int
         the column number
+    methodid : int
+        the id of the used method or device
 
 
     
@@ -299,12 +305,15 @@ class PanParam:
         the dataseries (column id)
     colno : int
         the column number
+    methodid : int
+        the id of the used method or device
         
     
     
     """
-    def __init__(self, id, name, shortName, param_type, source, unit=None, unit_id = None, format=None, terms =[], comment=None, PI = dict(), dataseries = None, colno = None):
+    def __init__(self, id, name, shortName, param_type, source, unit=None, unit_id = None, format=None, terms =[], comment=None, PI = dict(), dataseries = None, colno = None, methodid = None):
         self.id=id
+        self.methodid = methodid
         self.name=name
         self.shortName=shortName
         # Synonym namespace dict predefined keys are CF: CF variables (), OS:OceanSites, SD:SeaDataNet abbreviations (TEMP, PSAL etc..)
@@ -627,6 +636,8 @@ class PanDataSet:
             eventLongitude=eventLatitude=eventLatitude2=eventLongitude2=eventLocation = None
             startlocation =endlocation=BSHID=expeditionprogram = None
 
+            eventID = self._getIDParts(event.get('id')).get('event')
+
             if event.find('md:elevation',self.ns)!=None:                
                 eventElevation=event.find('md:elevation',self.ns).text
             if event.find('md:dateTime',self.ns)!=None:
@@ -647,6 +658,7 @@ class PanDataSet:
                 eventLocation= event.find('md:location/md:name',self.ns).text
             if event.find('md:method/md:name',self.ns)!=None:
                 eventDevice= event.find('md:method/md:name',self.ns).text
+                eventDeviceID = self._getIDParts(event.find('md:method',self.ns).get('id')).get('method')
             if event.find('md:basis',self.ns)!=None:
                 basis= event.find('md:basis',self.ns)
                 if basis.find('md:name',self.ns)!=None:
@@ -703,7 +715,9 @@ class PanDataSet:
                                         eventDevice,
                                         eventBasis,									
                                         eventLocation,
-                                        eventCampaign
+                                        eventCampaign,
+                                        eventID,
+                                        eventDeviceID
                                         ))
 
     def _setParameters(self, panXMLMatrixColumn):
@@ -745,13 +759,18 @@ class PanDataSet:
                 panparComment=None
                 if(matrix.find('md:comment',self.ns)!=None):
                     panparComment=matrix.find('md:comment',self.ns).text
+                panparMethodID = None
+                if (paramstr.find('md:method', self.ns) != None):
+                    panparMethodID = self._getIDParts(paramstr.find('md:method', self.ns).get('id')).get('method')
                 panparPI = None
                 panparPI_firstname,panparPI_lastname = None, None
                 if(matrix.find('md:PI', self.ns) != None):
                     if(matrix.find('md:PI/md:firstName', self.ns) !=None):
+                        panparPI_ID = self._getIDParts(matrix.find('md:PI', self.ns).get('id')).get('pi')
                         panparPI_firstname= matrix.find('md:PI/md:firstName', self.ns).text
                     panparPI_lastname = matrix.find('md:PI/md:lastName', self.ns).text
-                    panparPI = ', '.join(filter(None, [panparPI_lastname,panparPI_firstname]))
+                    panparPI_fullname = ', '.join(filter(None, [panparPI_lastname,panparPI_firstname]))
+                    panparPI = {'id':panparPI_ID,'name':panparPI_fullname, 'last_name':panparPI_lastname,'first_name':panparPI_firstname}
                 panparFormat=matrix.get('format')
                 if panparShortName=='Event':
                     self.eventInMatrix=True
@@ -796,7 +815,7 @@ class PanDataSet:
                             termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid,'classification':classification})
                         else:
                             termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid})
-                self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID, colno = colno)
+                self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID, colno = colno, methodid = panparMethodID)
                 self.parameters = self.params
                 if panparType=='geocode':
                     if panparShortName in panGeoCode:
@@ -848,71 +867,77 @@ class PanDataSet:
         else:
             self.paramlist_index=None
         if self.include_data==True:
-            dataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=textfile"
-            panDataTxt= requests.get(dataURL).text       
-            panData = re.sub(r"/\*(.*)\*/", "", panDataTxt, 1, re.DOTALL).strip() 
-            #Read in PANGAEA Data    
-            self.data = pd.read_csv(io.StringIO(panData), index_col=False , on_bad_lines='skip',sep=u'\t',usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
-            # add geocode/dimension columns from Event
+            try:
+                dataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=textfile"
+                dataResponse = requests.get(dataURL)
+                panDataTxt= dataResponse.text
+                if 'text' in str(dataResponse.headers.get('Content-Type')):
+                    panData = re.sub(r"/\*(.*)\*/", "", panDataTxt, 1, re.DOTALL).strip()
+                    #Read in PANGAEA Data
+                    self.data = pd.read_csv(io.StringIO(panData), index_col=False , on_bad_lines='skip',sep=u'\t',usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
+                    # add geocode/dimension columns from Event
 
-            #if addEventColumns==True and self.topotype!="not specified":
-            if addEventColumns==True:
-                if len(self.events)==1:
-                    if 'Event' not in self.data.columns:
-                        self.data['Event']=self.events[0].label
-                        self.params['Event']=PanParam(0,'Event','Event','string','data',None)
-                if len(self.events)>=1:              
-                    addEvLat=addEvLon=addEvEle=addEvDat=False
-                    if 'Event' in self.data.columns:
-                        if 'Latitude' not in self.data.columns:
-                            addEvLat=True
-                            self.data['Latitude']=np.nan
-                            self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','geocode','deg')
-                        if 'Longitude' not in self.data.columns: 
-                            addEvLon=True
-                            self.data['Longitude']=np.nan
-                            self.params['Longitude']=PanParam(1601,'Longitude','Longitude','numeric','geocode','deg')
-                        if 'Elevation' not in self.data.columns:
-                            addEvEle=True
-                            self.data['Elevation']=np.nan
-                            self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','geocode','m')
-                        if 'Date/Time' not in self.data.columns:
-                            addEvDat=True
-                            self.data['Date/Time']=np.nan
-                            self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','numeric','geocode','')
-                        for iev,pevent in enumerate(self.events):
-                            if pevent.latitude is not None and addEvLat==True:
-                                self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isnull()),['Latitude']]=self.events[iev].latitude
-                            if pevent.longitude is not None and addEvLon:
-                                self.data.loc[(self.data['Event']== pevent.label) & (self.data['Longitude'].isnull()),['Longitude']]=self.events[iev].longitude
-                            if pevent.elevation is not None and addEvEle:
-                                self.data.loc[(self.data['Event']== pevent.label) & (self.data['Elevation'].isnull()),['Elevation']]=self.events[iev].elevation
-                            if pevent.datetime is not None and addEvDat:
-                                self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isnull()),['Date/Time']]=str(self.events[iev].datetime)
-            # -- delete values with given QC flags
-            if self.deleteFlag!='':
-                if self.deleteFlag=='?' or self.deleteFlag=='*':
-                    self.deleteFlag="\\"+self.deleteFlag
-                self.data.replace(regex=r'^'+self.deleteFlag+'{1}.*',value='',inplace=True)
+                    #if addEventColumns==True and self.topotype!="not specified":
+                    if addEventColumns==True:
+                        if len(self.events)==1:
+                            if 'Event' not in self.data.columns:
+                                self.data['Event']=self.events[0].label
+                                self.params['Event']=PanParam(0,'Event','Event','string','data',None)
+                        if len(self.events)>=1:
+                            addEvLat=addEvLon=addEvEle=addEvDat=False
+                            if 'Event' in self.data.columns:
+                                if 'Latitude' not in self.data.columns:
+                                    addEvLat=True
+                                    self.data['Latitude']=np.nan
+                                    self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','geocode','deg')
+                                if 'Longitude' not in self.data.columns:
+                                    addEvLon=True
+                                    self.data['Longitude']=np.nan
+                                    self.params['Longitude']=PanParam(1601,'Longitude','Longitude','numeric','geocode','deg')
+                                if 'Elevation' not in self.data.columns:
+                                    addEvEle=True
+                                    self.data['Elevation']=np.nan
+                                    self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','geocode','m')
+                                if 'Date/Time' not in self.data.columns:
+                                    addEvDat=True
+                                    self.data['Date/Time']=np.nan
+                                    self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','numeric','geocode','')
+                                for iev,pevent in enumerate(self.events):
+                                    if pevent.latitude is not None and addEvLat==True:
+                                        self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isnull()),['Latitude']]=self.events[iev].latitude
+                                    if pevent.longitude is not None and addEvLon:
+                                        self.data.loc[(self.data['Event']== pevent.label) & (self.data['Longitude'].isnull()),['Longitude']]=self.events[iev].longitude
+                                    if pevent.elevation is not None and addEvEle:
+                                        self.data.loc[(self.data['Event']== pevent.label) & (self.data['Elevation'].isnull()),['Elevation']]=self.events[iev].elevation
+                                    if pevent.datetime is not None and addEvDat:
+                                        self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isnull()),['Date/Time']]=str(self.events[iev].datetime)
+                    # -- delete values with given QC flags
+                    if self.deleteFlag!='':
+                        if self.deleteFlag=='?' or self.deleteFlag=='*':
+                            self.deleteFlag="\\"+self.deleteFlag
+                        self.data.replace(regex=r'^'+self.deleteFlag+'{1}.*',value='',inplace=True)
 
-            # --- Delete empty columns
-            self.data=self.data.dropna(axis=1, how='all')
-            # --- Preserve QC Flags in self.qcdata DataDrame and
-            # --- Replace Quality Flags for numeric columns
+                    # --- Delete empty columns
+                    self.data=self.data.dropna(axis=1, how='all')
+                    # --- Preserve QC Flags in self.qcdata DataDrame and
+                    # --- Replace Quality Flags for numeric columns
 
 
-            for paramcolumn in list(self.params.keys()):
-                if paramcolumn not in self.data.columns:
-                    del self.params[paramcolumn]
+                    for paramcolumn in list(self.params.keys()):
+                        if paramcolumn not in self.data.columns:
+                            del self.params[paramcolumn]
 
-            self.setQCDataFrame()
-            self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
+                    self.setQCDataFrame()
+                    self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
 
-            # --- Adjust Column Data Types
-            self.data = self.data.apply(pd.to_numeric, errors='ignore')
-            if 'Date/Time' in self.data.columns:
-                self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y/%m/%dT%H:%M:%S')
-
+                    # --- Adjust Column Data Types
+                    self.data = self.data.apply(pd.to_numeric, errors='ignore')
+                    if 'Date/Time' in self.data.columns:
+                        self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y/%m/%dT%H:%M:%S')
+                else:
+                    self.logging.append({'WARNING': 'Dataset seems to be a binary file which cannot be handled by pangaeapy'})
+            except Exception as e:
+                self.logging.append({'ERROR':'Loading data failed, reason: '+str(e)})
     def setQCDataFrame(self):
         tmp_qc_column_list = []
         try:
@@ -1057,10 +1082,17 @@ class PanDataSet:
                             firstname=author.find("md:firstName", self.ns).text
                         if author.find("md:orcid", self.ns)!=None:
                             orcid=author.find("md:orcid", self.ns).text
+                        #if author.find("md:affiliation", self.ns)!=None:
+                        authoraffiliations = []
+                        for affiliations in author.findall("md:affiliation", self.ns):
+                            afm = re.search(r"\.inst([0-9]+)$",str(affiliations.get('id')))
+                            if afm:
+                                authoraffiliations.append(afm[1])
+                        #print(authoraffiliations)
                         authorid=author.get('id')
                         if authorid:
                             authorid=int(authorid.replace('dataset.author',''))
-                        self.authors.append(PanAuthor(lastname, firstname,orcid,authorid))
+                        self.authors.append(PanAuthor(lastname, firstname,orcid,authorid, authoraffiliations))
                     for project in xml.findall("./md:project", self.ns):
                         label=None
                         name=None
