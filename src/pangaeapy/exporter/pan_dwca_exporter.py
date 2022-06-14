@@ -171,7 +171,6 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             geocolumns.append('index')
             taxonframe = taxonframe.melt(id_vars=geocolumns, value_vars=list(taxoncolumns.keys()), var_name='Colname',
                                          value_name='organismQuantity')
-
             taxonframe['index'] += 1
             taxonframe['id'] = taxonframe['index'].astype(str) + '_' + taxonframe['Colname'].apply(
                 lambda x: taxoncolumns.get(x).get('colno')).astype(str)
@@ -198,12 +197,13 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                     taxonframe['lifeStage'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('lifestage'))
             except Exception as e:
                 print(e)
-            dwcfields= self.dwcfields
+            dwcfields= [f for f in self.dwcfields if f in taxonframe.columns]
             if geologicalcontextid:
                 taxonframe['geologicalContextID'] = geologicalcontextid
                 dwcfields.append('geologicalContextID')
             elevation_direction = self.set_elevation_column()
-            taxonframe.rename(columns=self.dwcnames, inplace=True)
+            replace_dwcnames = {ck: cv  for (ck, cv) in self.dwcnames.items() if ck in taxonframe.columns}
+            taxonframe.rename(columns=replace_dwcnames, inplace=True)
             taxonframe = taxonframe[dwcfields]
 
             if elevation_direction == 'neg' and 'minimumElevationInMeters' in taxonframe.columns:
