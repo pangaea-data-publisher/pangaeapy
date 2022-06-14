@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='pangaeapy',
-    version='1.0.3',
+    version='1.0.4',
     install_requires=['lxml~=4.6.3','requests~=2.26.0','pandas~=1.3.5','numpy>=1.21.0','netcdf4~=1.5.6'],
     packages=['pangaeapy','pangaeapy.exporter'],
     package_dir={'pangaeapy': ''},
