@@ -605,14 +605,15 @@ class PanDataSet:
         """
         if type(id) == int:
             self.id = id
-        else:
+        elif isinstance(id, str):
             idmatch = re.search(r'10\.1594\/PANGAEA\.([0-9]+)$', id,re.IGNORECASE)
             if idmatch is not None:
                 self.id = idmatch[1]
             else:
                 self.logging.append({'ERROR': 'Invalid Identifier or DOI: '+str(id)})
                 #print('Invalid Identifier')
-
+        else:
+            self.logging.append({'ERROR': 'Invalid Identifier or DOI: ' + str(id)})
 
     def _getIDParts(self, idstr):
         #returns dict extracted from panmd id strings e.g
@@ -631,6 +632,7 @@ class PanDataSet:
         for event in panXMLEvents:
             eventElevation=eventDateTime=eventDateTime2 = None
             eventDevice=eventLabel = None
+            eventDeviceID = None
             basis_name= basis_URI = basis_callsign= basis_imonumber = None
             campaign_name= campaign_URI=campaign_start=campaign_end = None
             eventLongitude=eventLatitude=eventLatitude2=eventLongitude2=eventLocation = None
@@ -889,19 +891,19 @@ class PanDataSet:
                                 if 'Latitude' not in self.data.columns:
                                     addEvLat=True
                                     self.data['Latitude']=np.nan
-                                    self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','geocode','deg')
+                                    self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','event','deg')
                                 if 'Longitude' not in self.data.columns:
                                     addEvLon=True
                                     self.data['Longitude']=np.nan
-                                    self.params['Longitude']=PanParam(1601,'Longitude','Longitude','numeric','geocode','deg')
+                                    self.params['Longitude']=PanParam(1601,'Longitude','Longitude','numeric','event','deg')
                                 if 'Elevation' not in self.data.columns:
                                     addEvEle=True
                                     self.data['Elevation']=np.nan
-                                    self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','geocode','m')
+                                    self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','event','m')
                                 if 'Date/Time' not in self.data.columns:
                                     addEvDat=True
                                     self.data['Date/Time']=np.nan
-                                    self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','numeric','geocode','')
+                                    self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','numeric','event','')
                                 for iev,pevent in enumerate(self.events):
                                     if pevent.latitude is not None and addEvLat==True:
                                         self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isnull()),['Latitude']]=self.events[iev].latitude
@@ -938,6 +940,7 @@ class PanDataSet:
                     self.logging.append({'WARNING': 'Dataset seems to be a binary file which cannot be handled by pangaeapy'})
             except Exception as e:
                 self.logging.append({'ERROR':'Loading data failed, reason: '+str(e)})
+
     def setQCDataFrame(self):
         tmp_qc_column_list = []
         try:
