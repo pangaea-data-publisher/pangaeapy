@@ -415,8 +415,10 @@ class PanDataSet:
 		a string which indicates the registration status of a dataset
 	licence : PanLicence
 	    a licence object, usually creative commons
+	auth_token : str
+
     """
-    def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False, include_data=True, expand_terms=False):
+    def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False, include_data=True, expand_terms=False, auth_token = None):
         self.module_dir = os.path.dirname(os.path.dirname(__file__))
         self.id = None
         self.logging = []
@@ -468,6 +470,7 @@ class PanDataSet:
         self.expand_terms = expand_terms
         self.lastupdate = None
         self.metaxml = None
+        self.auth_token = auth_token
 
         #no symbol = valid(default)
         #? = questionable(?0.345)
@@ -500,7 +503,7 @@ class PanDataSet:
                 # check if title is already there, otherwise load metadata
                 if not self.title:
                     self.setMetadata()
-                if self.loginstatus=='unrestricted' and self.isParent!=True:
+                if (self.loginstatus=='unrestricted' or self.auth_token)  and self.isParent!=True:
                     self.setData()
                     self.defaultparams = [s for s in self.defaultparams if s in self.params.keys()]
                     if self.paramlist!=None:
@@ -789,34 +792,37 @@ class PanDataSet:
                         if termidparts.get('term'):
                             termid = int(termidparts.get('term'))
                         terminologyid = int(terminfo.get('terminologyId'))
-                        if self.expand_terms:
-                            if isinstance(termid,int):
-                                if termid not in expandedTerms:
-                                    try:
-                                        termr = requests.get('https://ws.pangaea.de/es/pangaea-terms/term/'+str(termid))
-                                        termJSON = termr.json()
-                                        if termJSON.get('_source'):
-                                            expandedTerms[termid] = []
-                                            if termJSON['_source'].get('main_topics'):
-                                                if isinstance(termJSON['_source'].get('main_topics'), list):
-                                                    expandedTerms[termid].extend(termJSON['_source'].get('main_topics'))
-                                                else:
-                                                    expandedTerms[termid].append(termJSON['_source'].get('main_topics'))
-                                            if termJSON['_source'].get('topics'):
-                                                if isinstance( termJSON['_source'].get('topics'), list):
-                                                    expandedTerms[termid].extend(termJSON['_source'].get('topics'))
-                                                else:
-                                                    expandedTerms[termid].append(termJSON['_source'].get('topics'))
-                                    except Exception as e:
-                                        self.logging.append({'WARNING':'Failed loading and parsing PANGAEA Term JSON: '+str(e)})
-                        if self.expand_terms:
-                            if expandedTerms.get(termid):
-                                classification =expandedTerms.get(termid)
+                        try:
+                            if self.expand_terms:
+                                if isinstance(termid,int):
+                                    if termid not in expandedTerms:
+                                        try:
+                                            termr = requests.get('https://ws.pangaea.de/es/pangaea-terms/term/'+str(termid))
+                                            termJSON = termr.json()
+                                            if termJSON.get('_source'):
+                                                expandedTerms[termid] = []
+                                                if termJSON['_source'].get('main_topics'):
+                                                    if isinstance(termJSON['_source'].get('main_topics'), list):
+                                                        expandedTerms[termid].extend(termJSON['_source'].get('main_topics'))
+                                                    else:
+                                                        expandedTerms[termid].append(termJSON['_source'].get('main_topics'))
+                                                if termJSON['_source'].get('topics'):
+                                                    if isinstance( termJSON['_source'].get('topics'), list):
+                                                        expandedTerms[termid].extend(termJSON['_source'].get('topics'))
+                                                    else:
+                                                        expandedTerms[termid].append(termJSON['_source'].get('topics'))
+                                        except Exception as e:
+                                            self.logging.append({'WARNING':'Failed loading and parsing PANGAEA Term JSON: '+str(e)})
+                            if self.expand_terms:
+                                if expandedTerms.get(termid):
+                                    classification =expandedTerms.get(termid)
+                                else:
+                                    classification = []
+                                termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid,'classification':classification})
                             else:
-                                classification = []
-                            termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid,'classification':classification})
-                        else:
-                            termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid})
+                                termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid})
+                        except Exception as e:
+                            self.logging.append({'WARNING':'Failed to expand terms '+(str(e))})
                 self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID, colno = colno, methodid = panparMethodID)
                 self.parameters = self.params
                 if panparType=='geocode':
@@ -871,73 +877,84 @@ class PanDataSet:
         if self.include_data==True:
             try:
                 dataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=textfile"
-                dataResponse = requests.get(dataURL)
+                requestheader = {}
+                if self.auth_token:
+                    requestheader = {'Authorization': 'Bearer '+ str(self.auth_token)}
+                dataResponse = requests.get(dataURL, headers = requestheader)
                 panDataTxt= dataResponse.text
-                if 'text' in str(dataResponse.headers.get('Content-Type')):
-                    panData = re.sub(r"/\*(.*)\*/", "", panDataTxt, 1, re.DOTALL).strip()
-                    #Read in PANGAEA Data
-                    self.data = pd.read_csv(io.StringIO(panData), index_col=False , on_bad_lines='skip',sep=u'\t',usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
-                    # add geocode/dimension columns from Event
+                if int(dataResponse.status_code) == 200:
+                    if 'text' in str(dataResponse.headers.get('Content-Type')):
+                        panData = re.sub(r"/\*(.*)\*/", "", panDataTxt, 1, re.DOTALL).strip()
+                        #Read in PANGAEA Data
+                        self.data = pd.read_csv(io.StringIO(panData), index_col=False , on_bad_lines='skip',sep=u'\t',usecols=self.paramlist_index,names=list(self.params.keys()),skiprows=[0])
+                        # add geocode/dimension columns from Event
 
-                    #if addEventColumns==True and self.topotype!="not specified":
-                    if addEventColumns==True:
-                        if len(self.events)==1:
-                            if 'Event' not in self.data.columns:
-                                self.data['Event']=self.events[0].label
-                                self.params['Event']=PanParam(0,'Event','Event','string','data',None)
-                        if len(self.events)>=1:
-                            addEvLat=addEvLon=addEvEle=addEvDat=False
-                            if 'Event' in self.data.columns:
-                                if 'Latitude' not in self.data.columns:
-                                    addEvLat=True
-                                    self.data['Latitude']=np.nan
-                                    self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','event','deg')
-                                if 'Longitude' not in self.data.columns:
-                                    addEvLon=True
-                                    self.data['Longitude']=np.nan
-                                    self.params['Longitude']=PanParam(1601,'Longitude','Longitude','numeric','event','deg')
-                                if 'Elevation' not in self.data.columns:
-                                    addEvEle=True
-                                    self.data['Elevation']=np.nan
-                                    self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','event','m')
-                                if 'Date/Time' not in self.data.columns:
-                                    addEvDat=True
-                                    self.data['Date/Time']=np.nan
-                                    self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','numeric','event','')
-                                for iev,pevent in enumerate(self.events):
-                                    if pevent.latitude is not None and addEvLat==True:
-                                        self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isnull()),['Latitude']]=self.events[iev].latitude
-                                    if pevent.longitude is not None and addEvLon:
-                                        self.data.loc[(self.data['Event']== pevent.label) & (self.data['Longitude'].isnull()),['Longitude']]=self.events[iev].longitude
-                                    if pevent.elevation is not None and addEvEle:
-                                        self.data.loc[(self.data['Event']== pevent.label) & (self.data['Elevation'].isnull()),['Elevation']]=self.events[iev].elevation
-                                    if pevent.datetime is not None and addEvDat:
-                                        self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isnull()),['Date/Time']]=str(self.events[iev].datetime)
-                    # -- delete values with given QC flags
-                    if self.deleteFlag!='':
-                        if self.deleteFlag=='?' or self.deleteFlag=='*':
-                            self.deleteFlag="\\"+self.deleteFlag
-                        self.data.replace(regex=r'^'+self.deleteFlag+'{1}.*',value='',inplace=True)
+                        #if addEventColumns==True and self.topotype!="not specified":
+                        if addEventColumns==True:
+                            if len(self.events)==1:
+                                if 'Event' not in self.data.columns:
+                                    self.data['Event']=self.events[0].label
+                                    self.params['Event']=PanParam(0,'Event','Event','string','data',None)
+                            if len(self.events)>=1:
+                                addEvLat=addEvLon=addEvEle=addEvDat=False
+                                if 'Event' in self.data.columns:
+                                    if 'Latitude' not in self.data.columns:
+                                        addEvLat=True
+                                        self.data['Latitude']=np.nan
+                                        self.params['Latitude']=PanParam(1600,'Latitude','Latitude','numeric','event','deg')
+                                    if 'Longitude' not in self.data.columns:
+                                        addEvLon=True
+                                        self.data['Longitude']=np.nan
+                                        self.params['Longitude']=PanParam(1601,'Longitude','Longitude','numeric','event','deg')
+                                    if 'Elevation' not in self.data.columns:
+                                        addEvEle=True
+                                        self.data['Elevation']=np.nan
+                                        self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','event','m')
+                                    if 'Date/Time' not in self.data.columns:
+                                        addEvDat=True
+                                        self.data['Date/Time']=np.nan
+                                        self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','numeric','event','')
+                                    for iev,pevent in enumerate(self.events):
+                                        if pevent.latitude is not None and addEvLat==True:
+                                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isnull()),['Latitude']]=self.events[iev].latitude
+                                        if pevent.longitude is not None and addEvLon:
+                                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Longitude'].isnull()),['Longitude']]=self.events[iev].longitude
+                                        if pevent.elevation is not None and addEvEle:
+                                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Elevation'].isnull()),['Elevation']]=self.events[iev].elevation
+                                        if pevent.datetime is not None and addEvDat:
+                                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isnull()),['Date/Time']]=str(self.events[iev].datetime)
+                        # -- delete values with given QC flags
+                        if self.deleteFlag!='':
+                            if self.deleteFlag=='?' or self.deleteFlag=='*':
+                                self.deleteFlag="\\"+self.deleteFlag
+                            self.data.replace(regex=r'^'+self.deleteFlag+'{1}.*',value='',inplace=True)
 
-                    # --- Delete empty columns
-                    self.data=self.data.dropna(axis=1, how='all')
-                    # --- Preserve QC Flags in self.qcdata DataDrame and
-                    # --- Replace Quality Flags for numeric columns
+                        # --- Delete empty columns
+                        self.data=self.data.dropna(axis=1, how='all')
+                        # --- Preserve QC Flags in self.qcdata DataDrame and
+                        # --- Replace Quality Flags for numeric columns
 
 
-                    for paramcolumn in list(self.params.keys()):
-                        if paramcolumn not in self.data.columns:
-                            del self.params[paramcolumn]
+                        for paramcolumn in list(self.params.keys()):
+                            if paramcolumn not in self.data.columns:
+                                del self.params[paramcolumn]
 
-                    self.setQCDataFrame()
-                    self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
+                        self.setQCDataFrame()
+                        self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
 
-                    # --- Adjust Column Data Types
-                    self.data = self.data.apply(pd.to_numeric, errors='ignore')
-                    if 'Date/Time' in self.data.columns:
-                        self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y/%m/%dT%H:%M:%S')
+                        # --- Adjust Column Data Types
+                        self.data = self.data.apply(pd.to_numeric, errors='ignore')
+                        if 'Date/Time' in self.data.columns:
+                            self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y/%m/%dT%H:%M:%S')
+                    else:
+                        self.logging.append({'WARNING': 'Dataset seems to be a binary file which cannot be handled by pangaeapy'})
+                elif int(dataResponse.status_code) == 401:
+                    if self.auth_token:
+                        self.logging.append({'WARNING': 'Data access failed, invalid auth token'})
+                    else:
+                        self.logging.append({'WARNING': 'Data access failed, authorisation failed '})
                 else:
-                    self.logging.append({'WARNING': 'Dataset seems to be a binary file which cannot be handled by pangaeapy'})
+                    self.logging.append({'WARNING': 'Data access failed, response code '+(str(dataResponse.status_code))})
             except Exception as e:
                 self.logging.append({'ERROR':'Loading data failed, reason: '+str(e)})
 
@@ -1019,7 +1036,10 @@ class PanDataSet:
                 if self.datastatus not in['deleted', None]:
                     self.loginstatus=xml.find('./md:technicalInfo/md:entry[@key="loginOption"]',self.ns).get('value')
                     if self.loginstatus!='unrestricted':
-                        self.logging.append({'WARNING': 'Data set is protected'})
+                        if self.auth_token:
+                            self.logging.append({'INFO': 'Trying to load protected dataset using the given auth token'})
+                        else:
+                            self.logging.append({'WARNING': 'Data set is protected'})
                     if xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns)!= None:
                         self.lastupdate = xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns).get('value')
                     hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
