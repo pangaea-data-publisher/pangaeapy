@@ -19,6 +19,8 @@ import io
 import os
 import textwrap
 
+import logging, logging.handlers
+
 import pickle
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
 from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
@@ -422,6 +424,7 @@ class PanDataSet:
         self.module_dir = os.path.dirname(os.path.dirname(__file__))
         self.id = None
         self.logging = []
+        self.logger = logging.getLogger('dataset')
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
         self.setID(id)
         self.ns= {'md':'http://www.pangaea.de/MetaData'}        
@@ -477,7 +480,7 @@ class PanDataSet:
         #/ = not valid( / 23.56)
         #* = unknown(*0.999)
         # = individual definition (#999)
-
+        self.logger.info('Test')
         self.quality_flags={'ok':'valid','?':'questionable','/':'not_valid','*':'unknown'}
         self.quality_flag_replace={'ok':0,'?':1,'/':2,'*':3}
         if self.id != None:
@@ -792,6 +795,7 @@ class PanDataSet:
                         if termidparts.get('term'):
                             termid = int(termidparts.get('term'))
                         terminologyid = int(terminfo.get('terminologyId'))
+                        termuri = terminfo.get('semanticURI')
                         try:
                             if self.expand_terms:
                                 if isinstance(termid,int):
@@ -818,9 +822,9 @@ class PanDataSet:
                                     classification =expandedTerms.get(termid)
                                 else:
                                     classification = []
-                                termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid,'classification':classification})
+                                termlist.append({'id':termid,'name': str(termname),'semantic_uri':termuri, 'ontology':terminologyid,'classification':classification})
                             else:
-                                termlist.append({'id':termid,'name': str(termname),'ontology':terminologyid})
+                                termlist.append({'id':termid,'name': str(termname),'semantic_uri':termuri, 'ontology':terminologyid})
                         except Exception as e:
                             self.logging.append({'WARNING':'Failed to expand terms '+(str(e))})
                 self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID, colno = colno, methodid = panparMethodID)
@@ -876,8 +880,8 @@ class PanDataSet:
             self.paramlist_index=None
         if self.include_data==True:
             try:
-                dataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=textfile"
-                requestheader = {}
+                dataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)
+                requestheader = {'Accept': 'text/tab-separated-values'}
                 if self.auth_token:
                     requestheader = {'Authorization': 'Bearer '+ str(self.auth_token)}
                 dataResponse = requests.get(dataURL, headers = requestheader)
@@ -999,8 +1003,9 @@ class PanDataSet:
                                                             source='pangaeapy', param_type=ptype)
 
     def _setCitation(self):
-        citationURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=citation_text&charset=UTF-8"
-        r=requests.get(citationURL)
+        citationURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)
+        cheaders = {'Accept':'text/x-bibliography'}
+        r=requests.get(citationURL, headers=cheaders)
         if r.status_code!=404:
             self.citation=r.text
         else:
@@ -1011,8 +1016,10 @@ class PanDataSet:
         The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
         
         """
-        metaDataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)+"?format=metainfo_xml"
-        r=requests.get(metaDataURL)
+        metaDataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)
+        mheaders = {'Accept':'application/vnd.pangaea.metadata+xml'}
+
+        r=requests.get(metaDataURL, headers=mheaders)
         if r.status_code==429:
             self.logging.append({'WARNING':'Received too many requests error (429)...'})
             sleeptime = 1
