@@ -773,8 +773,8 @@ class PanDataSet:
                 panparPI = None
                 panparPI_firstname,panparPI_lastname = None, None
                 if(matrix.find('md:PI', self.ns) != None):
+                    panparPI_ID = self._getIDParts(matrix.find('md:PI', self.ns).get('id')).get('pi')
                     if(matrix.find('md:PI/md:firstName', self.ns) !=None):
-                        panparPI_ID = self._getIDParts(matrix.find('md:PI', self.ns).get('id')).get('pi')
                         panparPI_firstname= matrix.find('md:PI/md:firstName', self.ns).text
                     panparPI_lastname = matrix.find('md:PI/md:lastName', self.ns).text
                     panparPI_fullname = ', '.join(filter(None, [panparPI_lastname,panparPI_firstname]))
