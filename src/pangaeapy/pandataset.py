@@ -480,7 +480,7 @@ class PanDataSet:
         #/ = not valid( / 23.56)
         #* = unknown(*0.999)
         # = individual definition (#999)
-        self.logger.info('Test')
+        #self.logger.info('Test')
         self.quality_flags={'ok':'valid','?':'questionable','/':'not_valid','*':'unknown'}
         self.quality_flag_replace={'ok':0,'?':1,'/':2,'*':3}
         if self.id != None:
