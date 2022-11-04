@@ -883,7 +883,7 @@ class PanDataSet:
                 dataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)
                 requestheader = {'Accept': 'text/tab-separated-values'}
                 if self.auth_token:
-                    requestheader = {'Authorization': 'Bearer '+ str(self.auth_token)}
+                    requestheader['Authorization'] = 'Bearer '+ str(self.auth_token)
                 dataResponse = requests.get(dataURL, headers = requestheader)
                 panDataTxt= dataResponse.text
                 if int(dataResponse.status_code) == 200:
@@ -1005,6 +1005,8 @@ class PanDataSet:
     def _setCitation(self):
         citationURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)
         cheaders = {'Accept':'text/x-bibliography'}
+        if self.auth_token:
+            cheaders['Authorization'] = 'Bearer ' + str(self.auth_token)
         r=requests.get(citationURL, headers=cheaders)
         if r.status_code!=404:
             self.citation=r.text
@@ -1018,7 +1020,8 @@ class PanDataSet:
         """
         metaDataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)
         mheaders = {'Accept':'application/vnd.pangaea.metadata+xml'}
-
+        if self.auth_token:
+            mheaders['Authorization'] = 'Bearer ' + str(self.auth_token)
         r=requests.get(metaDataURL, headers=mheaders)
         if r.status_code==429:
             self.logging.append({'WARNING':'Received too many requests error (429)...'})
