@@ -213,7 +213,6 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             taxonframe = taxonframe[taxonframe['organismQuantity'].notna()]
 
             dwcdata = taxonframe.to_csv(index=False,sep='|',line_terminator='\n',date_format ='%Y-%m-%dT%H:%M:%S', encoding='utf-8')
-            print(taxonframe.head())
             return dwcdata
         else:
             self.logging.append({'ERROR': 'No taxonomic information identified in dataset, skipping DwC-A ASCII table generation'})
