@@ -18,7 +18,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         self.dwcfields = ['id', 'modified', 'institutionCode', 'CollectionCode', 'datasetID', 'basisOfRecord', 'catalogNumber',
                      'recordedBy', 'eventDate', 'scientificName', 'kingdom', 'geodeticDatum', 'decimalLatitude',
                      'decimalLongitude', 'organismQuantity', 'organismQuantityType']
-        self.taxon_lifestages = ['adult','juvenile','larvae','eggs']
+        self.taxon_lifestages = ['adult','juvenile','larvae','eggs','nauplii']
         self.taxon_sex = ['male','female']
         self.taxon_attributes = self.taxon_lifestages + self.taxon_sex
         self.taxon_attributes.append('total')
@@ -197,13 +197,14 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                     taxonframe['lifeStage'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('lifestage'))
             except Exception as e:
                 print(e)
+            replace_dwcnames = {ck: cv  for (ck, cv) in self.dwcnames.items() if ck in taxonframe.columns}
+            taxonframe.rename(columns=replace_dwcnames, inplace=True)
             dwcfields= [f for f in self.dwcfields if f in taxonframe.columns]
             if geologicalcontextid:
                 taxonframe['geologicalContextID'] = geologicalcontextid
                 dwcfields.append('geologicalContextID')
             elevation_direction = self.set_elevation_column()
-            replace_dwcnames = {ck: cv  for (ck, cv) in self.dwcnames.items() if ck in taxonframe.columns}
-            taxonframe.rename(columns=replace_dwcnames, inplace=True)
+
             taxonframe = taxonframe[dwcfields]
 
             if elevation_direction == 'neg' and 'minimumElevationInMeters' in taxonframe.columns:
@@ -212,6 +213,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             taxonframe = taxonframe[taxonframe['organismQuantity'].notna()]
 
             dwcdata = taxonframe.to_csv(index=False,sep='|',line_terminator='\n',date_format ='%Y-%m-%dT%H:%M:%S', encoding='utf-8')
+            print(taxonframe.head())
             return dwcdata
         else:
             self.logging.append({'ERROR': 'No taxonomic information identified in dataset, skipping DwC-A ASCII table generation'})
