@@ -184,7 +184,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             taxonframe['basisOfRecord'] = basisofrecord
             taxonframe['catalogNumber'] = taxonframe['Colname'].apply(
                 lambda x: taxoncolumns.get(x).get('series')).astype(str) + '_' + taxonframe['index'].astype(str)
-            taxonframe['recordedBy'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('author'))
+            taxonframe['recordedBy'] = taxonframe['Colname'].apply(lambda x: None if not taxoncolumns.get(x).get('author') else taxoncolumns.get(x).get('author').get('name'))
             taxonframe['scientificName'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('taxon'))
             taxonframe['geodeticDatum'] = 'WGS84'
             taxonframe['kingdom'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('kingdom'))
