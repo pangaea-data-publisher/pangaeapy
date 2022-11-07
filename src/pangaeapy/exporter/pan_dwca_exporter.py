@@ -18,8 +18,10 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         self.dwcfields = ['id', 'modified', 'institutionCode', 'CollectionCode', 'datasetID', 'basisOfRecord', 'catalogNumber',
                      'recordedBy', 'eventDate', 'scientificName', 'kingdom', 'geodeticDatum', 'decimalLatitude',
                      'decimalLongitude', 'organismQuantity', 'organismQuantityType']
-        self.taxon_lifestages = ['adult','juvenile','larvae','eggs','nauplii']
-        self.taxon_sex = ['male','female']
+        #http://vocab.nerc.ac.uk/collection/S11/current/
+        self.taxon_lifestages = ['adult','juvenile','larvae','eggs','nauplii','copepodites']
+        #http://vocab.nerc.ac.uk/collection/S10/current/
+        self.taxon_sex = ['male','female','hermaphrodite']
         self.taxon_attributes = self.taxon_lifestages + self.taxon_sex
         self.taxon_attributes.append('total')
         self.chronostrat_params = [21496, 21497, 21498, 20544, 21197]
