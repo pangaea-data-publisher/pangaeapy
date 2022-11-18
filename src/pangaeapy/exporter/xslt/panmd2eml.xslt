@@ -61,13 +61,20 @@
 				<coverage>
 				<geographicCoverage>
 				<geographicDescription>
-				<xsl:for-each select="md:MetaData/md:event">
-					<xsl:text>Event: </xsl:text>
-					<xsl:value-of select="md:label"/>
-					<xsl:text>, </xsl:text>
-					<xsl:value-of select="md:location"/>
-					<xsl:text>;	</xsl:text>
-				</xsl:for-each>
+					<xsl:choose>
+						<xsl:when test="md:MetaData/md:event">
+							<xsl:for-each select="md:MetaData/md:event">
+								<xsl:text>Event: </xsl:text>
+								<xsl:value-of select="md:label"/>
+								<xsl:text>, </xsl:text>
+								<xsl:value-of select="md:location"/>
+								<xsl:text>;	</xsl:text>
+							</xsl:for-each>
+						</xsl:when>
+					<xsl:otherwise>
+						No textual geographic information given
+					</xsl:otherwise>
+					</xsl:choose>
 				</geographicDescription>
 				<boundingCoordinates>
 				<westBoundingCoordinate>

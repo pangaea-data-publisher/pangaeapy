@@ -2,12 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='pangaeapy',
-    version='1.0.8b',
+    version='1.0.10',
     install_requires=['lxml>=4.9.1','requests~=2.26.0','pandas~=1.3.5','numpy>=1.21.0','netcdf4~=1.5.6'],
     packages=['pangaeapy','pangaeapy.exporter'],
     package_dir={'pangaeapy': ''},
     #package_data={'mypkg': ['data/*.dat']},
-    package_data={'pangaeapy': ['mappings/*.json','data/*.csv','export/*.*']},
+    package_data={'pangaeapy': ['mappings/*.json','data/*.*','export/*.*']},
     include_package_data=True,
     url='https://github.com/pangaea-data-publisher/pangaeapy',
     license='OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)',

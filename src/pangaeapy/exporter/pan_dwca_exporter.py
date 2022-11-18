@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 from collections import OrderedDict
 
 import lxml.etree
@@ -14,8 +15,8 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         super(PanDarwinCoreAchiveExporter, self).__init__(*args, **kwargs)
 
         self.dwcnames = {'Event': 'EventID', 'Latitude': 'decimalLatitude', 'Longitude': 'decimalLongitude',
-                    'Date/Time': 'eventDate'}
-        self.dwcfields = ['id', 'modified', 'institutionCode', 'CollectionCode', 'datasetID', 'basisOfRecord', 'catalogNumber',
+                    'Date/Time': 'eventDate','Depth water': 'minimumDepthInMeters', 'Elevation':'minimumElevationInMeters'}
+        self.dwcfields = ['id', 'occurrenceID','modified', 'institutionCode', 'CollectionCode', 'datasetID', 'basisOfRecord', 'catalogNumber',
                      'recordedBy', 'eventDate', 'scientificName', 'kingdom', 'geodeticDatum', 'decimalLatitude',
                      'decimalLongitude', 'organismQuantity', 'organismQuantityType']
         #http://vocab.nerc.ac.uk/collection/S11/current/
@@ -28,24 +29,11 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         # XYZ zone
         self.biostrat_params = [4491, 15398, 15501, 20543, 21181, 85701, 51065, 57117, 57648, 86368, 89835, 121195,
                            128347, 135504, 170899, 185728]
-        # comment
-        self.agecomment_params = [643]
         # absolute dated ages
         self.absstrat_params = [2205, 5506, 6167, 6168, 6169, 6170, 70169, 102659, 130805, 145907]
         self.taxonomic_ontologies = [1,2]
         self.taxonomic_coverage = []
         self.known_synonyms = {'Coccolithophoridae':'Coccolithophorida'}
-
-    def set_elevation_column(self):
-        ret = 'pos'
-        verticaldirection = {'Depth water':'neg', 'Elevation':'pos'}
-        for vgeo, vdir in verticaldirection.items():
-            if vgeo in self.pandataset.data.columns:
-                ret = vdir
-                self.dwcnames[vgeo] = 'minimumElevationInMeters'
-                self.dwcfields.append('minimumElevationInMeters')
-                break
-        return ret
 
     def check_unit(self, unitexpr):
         unitre = '^([#%])(?:\/((?:[0-9]+\s)?(?:[kdcm]?m{1,2}\*{2}[23]|m?l|k?g)))?(?:\/(d|m|y|a|ka|day|week|month|year){1})?$'
@@ -140,7 +128,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         return taxoncolumns
 
     def get_context_info(self):
-        geocontext_params = self.chronostrat_params + self.biostrat_params + self.agecomment_params + self.absstrat_params
+        geocontext_params = self.chronostrat_params + self.biostrat_params + self.absstrat_params
        # print(geocontext_params)
         basisofrecord = 'HumanObservation'
         geologicalcontextid = None
@@ -164,57 +152,79 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         selectedcolumns = []
         geocolumns = self.pandataset.defaultparams
         if 'Depth water' in self.pandataset.data.columns:
+            self.dwcfields.append('minimumDepthInMeters')
             geocolumns.append('Depth water')
-        if len(taxoncolumns) > 0:
-            selectedcolumns.extend(geocolumns)
-            selectedcolumns.extend(taxoncolumns.keys())
-            taxonframe = self.pandataset.data[selectedcolumns]
-            taxonframe = taxonframe.reset_index()
-            geocolumns.append('index')
-            taxonframe = taxonframe.melt(id_vars=geocolumns, value_vars=list(taxoncolumns.keys()), var_name='Colname',
-                                         value_name='organismQuantity')
-            taxonframe['index'] += 1
-            taxonframe['id'] = taxonframe['index'].astype(str) + '_' + taxonframe['Colname'].apply(
-                lambda x: taxoncolumns.get(x).get('colno')).astype(str)
-            taxonframe['modified'] = self.pandataset.lastupdate
-            taxonframe['institutionCode'] = 'Pangaea'
-            doimatch = re.search('(10\.1594/PANGAEA\.[0-9]+)', self.pandataset.doi)
-            taxonframe['CollectionCode'] = 'doi:' + str(doimatch[1])
-            taxonframe['datasetID'] = self.pandataset.doi
-            taxonframe['basisOfRecord'] = basisofrecord
-            taxonframe['catalogNumber'] = taxonframe['Colname'].apply(
-                lambda x: taxoncolumns.get(x).get('series')).astype(str) + '_' + taxonframe['index'].astype(str)
-            taxonframe['recordedBy'] = taxonframe['Colname'].apply(lambda x: None if not taxoncolumns.get(x).get('author') else taxoncolumns.get(x).get('author').get('name'))
-            taxonframe['scientificName'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('taxon'))
-            taxonframe['geodeticDatum'] = 'WGS84'
-            taxonframe['kingdom'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('kingdom'))
-            #taxonframe['organismQuantityType'] = 'individuals (' + taxonframe['Colname'].apply(
-            #    lambda x: taxoncolumns.get(x).get('unit')).astype(str) + ')'
-            taxonframe['organismQuantityType'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('dimension'))
             try:
-                if 'sex' in self.dwcfields:
-                    taxonframe['sex'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('sex'))
+                geocolumns.remove('Elevation')
+            except:
+                pass
+        if 'Elevation' in geocolumns:
+            self.dwcfields.append('minimumElevationInMeters')
+        if not 'Date/Time' in geocolumns:
+            if 'Sampling date' in self.pandataset.data.columns:
+                geocolumns.append('Date/Time')
+                self.pandataset.data.rename(columns={"Sampling date": "Date/Time"}, inplace = True)
 
-                if 'lifeStage' in self.dwcfields:
-                    taxonframe['lifeStage'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('lifestage'))
-            except Exception as e:
-                print(e)
-            replace_dwcnames = {ck: cv  for (ck, cv) in self.dwcnames.items() if ck in taxonframe.columns}
-            taxonframe.rename(columns=replace_dwcnames, inplace=True)
-            dwcfields= [f for f in self.dwcfields if f in taxonframe.columns]
-            if geologicalcontextid:
-                taxonframe['geologicalContextID'] = geologicalcontextid
-                dwcfields.append('geologicalContextID')
-            elevation_direction = self.set_elevation_column()
+        if len(taxoncolumns) > 0:
+            try:
+                selectedcolumns.extend(geocolumns)
+                selectedcolumns.extend(taxoncolumns.keys())
+                taxonframe = self.pandataset.data[selectedcolumns]
+                taxonframe = taxonframe.reset_index()
+                geocolumns.append('index')
+                taxonframe = taxonframe.melt(id_vars=geocolumns, value_vars=list(taxoncolumns.keys()), var_name='Colname',
+                                             value_name='organismQuantity')
+                taxonframe['id'] = taxonframe['index'].astype(str) + '_' + taxonframe['Colname'].apply(
+                    lambda x: taxoncolumns.get(x).get('colno')).astype(str)
+                taxonframe['occurrenceID'] = taxonframe['id']
+                taxonframe['modified'] = self.pandataset.lastupdate
+                taxonframe['institutionCode'] = 'Pangaea'
+                doimatch = re.search('(10\.1594/PANGAEA\.[0-9]+)', self.pandataset.doi)
+                taxonframe['CollectionCode'] = 'doi:' + str(doimatch[1])
+                taxonframe['datasetID'] = self.pandataset.doi
+                taxonframe['basisOfRecord'] = basisofrecord
+                taxonframe['catalogNumber'] = taxonframe['Colname'].apply(
+                    lambda x: taxoncolumns.get(x).get('series')).astype(str) + '_' + taxonframe['index'].astype(str)
+                taxonframe['recordedBy'] = taxonframe['Colname'].apply(lambda x: None if not taxoncolumns.get(x).get('author') else taxoncolumns.get(x).get('author').get('name'))
+                taxonframe['scientificName'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('taxon'))
+                taxonframe['geodeticDatum'] = 'WGS84'
+                taxonframe['kingdom'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('kingdom'))
+                #taxonframe['organismQuantityType'] = 'individuals (' + taxonframe['Colname'].apply(
+                #    lambda x: taxoncolumns.get(x).get('unit')).astype(str) + ')'
+                taxonframe['organismQuantityType'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('dimension'))
 
-            taxonframe = taxonframe[dwcfields]
+                try:
+                    if 'sex' in self.dwcfields:
+                        taxonframe['sex'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('sex'))
 
-            if elevation_direction == 'neg' and 'minimumElevationInMeters' in taxonframe.columns:
-                taxonframe['minimumElevationInMeters'] = taxonframe['minimumElevationInMeters'] * -1
+                    if 'lifeStage' in self.dwcfields:
+                        taxonframe['lifeStage'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('lifestage'))
+                except Exception as e1:
+                    print(e1)
+                replace_dwcnames = {ck: cv  for (ck, cv) in self.dwcnames.items() if ck in taxonframe.columns}
 
-            taxonframe = taxonframe[taxonframe['organismQuantity'].notna()]
+                taxonframe.rename(columns=replace_dwcnames, inplace=True)
+                if geologicalcontextid:
+                    taxonframe['geologicalContextID'] = geologicalcontextid
+                    self.dwcfields.append('geologicalContextID')
+                #elevation_direction = self.set_elevation_column()
 
-            dwcdata = taxonframe.to_csv(index=False,sep='|',line_terminator='\n',date_format ='%Y-%m-%dT%H:%M:%S', encoding='utf-8')
+                self.dwcfields= [f for f in self.dwcfields if f in taxonframe.columns]
+
+                taxonframe = taxonframe[self.dwcfields]
+
+                #if elevation_direction == 'neg' and 'minimumElevationInMeters' in taxonframe.columns:
+                #    taxonframe['minimumElevationInMeters'] = taxonframe['minimumElevationInMeters'] * -1
+
+                taxonframe = taxonframe[taxonframe['organismQuantity'].notna()]
+
+                dwcdata = taxonframe.to_csv(index=False,sep='|',line_terminator='\n',date_format ='%Y-%m-%dT%H:%M:%S', encoding='utf-8')
+
+            except Exception as e2:
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                print(exc_type, fname, exc_tb.tb_lineno)
+                self.logging.append({'ERROR': 'Creation of data frame failed: '+str(e2)})
             return dwcdata
         else:
             self.logging.append({'ERROR': 'No taxonomic information identified in dataset, skipping DwC-A ASCII table generation'})

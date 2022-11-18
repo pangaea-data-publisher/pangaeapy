@@ -7,6 +7,7 @@ Created on Tue Aug 21 13:31:30 2018
 @author: Egor Gordeev
 @author: Aarthi Balamurugan
 """
+import json
 import time
 import datetime
 
@@ -18,7 +19,7 @@ import re
 import io
 import os
 import textwrap
-
+import sqlite3 as sl
 import logging, logging.handlers
 
 import pickle
@@ -368,8 +369,8 @@ class PanDataSet:
         If set to True, PanDataSet objects are cached as pickle files on the local home directory within a directory called 'pangaeapy_cache' in order to avoid unnecessary downloads.
     include_data : boolean
         determines if data table is downloaded and added to the self.data dataframe. If you are interested in metadata only set this to False
-    expand_terms : boolean
-        indicates if found ontology terms for parameters shall be expanded, i.p. add their hierarchy terms / classification
+    expand_terms : list or int
+        indicates if found ontology terms for parameters shall be expanded for the given list of terminology ids, i.p. add their hierarchy terms / classification
         
     Attributes
     ----------
@@ -420,8 +421,8 @@ class PanDataSet:
 	auth_token : str
 
     """
-    def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False, include_data=True, expand_terms=False, auth_token = None):
-        self.module_dir = os.path.dirname(os.path.dirname(__file__))
+    def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False, include_data=True, expand_terms=[], auth_token = None):
+        self.module_dir = os.path.dirname(__file__)
         self.id = None
         self.logging = []
         self.logger = logging.getLogger('dataset')
@@ -462,6 +463,14 @@ class PanDataSet:
 
         self.topotype = None
         self.authors=[]
+        self.terms_cache = {} #temporary cache for terms
+        self.terms_conn = sl.connect(os.path.join(self.module_dir,'data','terms.db'))
+        try:
+            sql = 'create table if not exists terms (term_id integer PRIMARY KEY, term_name text, term_json text, entry_date datetime default current_timestamp)'
+            self.terms_conn.execute(sql)
+            self.terms_conn.commit()
+        except Exception as e:
+            print('DB INIT ERROR: '+str(e))
         #replacing error list
 
         self.loginstatus='unrestricted'
@@ -470,6 +479,10 @@ class PanDataSet:
         self.deleteFlag=deleteFlag
         self.children=[]
         self.include_data=include_data
+        if isinstance(expand_terms, int):
+            expand_terms = [expand_terms]
+        if not isinstance(expand_terms, list):
+            expand_terms =[]
         self.expand_terms = expand_terms
         self.lastupdate = None
         self.metaxml = None
@@ -551,7 +564,7 @@ class PanDataSet:
                 #2016-10-08T05:40:17
                 try:
                     lastupdatets = time.mktime(datetime.datetime.strptime(self.lastupdate, "%Y-%m-%dT%H:%M:%S").timetuple())
-                    print(int(lastupdatets) , int(pickle_time))
+                    #print(int(lastupdatets) , int(pickle_time))
                     if int(lastupdatets) >= int(pickle_time):
                         ret = False
                         self.logging.append(
@@ -728,11 +741,83 @@ class PanDataSet:
                                         eventDeviceID
                                         ))
 
+
+    def _getTermInfo(self, termid):
+        termJSON = None
+        try:
+            selsql = 'select * from terms where term_id='+str(termid)
+            tres = self.terms_conn.execute(selsql)
+            found_term = tres.fetchone()
+            if found_term:
+                termJSON = json.loads(found_term[2])
+        except Exception as e:
+            print('getTermInfo ERROR I : ', e)
+        if not termJSON:
+            try:
+                termr = requests.get('https://ws.pangaea.de/es/pangaea-terms/term/' + str(termid))
+                termJSON = termr.json()
+                term_name = termJSON['_source']['name']
+                inssql = 'insert into terms (term_id, term_name, term_json) values (?,?,?)'
+                self.terms_conn.execute(inssql,(termid,term_name,json.dumps(termJSON)))
+                self.terms_conn.commit()
+            except Exception as e:
+                print('getTermInfo ERROR II: ',e, inssql)
+        return termJSON
+
+    def _expandTerm(self,terminfo, terminology_id = None):
+        """
+        Uses terms webservice to enrich the parameter info with linked terms and their classification
+        terminology_id: restrict to given terminology
+        """
+        termret = {}
+        termid = None
+        termname = None
+        if terminfo.find("md:name", self.ns) != None:
+            termname = terminfo.find("md:name", self.ns).text
+            termidparts = self._getIDParts(str(terminfo.get('id')))
+            if termidparts.get('term'):
+                termid = int(termidparts.get('term'))
+            terminologyid = int(terminfo.get('terminologyId'))
+            termuri = terminfo.get('semanticURI')
+
+        try:
+            if self.expand_terms and (terminologyid in self.expand_terms):
+                if isinstance(termid, int):
+                    if termid not in self.terms_cache:
+                        try:
+                            termJSON = self._getTermInfo(termid)
+                            if termJSON.get('_source'):
+                                self.terms_cache[termid] = []
+                                if termJSON['_source'].get('main_topics'):
+                                    if isinstance(termJSON['_source'].get('main_topics'), list):
+                                        self.terms_cache[termid].extend(termJSON['_source'].get('main_topics'))
+                                    else:
+                                        self.terms_cache[termid].append(termJSON['_source'].get('main_topics'))
+                                if termJSON['_source'].get('topics'):
+                                    if isinstance(termJSON['_source'].get('topics'), list):
+                                        self.terms_cache[termid].extend(termJSON['_source'].get('topics'))
+                                    else:
+                                        self.terms_cache[termid].append(termJSON['_source'].get('topics'))
+                        except Exception as e:
+                            self.logging.append({'WARNING': 'Failed loading and parsing PANGAEA Term JSON: ' + str(e)})
+            if self.expand_terms:
+                if self.terms_cache.get(termid):
+                    classification = self.terms_cache.get(termid)
+                else:
+                    classification = []
+                #print(termid, classification)
+                termret= {'id': termid, 'name': str(termname), 'semantic_uri': termuri, 'ontology': terminologyid,
+                     'classification': classification}
+            else:
+                termret= {'id': termid, 'name': str(termname), 'semantic_uri': termuri, 'ontology': terminologyid}
+        except Exception as e:
+            self.logging.append({'WARNING': 'Failed to expand terms ' + (str(e))})
+        return termret
+
     def _setParameters(self, panXMLMatrixColumn):
         """
         Initializes the list of parameter objects from the metadata XML info
         """
-        expandedTerms=dict()
         coln=dict()
         if panXMLMatrixColumn!=None:
             panGeoCode=[]
@@ -787,46 +872,7 @@ class PanDataSet:
                 #Add information about terms/ontologies used:
                 termlist=[]
                 for terminfo in paramstr.findall('md:term', self.ns):
-                    termid = None
-                    termname = None
-                    if terminfo.find("md:name", self.ns) != None:
-                        termname = terminfo.find("md:name", self.ns).text
-                        termidparts = self._getIDParts(str(terminfo.get('id')))
-                        if termidparts.get('term'):
-                            termid = int(termidparts.get('term'))
-                        terminologyid = int(terminfo.get('terminologyId'))
-                        termuri = terminfo.get('semanticURI')
-                        try:
-                            if self.expand_terms:
-                                if isinstance(termid,int):
-                                    if termid not in expandedTerms:
-                                        try:
-                                            termr = requests.get('https://ws.pangaea.de/es/pangaea-terms/term/'+str(termid))
-                                            termJSON = termr.json()
-                                            if termJSON.get('_source'):
-                                                expandedTerms[termid] = []
-                                                if termJSON['_source'].get('main_topics'):
-                                                    if isinstance(termJSON['_source'].get('main_topics'), list):
-                                                        expandedTerms[termid].extend(termJSON['_source'].get('main_topics'))
-                                                    else:
-                                                        expandedTerms[termid].append(termJSON['_source'].get('main_topics'))
-                                                if termJSON['_source'].get('topics'):
-                                                    if isinstance( termJSON['_source'].get('topics'), list):
-                                                        expandedTerms[termid].extend(termJSON['_source'].get('topics'))
-                                                    else:
-                                                        expandedTerms[termid].append(termJSON['_source'].get('topics'))
-                                        except Exception as e:
-                                            self.logging.append({'WARNING':'Failed loading and parsing PANGAEA Term JSON: '+str(e)})
-                            if self.expand_terms:
-                                if expandedTerms.get(termid):
-                                    classification =expandedTerms.get(termid)
-                                else:
-                                    classification = []
-                                termlist.append({'id':termid,'name': str(termname),'semantic_uri':termuri, 'ontology':terminologyid,'classification':classification})
-                            else:
-                                termlist.append({'id':termid,'name': str(termname),'semantic_uri':termuri, 'ontology':terminologyid})
-                        except Exception as e:
-                            self.logging.append({'WARNING':'Failed to expand terms '+(str(e))})
+                    termlist.append(self._expandTerm(terminfo))
                 self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID, colno = colno, methodid = panparMethodID)
                 self.parameters = self.params
                 if panparType=='geocode':
