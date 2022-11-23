@@ -538,6 +538,7 @@ class PanDataSet:
             self.log(logging.ERROR,'Dataset id missing, could not initialize PanDataSet object for: '+str(id))
 
     def log(self, level,message):
+        message += ' - '+str(self.doi)
         loglevel = logging.getLevelName(level)
         self.logging.append({loglevel: message})
         self.logger.log(level=level, msg=message)
