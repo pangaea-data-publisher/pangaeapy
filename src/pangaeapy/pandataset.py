@@ -505,7 +505,8 @@ class PanDataSet:
                 os.makedirs(self.cachedir)
 
             if self.cache==True:
-                self.logging.append({'INFO':'Caching activated..trying to load data and metadata from cache'})
+                #self.logging.append({'INFO':'Caching activated..trying to load data and metadata from cache'})
+                self.log(logging.INFO,'Caching activated..trying to load data and metadata from cache')
                 if self.check_pickle():
                     gotData=self.from_pickle()
                 else:
@@ -524,13 +525,23 @@ class PanDataSet:
                     self.defaultparams = [s for s in self.defaultparams if s in self.params.keys()]
                     if self.paramlist!=None:
                         if  len(self.paramlist)!=len(self.paramlist_index):
-                            self.logging.append({'WARNING':'Inconsistent number of detected parameters, expected: '+str(len(self.paramlist))+' vs '+str(len(self.paramlist_index))})
+                            #self.logging.append({'WARNING':'Inconsistent number of detected parameters, expected: '+str(len(self.paramlist))+' vs '+str(len(self.paramlist_index))})
+                            self.log(logging.WARNING, 'Inconsistent number of detected parameters, expected: '+str(len(self.paramlist))+' vs '+str(len(self.paramlist_index)))
                     if self.cache==True:
                         self.to_pickle()
                 else:
-                    self.logging.append({'WARNING':'Dataset is either restricted or of type "parent"'})
+                    #self.logging.append({'WARNING':'Dataset is either restricted or of type "parent"'})
+                    self.log(logging.WARNING,'Dataset is either restricted or of type "parent"')
         else:
-            self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
+            #self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
+            self.log(logging.ERROR,'Dataset id missing, could not initialize PanDataSet object for: '+str(id))
+
+
+    def log(self, level,message):
+        loglevel = logging.getLevelName(level)
+        self.logging.append({loglevel: message})
+        self.logger.log(level=level, msg=message)
+
 
     def get_pickle_path(self):
         dirs = textwrap.wrap(str(self.id).zfill(8), 2)
@@ -567,8 +578,9 @@ class PanDataSet:
                     #print(int(lastupdatets) , int(pickle_time))
                     if int(lastupdatets) >= int(pickle_time):
                         ret = False
-                        self.logging.append(
-                            {'INFO': 'Dataset cache expired, refreshing cache'})
+                        #self.logging.append(
+                        #    {'INFO': 'Dataset cache expired, refreshing cache'})
+                        self.log(logging.INFO,'Dataset cache expired, refreshing cache')
                 except Exception as e:
                     print(e)
                     ret = False
@@ -593,10 +605,12 @@ class PanDataSet:
                 tmp_dict['logging'] = []
                 f.close()         
                 self.__dict__.update(tmp_dict)
-                self.logging.append({'INFO':'Loading data and metadata from cache: '+str(pickle_path)})
+                #self.logging.append({'INFO':'Loading data and metadata from cache: '+str(pickle_path)})
+                self.log(logging.INFO,'Loading data and metadata from cache: '+str(pickle_path))
                 ret=True
             except:
-                self.logging.append({'WARNING':'Loading data and metadata from cache failed'})
+                #self.logging.append({'WARNING':'Loading data and metadata from cache failed'})
+                self.log(logging.WARNING,'Loading data and metadata from cache failed')
                 ret=False
         else:
             ret=False
@@ -610,7 +624,8 @@ class PanDataSet:
 
         f = open(self.get_pickle_path(), 'wb')
         pickle.dump(self.__dict__, f, 2)
-        self.logging.append({'INFO': 'Saved cache (pickle) file at: ' + str(self.get_pickle_path())})
+        #self.logging.append({'INFO': 'Saved cache (pickle) file at: ' + str(self.get_pickle_path())})
+        self.log(logging.INFO,'Saved cache (pickle) file at: ' + str(self.get_pickle_path()))
         f.close()
         
     
@@ -629,10 +644,12 @@ class PanDataSet:
             if idmatch is not None:
                 self.id = idmatch[1]
             else:
-                self.logging.append({'ERROR': 'Invalid Identifier or DOI: '+str(id)})
+                #self.logging.append({'ERROR': 'Invalid Identifier or DOI: '+str(id)})
+                self.log(logging.ERROR,'Invalid Identifier or DOI: '+str(id))
                 #print('Invalid Identifier')
         else:
-            self.logging.append({'ERROR': 'Invalid Identifier or DOI: ' + str(id)})
+            #self.logging.append({'ERROR': 'Invalid Identifier or DOI: ' + str(id)})
+            self.log(logging.ERROR,'Invalid Identifier or DOI: ' + str(id))
 
     def _getIDParts(self, idstr):
         #returns dict extracted from panmd id strings e.g
@@ -799,7 +816,8 @@ class PanDataSet:
                                     else:
                                         self.terms_cache[termid].append(termJSON['_source'].get('topics'))
                         except Exception as e:
-                            self.logging.append({'WARNING': 'Failed loading and parsing PANGAEA Term JSON: ' + str(e)})
+                            #self.logging.append({'WARNING': 'Failed loading and parsing PANGAEA Term JSON: ' + str(e)})
+                            self.log(logging.WARNING,'Failed loading and parsing PANGAEA Term JSON: ' + str(e))
             if self.expand_terms:
                 if self.terms_cache.get(termid):
                     classification = self.terms_cache.get(termid)
@@ -811,7 +829,8 @@ class PanDataSet:
             else:
                 termret= {'id': termid, 'name': str(termname), 'semantic_uri': termuri, 'ontology': terminologyid}
         except Exception as e:
-            self.logging.append({'WARNING': 'Failed to expand terms ' + (str(e))})
+            #self.logging.append({'WARNING': 'Failed to expand terms ' + (str(e))})
+            self.log(logging.WARNING, 'Failed to expand terms ' + (str(e)))
         return termret
 
     def _setParameters(self, panXMLMatrixColumn):
@@ -878,7 +897,8 @@ class PanDataSet:
                 if panparType=='geocode':
                     if panparShortName in panGeoCode:
                         self.allowNetCDF = False
-                        self.logging.append({'WARNING': 'Data set contains duplicate Geocodes'})
+                        #self.logging.append({'WARNING': 'Data set contains duplicate Geocodes'})
+                        self.log(logging.WARNING,'Data set contains duplicate Geocodes')
                     else:
                         panGeoCode.append(panparShortName)
 
@@ -921,7 +941,8 @@ class PanDataSet:
                         self.paramlist_index.append(iter)
                     iter+=1
             if len(self.paramlist)!=len(self.paramlist_index):
-                self.logging.append({'WARNING': 'Error entering parameters`short names, inconsitent number of parameters'})
+                #self.logging.append({'WARNING': 'Error entering parameters`short names, inconsitent number of parameters'})
+                self.log(logging.WARNING,'Error entering parameters`short names, inconsitent number of parameters')
         else:
             self.paramlist_index=None
         if self.include_data==True:
@@ -997,16 +1018,21 @@ class PanDataSet:
                         if 'Date/Time' in self.data.columns:
                             self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y/%m/%dT%H:%M:%S')
                     else:
-                        self.logging.append({'WARNING': 'Dataset seems to be a binary file which cannot be handled by pangaeapy'})
+                        #self.logging.append({'WARNING': 'Dataset seems to be a binary file which cannot be handled by pangaeapy'})
+                        self.log(logging.WARNING,'Dataset seems to be a binary file which cannot be handled by pangaeapy')
                 elif int(dataResponse.status_code) == 401:
                     if self.auth_token:
-                        self.logging.append({'WARNING': 'Data access failed, invalid auth token'})
+                        #self.logging.append({'WARNING': 'Data access failed, invalid auth token'})
+                        self.log(logging.WARNING,'Data access failed, invalid auth token')
                     else:
-                        self.logging.append({'WARNING': 'Data access failed, authorisation failed '})
+                        #self.logging.append({'WARNING': 'Data access failed, authorisation failed '})
+                        self.log(logging.WARNING,'Data access failed, authorisation failed ')
                 else:
-                    self.logging.append({'WARNING': 'Data access failed, response code '+(str(dataResponse.status_code))})
+                    #self.logging.append({'WARNING': 'Data access failed, response code '+(str(dataResponse.status_code))})
+                    self.log(logging.WARNING,'Data access failed, response code '+(str(dataResponse.status_code)))
             except Exception as e:
-                self.logging.append({'ERROR':'Loading data failed, reason: '+str(e)})
+                #self.logging.append({'ERROR':'Loading data failed, reason: '+str(e)})
+                self.log(logging.ERROR,'Loading data failed, reason: '+str(e))
 
     def setQCDataFrame(self):
         tmp_qc_column_list = []
@@ -1025,7 +1051,8 @@ class PanDataSet:
             self.qcdata = self.qcdata.dropna(how='all')
             self.qcdata.fillna(0,inplace=True)
         except Exception as e:
-            self.logging.append({'WARNING': 'Could not create QC flag dataframe'})
+            #self.logging.append({'WARNING': 'Could not create QC flag dataframe'})
+            self.log(logging.WARNING, 'Could not create QC flag dataframe')
 
     def addQCParamsAndColumns(self, qc_suffix='_QC', excludeColumns=[]):
         #self.data.replace(regex=r'^[\?/\*#\<\>]', value='', inplace=True)
@@ -1057,7 +1084,8 @@ class PanDataSet:
         if r.status_code!=404:
             self.citation=r.text
         else:
-            self.logging.append({'WARNING':'Could not retrieve citation info from PANGAEA'})
+            #self.logging.append({'WARNING':'Could not retrieve citation info from PANGAEA'})
+            self.log(logging.WARNING,'Could not retrieve citation info from PANGAEA')
         
     def setMetadata(self):
         """
@@ -1070,7 +1098,8 @@ class PanDataSet:
             mheaders['Authorization'] = 'Bearer ' + str(self.auth_token)
         r=requests.get(metaDataURL, headers=mheaders)
         if r.status_code==429:
-            self.logging.append({'WARNING':'Received too many requests error (429)...'})
+            #self.logging.append({'WARNING':'Received too many requests error (429)...'})
+            self.log(logging.WARNING,'Received too many requests error (429)...')
             sleeptime = 1
             if r.headers.get('retry-after'):
                 sleeptime = r.headers.get('retry-after')
@@ -1078,7 +1107,8 @@ class PanDataSet:
                 sleeptime=1
             time.sleep(int(sleeptime))
             r = requests.get(metaDataURL)
-            self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
+            #self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
+            self.log(logging.INFO, 'After repeating request, got status code: '+str(r.status_code))
 
         if r.status_code!=404:
             try:
@@ -1093,15 +1123,18 @@ class PanDataSet:
                     self.loginstatus=xml.find('./md:technicalInfo/md:entry[@key="loginOption"]',self.ns).get('value')
                     if self.loginstatus!='unrestricted':
                         if self.auth_token:
-                            self.logging.append({'INFO': 'Trying to load protected dataset using the given auth token'})
+                            #self.logging.append({'INFO': 'Trying to load protected dataset using the given auth token'})
+                            self.log(logging.INFO, 'Trying to load protected dataset using the given auth token')
                         else:
-                            self.logging.append({'WARNING': 'Data set is protected'})
+                            #self.logging.append({'WARNING': 'Data set is protected'})
+                            self.log(logging.WARNING,'Data set is protected')
                     if xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns)!= None:
                         self.lastupdate = xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns).get('value')
                     hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
                     if hierarchyLevel!=None:
                         if hierarchyLevel.get('value')=='parent':
-                            self.logging.append({'WARNING':'Data set is of type parent, please select one of its child datasets'})
+                            #self.logging.append({'WARNING':'Data set is of type parent, please select one of its child datasets'})
+                            self.log(logging.WARNING, 'Data set is of type parent, please select one of its child datasets')
                             self.isParent=True
                             self._setChildren()
                     self.title=xml.find("./md:citation/md:title", self.ns).text
@@ -1206,16 +1239,20 @@ class PanDataSet:
                     panXMLEvents=xml.findall("./md:event", self.ns)
                     self._setEvents(panXMLEvents)
                 else:
-                    self.logging.append({'ERROR': 'Dataset is deleted or of unknown status: ' + str(self.datastatus)})
+                    #self.logging.append({'ERROR': 'Dataset is deleted or of unknown status: ' + str(self.datastatus)})
+                    self.log(logging.ERROR, 'Dataset is deleted or of unknown status: ' + str(self.datastatus))
             except requests.exceptions.HTTPError as e:
-                self.logging.append({'ERROR': 'Failed to retrieve metadata information: '+str(e)})
+                #self.logging.append({'ERROR': 'Failed to retrieve metadata information: '+str(e)})
+                self.log(logging.ERROR, 'Failed to retrieve metadata information: '+str(e))
             except ET.ParseError as e:
-                self.logging.append({'ERROR': 'Failed to parse metadata information: '+str(e)})
-            if self.datastatus not in ['deleted', None]:
-                self._setCitation()
+                #self.logging.append({'ERROR': 'Failed to parse metadata information: '+str(e)})
+                self.log(logging.ERROR,'Failed to parse metadata information: '+str(e))
+                if self.datastatus not in ['deleted', None]:
+                    self._setCitation()
 
         else:
-            self.logging.append({'ERROR': 'Data set does not exist, 404'})
+            #self.logging.append({'ERROR': 'Data set does not exist, 404'})
+            self.log(logging.ERROR,'Data set does not exist, 404')
             self.id = None
 
     def _setChildren(self):
