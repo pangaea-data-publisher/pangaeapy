@@ -537,6 +537,14 @@ class PanDataSet:
             #self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
             self.log(logging.ERROR,'Dataset id missing, could not initialize PanDataSet object for: '+str(id))
 
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        del state["terms_conn"]
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.terms_conn = sl.connect(os.path.join(self.module_dir, 'data', 'terms.db'))
 
     def log(self, level,message):
         loglevel = logging.getLevelName(level)
