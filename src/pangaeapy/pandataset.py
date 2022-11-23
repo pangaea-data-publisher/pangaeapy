@@ -433,6 +433,7 @@ class PanDataSet:
         #moddir = os.path.dirname(os.path.abspath(__file__))
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
         self.cache=enable_cache
+        self.cache_expiry_days= 1
         self.uri = self.doi = '' #the doi
         self.isParent=False
         self.params=dict()
@@ -552,7 +553,7 @@ class PanDataSet:
             pass
         return os.path.join(dirpath , str(self.id) + '_data.pik')
 
-    def check_pickle(self, expirydays = 1):
+    def check_pickle(self):
         '''
         Verifies if a cached pickle files needs to be refreshed (reloaded)
         Files are checked after 24 hrs earliest but only updated in case the metadata indicates changes occured
@@ -569,7 +570,7 @@ class PanDataSet:
         pickle_location = self.get_pickle_path()
         if os.path.exists(pickle_location):
             pickle_time = os.path.getmtime(pickle_location)
-            if int(time.time()) - int(pickle_time) >= (expirydays * 86400):
+            if int(time.time()) - int(pickle_time) >= (self.cache_expiry_days * 86400):
                 # afer 24 hrs check if data set has changed so refresh the cached pickle
                 self.setMetadata()
                 #2016-10-08T05:40:17
