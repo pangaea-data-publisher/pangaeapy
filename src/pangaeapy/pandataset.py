@@ -1253,7 +1253,7 @@ class PanDataSet:
             except ET.ParseError as e:
                 #self.logging.append({'ERROR': 'Failed to parse metadata information: '+str(e)})
                 self.log(logging.ERROR,'Failed to parse metadata information: '+str(e))
-                print( str(xmlText))
+                #print( str(xmlText))
                 if self.datastatus not in ['deleted', None]:
                     self._setCitation()
 
