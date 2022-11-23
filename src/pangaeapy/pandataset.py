@@ -537,15 +537,6 @@ class PanDataSet:
             #self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
             self.log(logging.ERROR,'Dataset id missing, could not initialize PanDataSet object for: '+str(id))
 
-    def __getstate__(self):
-        state = self.__dict__.copy()
-        del state["terms_conn"]
-        return state
-
-    def __setstate__(self, state):
-        self.__dict__.update(state)
-        self.terms_conn = sl.connect(os.path.join(self.module_dir, 'data', 'terms.db'))
-
     def log(self, level,message):
         loglevel = logging.getLevelName(level)
         self.logging.append({loglevel: message})
@@ -632,7 +623,9 @@ class PanDataSet:
         """
 
         f = open(self.get_pickle_path(), 'wb')
-        pickle.dump(self.__dict__, f, 2)
+        state = self.__dict__.copy()
+        del state["terms_conn"]
+        pickle.dump(state, f, 2)
         #self.logging.append({'INFO': 'Saved cache (pickle) file at: ' + str(self.get_pickle_path())})
         self.log(logging.INFO,'Saved cache (pickle) file at: ' + str(self.get_pickle_path()))
         f.close()
