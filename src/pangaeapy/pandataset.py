@@ -419,6 +419,9 @@ class PanDataSet:
 	licence : PanLicence
 	    a licence object, usually creative commons
 	auth_token : str
+	    the PANGAEA auhentication token, you can find it at pangaea.de on your user page
+	cache_expiry_days : int
+	    the duration a cached pickle/cache is accepted, after this pangaeapy will load it again and ignor ethe cache
 
     """
     def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False, include_data=True, expand_terms=[], auth_token = None):
@@ -1109,7 +1112,7 @@ class PanDataSet:
             if int(sleeptime) < 1:
                 sleeptime=1
             time.sleep(int(sleeptime))
-            r = requests.get(metaDataURL)
+            r = requests.get(metaDataURL, headers=mheaders)
             #self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
             self.log(logging.INFO, 'After repeating request, got status code: '+str(r.status_code))
 
@@ -1250,6 +1253,7 @@ class PanDataSet:
             except ET.ParseError as e:
                 #self.logging.append({'ERROR': 'Failed to parse metadata information: '+str(e)})
                 self.log(logging.ERROR,'Failed to parse metadata information: '+str(e))
+                print( str(xmlText))
                 if self.datastatus not in ['deleted', None]:
                     self._setCitation()
 
