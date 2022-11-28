@@ -1105,12 +1105,13 @@ class PanDataSet:
         r=requests.get(metaDataURL, headers=mheaders)
         if r.status_code==429:
             #self.logging.append({'WARNING':'Received too many requests error (429)...'})
-            self.log(logging.WARNING,'Received too many requests error (429)...')
             sleeptime = 1
             if r.headers.get('retry-after'):
                 sleeptime = r.headers.get('retry-after')
             if int(sleeptime) < 1:
                 sleeptime=1
+            self.log(logging.WARNING,'Received too many requests error (429)...waiting '+str(sleeptime)+'s')
+
             time.sleep(int(sleeptime))
             r = requests.get(metaDataURL, headers=mheaders)
             #self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
@@ -1263,8 +1264,11 @@ class PanDataSet:
             self.id = None
 
     def _setChildren(self):
+        cheaders = {'Accept': 'application/json'}
+        if self.auth_token:
+            cheaders['Authorization'] = 'Bearer ' + str(self.auth_token)
         childqueryURL="https://www.pangaea.de/advanced/search.php?q=incollection:"+str(self.id)+"&count=1000"
-        r = requests.get(childqueryURL)
+        r = requests.get(childqueryURL, headers = cheaders)
         if r.status_code != 404:
             s = r.json()
             for p in s['results']: 

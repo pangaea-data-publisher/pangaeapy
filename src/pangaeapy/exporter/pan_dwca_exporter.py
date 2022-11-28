@@ -284,15 +284,24 @@ class PanDarwinCoreAchiveExporter(PanExporter):
 
     def verify(self):
         ret = False
+        hasTaxoncolumns = False
+        hasCoordinates = False
         if self.pandataset.id:
+            if 'decimalLatitude' in self.dwcfields and 'decimalLongitude' in self.dwcfields:
+                hasCoordinates = True
+            else:
+                self.logging.append({'WARNING': 'Missing Coordinates, DwC-A verification failed'})
             try:
                 datacolumns = self.get_taxon_columns()
                 if len(datacolumns) > 0:
-                    ret = True
+                    hasTaxoncolumns = True
+                else:
+                    self.logging.append({'WARNING': 'Missing Taxon Column(s), DwC-A verification failed'})
+
             except Exception as e:
                 self.logging.append({'ERROR':'DwC-A verification failed: '+str(e)})
 
-        return ret
+        return hasTaxoncolumns and hasCoordinates
 
     def create(self):
         in_memory_zip = False
