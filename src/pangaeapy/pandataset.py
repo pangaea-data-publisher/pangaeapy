@@ -625,14 +625,17 @@ class PanDataSet:
         Writes a PanDataSet object to a pickle file
 
         """
+        if not self.data.empty:
+            f = open(self.get_pickle_path(), 'wb')
+            state = self.__dict__.copy()
+            del state["terms_conn"]
+            pickle.dump(state, f, 2)
+            #self.logging.append({'INFO': 'Saved cache (pickle) file at: ' + str(self.get_pickle_path())})
+            self.log(logging.INFO,'Saved cache (pickle) file at: ' + str(self.get_pickle_path()))
+            f.close()
+        else:
+            self.log(logging.WARNING,'Skipped saving cache (pickle) since the dataset contains no data')
 
-        f = open(self.get_pickle_path(), 'wb')
-        state = self.__dict__.copy()
-        del state["terms_conn"]
-        pickle.dump(state, f, 2)
-        #self.logging.append({'INFO': 'Saved cache (pickle) file at: ' + str(self.get_pickle_path())})
-        self.log(logging.INFO,'Saved cache (pickle) file at: ' + str(self.get_pickle_path()))
-        f.close()
         
     
     def setID (self, id):
@@ -958,6 +961,20 @@ class PanDataSet:
                 if self.auth_token:
                     requestheader['Authorization'] = 'Bearer '+ str(self.auth_token)
                 dataResponse = requests.get(dataURL, headers = requestheader)
+                if dataResponse.status_code == 429:
+                    sleeptime = 1
+                    if dataResponse.headers.get('retry-after'):
+                        sleeptime = dataResponse.headers.get('retry-after')
+                    if int(sleeptime) < 1:
+                        sleeptime = 1
+                    self.log(logging.WARNING,
+                             'Received too many requests (for data) error (429)...waiting ' + str(sleeptime) + 's')
+
+                    time.sleep(int(sleeptime))
+                    dataResponse = requests.get(dataURL, headers = requestheader)
+                    # self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
+                    self.log(logging.INFO, 'After repeating (for data) request, got status code: ' + str(r.status_code))
+
                 panDataTxt= dataResponse.text
                 if int(dataResponse.status_code) == 200:
                     if 'text' in str(dataResponse.headers.get('Content-Type')):
@@ -1021,8 +1038,14 @@ class PanDataSet:
 
                         # --- Adjust Column Data Types
                         self.data = self.data.apply(pd.to_numeric, errors='ignore')
-                        if 'Date/Time' in self.data.columns:
-                            self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y/%m/%dT%H:%M:%S')
+                        try:
+                            if 'Date/Time' in self.data.columns:
+                                self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y/%m/%dT%H:%M:%S')
+                        except Exception as e:
+                            #try to preserve the year at least:
+                            self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'].replace({r'^.*([0-9]{4}){1}.*$': r'\1'}, regex = True), format='%Y',errors='coerce')
+                            pass
+
                     else:
                         #self.logging.append({'WARNING': 'Dataset seems to be a binary file which cannot be handled by pangaeapy'})
                         self.log(logging.WARNING,'Dataset seems to be a binary file which cannot be handled by pangaeapy')
@@ -1033,6 +1056,8 @@ class PanDataSet:
                     else:
                         #self.logging.append({'WARNING': 'Data access failed, authorisation failed '})
                         self.log(logging.WARNING,'Data access failed, authorisation failed ')
+                elif int(dataResponse.status_code) == 406:
+                    self.log(logging.WARNING, 'Data access failed, no tabular data available')
                 else:
                     #self.logging.append({'WARNING': 'Data access failed, response code '+(str(dataResponse.status_code))})
                     self.log(logging.WARNING,'Data access failed, response code '+(str(dataResponse.status_code)))
@@ -1098,170 +1123,177 @@ class PanDataSet:
         The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
         
         """
+        r = None
         metaDataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)
         mheaders = {'Accept':'application/vnd.pangaea.metadata+xml'}
         if self.auth_token:
             mheaders['Authorization'] = 'Bearer ' + str(self.auth_token)
-        r=requests.get(metaDataURL, headers=mheaders)
-        if r.status_code==429:
-            #self.logging.append({'WARNING':'Received too many requests error (429)...'})
-            sleeptime = 1
-            if r.headers.get('retry-after'):
-                sleeptime = r.headers.get('retry-after')
-            if int(sleeptime) < 1:
-                sleeptime=1
-            self.log(logging.WARNING,'Received too many requests error (429)...waiting '+str(sleeptime)+'s')
+        try:
+            r=requests.get(metaDataURL, headers=mheaders)
+        except Exception as e:
+            self.log(logging.ERROR, 'HTTP request error: ' + str(e))
+        if r:
+            if r.status_code==429:
+                #self.logging.append({'WARNING':'Received too many requests error (429)...'})
+                sleeptime = 1
+                if r.headers.get('retry-after'):
+                    sleeptime = r.headers.get('retry-after')
+                if int(sleeptime) < 1:
+                    sleeptime=1
+                self.log(logging.WARNING,'Received too many (metadata) requests error (429)...waiting '+str(sleeptime)+'s')
 
-            time.sleep(int(sleeptime))
-            r = requests.get(metaDataURL, headers=mheaders)
-            #self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
-            self.log(logging.INFO, 'After repeating request, got status code: '+str(r.status_code))
+                time.sleep(int(sleeptime))
+                r = requests.get(metaDataURL, headers=mheaders)
+                #self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
+                self.log(logging.INFO, 'After repeating (metadata) request, got status code: '+str(r.status_code))
 
-        if r.status_code!=404:
-            try:
-                r.raise_for_status()
-                xmlText=r.text
-                self.metaxml =xmlText
-                xml = ET.fromstring(xmlText.encode())
-                #dataset_status = None
-                if xml.find('./md:technicalInfo/md:entry[@key="status"]',self.ns) is not None:
-                    self.datastatus = xml.find('./md:technicalInfo/md:entry[@key="status"]',self.ns).get('value')
-                if self.datastatus not in['deleted', None]:
-                    self.loginstatus=xml.find('./md:technicalInfo/md:entry[@key="loginOption"]',self.ns).get('value')
-                    if self.loginstatus!='unrestricted':
-                        if self.auth_token:
-                            #self.logging.append({'INFO': 'Trying to load protected dataset using the given auth token'})
-                            self.log(logging.INFO, 'Trying to load protected dataset using the given auth token')
+            if r.status_code!=404:
+                try:
+                    r.raise_for_status()
+                    xmlText=r.text
+                    self.metaxml =xmlText
+                    xml = ET.fromstring(xmlText.encode())
+                    #dataset_status = None
+                    if xml.find('./md:technicalInfo/md:entry[@key="status"]',self.ns) is not None:
+                        self.datastatus = xml.find('./md:technicalInfo/md:entry[@key="status"]',self.ns).get('value')
+                    if self.datastatus not in['deleted', None]:
+                        self.loginstatus=xml.find('./md:technicalInfo/md:entry[@key="loginOption"]',self.ns).get('value')
+                        if self.loginstatus!='unrestricted':
+                            if self.auth_token:
+                                #self.logging.append({'INFO': 'Trying to load protected dataset using the given auth token'})
+                                self.log(logging.INFO, 'Trying to load protected dataset using the given auth token')
+                            else:
+                                #self.logging.append({'WARNING': 'Data set is protected'})
+                                self.log(logging.WARNING,'Data set is protected')
+                        if xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns)!= None:
+                            self.lastupdate = xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns).get('value')
+                        hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
+                        if hierarchyLevel!=None:
+                            if hierarchyLevel.get('value')=='parent':
+                                #self.logging.append({'WARNING':'Data set is of type parent, please select one of its child datasets'})
+                                self.log(logging.WARNING, 'Data set is of type parent, please select one of its child datasets')
+                                self.isParent=True
+                                self._setChildren()
+                        self.title=xml.find("./md:citation/md:title", self.ns).text
+                        if xml.find("./md:abstract", self.ns)!=None:
+                            self.abstract = xml.find("./md:abstract", self.ns).text
+                        self.registrystatus=xml.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]',self.ns).get('value')
+                        if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns) != None:
+                            self.moratorium=xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns).get('value')
+                        if xml.find('./md:status/md:curationLevel/md:name',self.ns)!=None:
+                            self.curationlevel= xml.find('./md:status/md:curationLevel/md:name',self.ns).text
+                        if xml.find('./md:status/md:processingLevel/md:name',self.ns)!=None:
+                            self.processinglevel= xml.find('./md:status/md:processingLevel/md:name',self.ns).text
+                        self.year=xml.find("./md:citation/md:year", self.ns).text
+                        self.date=xml.find("./md:citation/md:dateTime", self.ns).text
+                        if self.lastupdate == None:
+                            self.lastupdate = self.date
+                        self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
+                        #extent
+                        if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns)!=None:
+                            self.mintimeextent=xml.find("./md:extent/md:temporal/md:minDateTime", self.ns).text
+                        if xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns)!=None:
+                            self.maxtimeextent=xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns).text
+                        if xml.find("./md:extent/md:geographic/md:westBoundLongitude", self.ns) != None:
+                            self.geometryextent['westBoundLongitude'] = xml.find("./md:extent/md:geographic/md:westBoundLongitude",
+                                                               self.ns).text
+                        if xml.find("./md:extent/md:geographic/md:eastBoundLongitude", self.ns) != None:
+                            self.geometryextent['eastBoundLongitude'] = xml.find("./md:extent/md:geographic/md:eastBoundLongitude",
+                                                               self.ns).text
+                        if xml.find("./md:extent/md:geographic/md:southBoundLatitude", self.ns) != None:
+                            self.geometryextent['southBoundLatitude'] = xml.find("./md:extent/md:geographic/md:southBoundLatitude",
+                                                               self.ns).text
+                        if xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns) != None:
+                            self.geometryextent['northBoundLatitude'] = xml.find("./md:extent/md:geographic/md:northBoundLatitude",
+                                                               self.ns).text
+                        if xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns) != None:
+                            self.geometryextent['northBoundLatitude'] = xml.find("./md:extent/md:geographic/md:northBoundLatitude",
+                                                               self.ns).text
+                        if xml.find("./md:extent/md:geographic/md:meanLongitude", self.ns) != None:
+                            self.geometryextent['meanLongitude'] = xml.find("./md:extent/md:geographic/md:meanLongitude",
+                                                               self.ns).text
+                        if xml.find("./md:extent/md:geographic/md:meanLatitude", self.ns) != None:
+                            self.geometryextent['meanLatitude'] = xml.find("./md:extent/md:geographic/md:meanLatitude",
+                                                               self.ns).text
+
+                        topotypeEl=xml.find("./md:extent/md:topoType", self.ns)
+                        if topotypeEl!=None:
+                            self.topotype=topotypeEl.text
                         else:
-                            #self.logging.append({'WARNING': 'Data set is protected'})
-                            self.log(logging.WARNING,'Data set is protected')
-                    if xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns)!= None:
-                        self.lastupdate = xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns).get('value')
-                    hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
-                    if hierarchyLevel!=None:
-                        if hierarchyLevel.get('value')=='parent':
-                            #self.logging.append({'WARNING':'Data set is of type parent, please select one of its child datasets'})
-                            self.log(logging.WARNING, 'Data set is of type parent, please select one of its child datasets')
-                            self.isParent=True
-                            self._setChildren()
-                    self.title=xml.find("./md:citation/md:title", self.ns).text
-                    if xml.find("./md:abstract", self.ns)!=None:
-                        self.abstract = xml.find("./md:abstract", self.ns).text
-                    self.registrystatus=xml.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]',self.ns).get('value')
-                    if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns) != None:
-                        self.moratorium=xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns).get('value')
-                    if xml.find('./md:status/md:curationLevel/md:name',self.ns)!=None:
-                        self.curationlevel= xml.find('./md:status/md:curationLevel/md:name',self.ns).text
-                    if xml.find('./md:status/md:processingLevel/md:name',self.ns)!=None:
-                        self.processinglevel= xml.find('./md:status/md:processingLevel/md:name',self.ns).text
-                    self.year=xml.find("./md:citation/md:year", self.ns).text
-                    self.date=xml.find("./md:citation/md:dateTime", self.ns).text
-                    if self.lastupdate == None:
-                        self.lastupdate = self.date
-                    self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
-                    #extent
-                    if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns)!=None:
-                        self.mintimeextent=xml.find("./md:extent/md:temporal/md:minDateTime", self.ns).text
-                    if xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns)!=None:
-                        self.maxtimeextent=xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns).text
-                    if xml.find("./md:extent/md:geographic/md:westBoundLongitude", self.ns) != None:
-                        self.geometryextent['westBoundLongitude'] = xml.find("./md:extent/md:geographic/md:westBoundLongitude",
-                                                           self.ns).text
-                    if xml.find("./md:extent/md:geographic/md:eastBoundLongitude", self.ns) != None:
-                        self.geometryextent['eastBoundLongitude'] = xml.find("./md:extent/md:geographic/md:eastBoundLongitude",
-                                                           self.ns).text
-                    if xml.find("./md:extent/md:geographic/md:southBoundLatitude", self.ns) != None:
-                        self.geometryextent['southBoundLatitude'] = xml.find("./md:extent/md:geographic/md:southBoundLatitude",
-                                                           self.ns).text
-                    if xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns) != None:
-                        self.geometryextent['northBoundLatitude'] = xml.find("./md:extent/md:geographic/md:northBoundLatitude",
-                                                           self.ns).text
-                    if xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns) != None:
-                        self.geometryextent['northBoundLatitude'] = xml.find("./md:extent/md:geographic/md:northBoundLatitude",
-                                                           self.ns).text
-                    if xml.find("./md:extent/md:geographic/md:meanLongitude", self.ns) != None:
-                        self.geometryextent['meanLongitude'] = xml.find("./md:extent/md:geographic/md:meanLongitude",
-                                                           self.ns).text
-                    if xml.find("./md:extent/md:geographic/md:meanLatitude", self.ns) != None:
-                        self.geometryextent['meanLatitude'] = xml.find("./md:extent/md:geographic/md:meanLatitude",
-                                                           self.ns).text
+                            self.topotype=None
+                        for author in xml.findall("./md:citation/md:author", self.ns):
+                            lastname=None
+                            firstname=None
+                            orcid=None
+                            if author.find("md:lastName", self.ns)!=None:
+                                lastname=author.find("md:lastName", self.ns).text
+                            if author.find("md:firstName", self.ns)!=None:
+                                firstname=author.find("md:firstName", self.ns).text
+                            if author.find("md:orcid", self.ns)!=None:
+                                orcid=author.find("md:orcid", self.ns).text
+                            #if author.find("md:affiliation", self.ns)!=None:
+                            authoraffiliations = []
+                            for affiliations in author.findall("md:affiliation", self.ns):
+                                afm = re.search(r"\.inst([0-9]+)$",str(affiliations.get('id')))
+                                if afm:
+                                    authoraffiliations.append(afm[1])
+                            #print(authoraffiliations)
+                            authorid=author.get('id')
+                            if authorid:
+                                authorid=int(authorid.replace('dataset.author',''))
+                            self.authors.append(PanAuthor(lastname, firstname,orcid,authorid, authoraffiliations))
+                        for project in xml.findall("./md:project", self.ns):
+                            label=None
+                            name=None
+                            URI=None
+                            awardURI=None
+                            if project.find("md:label", self.ns)!=None:
+                                label=project.find("md:label", self.ns).text
+                            if project.find("md:name", self.ns)!=None:
+                                name=project.find("md:name", self.ns).text
+                            if project.find("md:URI", self.ns)!=None:
+                                URI=project.find("md:URI", self.ns).text
+                            if project.find("md:award/md:URI", self.ns)!=None:
+                                awardURI=project.find("md:award/md:URI", self.ns).text
+                            if project.get('id'):
+                                projectid=str(project.get('id')).replace('project','')
+                            self.projects.append(PanProject(label, name, URI, awardURI,int(projectid)))
+                        if xml.find("./md:license",self.ns) != None:
+                            license = xml.find("./md:license",self.ns)
+                            label=None
+                            name=None
+                            URI=None
+                            if license.find("md:label", self.ns)!=None:
+                                label=license.find("md:label", self.ns).text
+                            if license.find("md:name", self.ns)!=None:
+                                name=license.find("md:name", self.ns).text
+                            if license.find("md:URI", self.ns)!=None:
+                                URI=license.find("md:URI", self.ns).text
+                            self.licence = PanLicence(label, name, URI)
 
-                    topotypeEl=xml.find("./md:extent/md:topoType", self.ns)
-                    if topotypeEl!=None:
-                        self.topotype=topotypeEl.text
+                        panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
+                        self._setParameters(panXMLMatrixColumn)
+                        panXMLEvents=xml.findall("./md:event", self.ns)
+                        self._setEvents(panXMLEvents)
                     else:
-                        self.topotype=None
-                    for author in xml.findall("./md:citation/md:author", self.ns):
-                        lastname=None
-                        firstname=None
-                        orcid=None
-                        if author.find("md:lastName", self.ns)!=None:
-                            lastname=author.find("md:lastName", self.ns).text
-                        if author.find("md:firstName", self.ns)!=None:
-                            firstname=author.find("md:firstName", self.ns).text
-                        if author.find("md:orcid", self.ns)!=None:
-                            orcid=author.find("md:orcid", self.ns).text
-                        #if author.find("md:affiliation", self.ns)!=None:
-                        authoraffiliations = []
-                        for affiliations in author.findall("md:affiliation", self.ns):
-                            afm = re.search(r"\.inst([0-9]+)$",str(affiliations.get('id')))
-                            if afm:
-                                authoraffiliations.append(afm[1])
-                        #print(authoraffiliations)
-                        authorid=author.get('id')
-                        if authorid:
-                            authorid=int(authorid.replace('dataset.author',''))
-                        self.authors.append(PanAuthor(lastname, firstname,orcid,authorid, authoraffiliations))
-                    for project in xml.findall("./md:project", self.ns):
-                        label=None
-                        name=None
-                        URI=None
-                        awardURI=None
-                        if project.find("md:label", self.ns)!=None:
-                            label=project.find("md:label", self.ns).text
-                        if project.find("md:name", self.ns)!=None:
-                            name=project.find("md:name", self.ns).text
-                        if project.find("md:URI", self.ns)!=None:
-                            URI=project.find("md:URI", self.ns).text
-                        if project.find("md:award/md:URI", self.ns)!=None:
-                            awardURI=project.find("md:award/md:URI", self.ns).text
-                        if project.get('id'):
-                            projectid=str(project.get('id')).replace('project','')
-                        self.projects.append(PanProject(label, name, URI, awardURI,int(projectid)))
-                    if xml.find("./md:license",self.ns) != None:
-                        license = xml.find("./md:license",self.ns)
-                        label=None
-                        name=None
-                        URI=None
-                        if license.find("md:label", self.ns)!=None:
-                            label=license.find("md:label", self.ns).text
-                        if license.find("md:name", self.ns)!=None:
-                            name=license.find("md:name", self.ns).text
-                        if license.find("md:URI", self.ns)!=None:
-                            URI=license.find("md:URI", self.ns).text
-                        self.licence = PanLicence(label, name, URI)
+                        #self.logging.append({'ERROR': 'Dataset is deleted or of unknown status: ' + str(self.datastatus)})
+                        self.log(logging.ERROR, 'Dataset is deleted or of unknown status: ' + str(self.datastatus))
+                except requests.exceptions.HTTPError as e:
+                    #self.logging.append({'ERROR': 'Failed to retrieve metadata information: '+str(e)})
+                    self.log(logging.ERROR, 'Failed to retrieve metadata information: '+str(e))
+                except ET.ParseError as e:
+                    #self.logging.append({'ERROR': 'Failed to parse metadata information: '+str(e)})
+                    self.log(logging.ERROR,'Failed to parse metadata information: '+str(e))
+                    #print( str(xmlText))
+                    if self.datastatus not in ['deleted', None]:
+                        self._setCitation()
 
-                    panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
-                    self._setParameters(panXMLMatrixColumn)
-                    panXMLEvents=xml.findall("./md:event", self.ns)
-                    self._setEvents(panXMLEvents)
-                else:
-                    #self.logging.append({'ERROR': 'Dataset is deleted or of unknown status: ' + str(self.datastatus)})
-                    self.log(logging.ERROR, 'Dataset is deleted or of unknown status: ' + str(self.datastatus))
-            except requests.exceptions.HTTPError as e:
-                #self.logging.append({'ERROR': 'Failed to retrieve metadata information: '+str(e)})
-                self.log(logging.ERROR, 'Failed to retrieve metadata information: '+str(e))
-            except ET.ParseError as e:
-                #self.logging.append({'ERROR': 'Failed to parse metadata information: '+str(e)})
-                self.log(logging.ERROR,'Failed to parse metadata information: '+str(e))
-                #print( str(xmlText))
-                if self.datastatus not in ['deleted', None]:
-                    self._setCitation()
-
+            else:
+                #self.logging.append({'ERROR': 'Data set does not exist, 404'})
+                self.log(logging.ERROR,'Data set does not exist, 404: '+str(self.id))
+                self.id = None
         else:
-            #self.logging.append({'ERROR': 'Data set does not exist, 404'})
-            self.log(logging.ERROR,'Data set does not exist, 404')
-            self.id = None
+            self.log(logging.ERROR, 'No HTTP response object received for: ' + str(self.id))
 
     def _setChildren(self):
         cheaders = {'Accept': 'application/json'}
