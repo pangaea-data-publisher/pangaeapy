@@ -287,7 +287,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         hasTaxoncolumns = False
         hasCoordinates = False
         if self.pandataset.id:
-            if 'decimalLatitude' in self.dwcfields and 'decimalLongitude' in self.dwcfields:
+            if 'Latitude' in self.pandataset.data.columns and 'Longitude' in self.pandataset.data.columns:
                 hasCoordinates = True
             else:
                 self.logging.append({'WARNING': 'Missing Coordinates, DwC-A verification failed'})
