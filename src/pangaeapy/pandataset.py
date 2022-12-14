@@ -424,7 +424,7 @@ class PanDataSet:
 	    the duration a cached pickle/cache is accepted, after this pangaeapy will load it again and ignor ethe cache
 
     """
-    def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False, include_data=True, expand_terms=[], auth_token = None):
+    def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False, include_data=True, expand_terms=[], auth_token = None, cache_expiry_days=1):
         self.module_dir = os.path.dirname(__file__)
         self.id = None
         self.logging = []
@@ -436,7 +436,7 @@ class PanDataSet:
         #moddir = os.path.dirname(os.path.abspath(__file__))
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
         self.cache=enable_cache
-        self.cache_expiry_days= 1
+        self.cache_expiry_days= cache_expiry_days
         self.uri = self.doi = '' #the doi
         self.isParent=False
         self.params=dict()
@@ -574,10 +574,11 @@ class PanDataSet:
         if os.path.exists(pickle_location):
             pickle_time = os.path.getmtime(pickle_location)
             if int(time.time()) - int(pickle_time) >= (self.cache_expiry_days * 86400):
-                # afer 24 hrs check if data set has changed so refresh the cached pickle
+
                 self.setMetadata()
                 #2016-10-08T05:40:17
                 try:
+                    #print('LAST UPDATE: ',self.doi, self.lastupdate, self.cache_expiry_days)
                     lastupdatets = time.mktime(datetime.datetime.strptime(self.lastupdate, "%Y-%m-%dT%H:%M:%S").timetuple())
                     #print(int(lastupdatets) , int(pickle_time))
                     if int(lastupdatets) >= int(pickle_time):
@@ -973,7 +974,7 @@ class PanDataSet:
                     time.sleep(int(sleeptime))
                     dataResponse = requests.get(dataURL, headers = requestheader)
                     # self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
-                    self.log(logging.INFO, 'After repeating (for data) request, got status code: ' + str(r.status_code))
+                    self.log(logging.INFO, 'After repeating (for data) request, got status code: ' + str(dataResponse.status_code))
 
                 panDataTxt= dataResponse.text
                 if int(dataResponse.status_code) == 200:
