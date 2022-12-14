@@ -174,6 +174,8 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                 geocolumns.append('index')
                 taxonframe = taxonframe.melt(id_vars=geocolumns, value_vars=list(taxoncolumns.keys()), var_name='Colname',
                                              value_name='organismQuantity')
+                #preserve the od occurence ids
+                taxonframe['index'] = taxonframe['index']+1
                 taxonframe['id'] = taxonframe['index'].astype(str) + '_' + taxonframe['Colname'].apply(
                     lambda x: taxoncolumns.get(x).get('colno')).astype(str)
                 taxonframe['occurrenceID'] = taxonframe['id']
