@@ -6,6 +6,7 @@ from pangaeapy.exporter.pan_exporter import PanExporter
 import os
 import json
 class PanFrictionlessExporter(PanExporter):
+
     def get_csv(self):
         csv =''
         #print(self.pandataset.data.head())
