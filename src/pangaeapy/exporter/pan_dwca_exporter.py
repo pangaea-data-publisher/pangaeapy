@@ -174,6 +174,12 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                 geocolumns.append('index')
                 taxonframe = taxonframe.melt(id_vars=geocolumns, value_vars=list(taxoncolumns.keys()), var_name='Colname',
                                              value_name='organismQuantity')
+
+                #exclude negative quantity values
+                try:
+                    taxonframe = taxonframe[taxonframe['organismQuantity']>0]
+                except:
+                    pass
                 #preserve the od occurence ids
                 taxonframe['index'] = taxonframe['index']+1
                 taxonframe['id'] = taxonframe['index'].astype(str) + '_' + taxonframe['Colname'].apply(
