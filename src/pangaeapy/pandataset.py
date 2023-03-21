@@ -1133,7 +1133,7 @@ class PanDataSet:
             r=requests.get(metaDataURL, headers=mheaders)
         except Exception as e:
             self.log(logging.ERROR, 'HTTP request error: ' + str(e))
-        if r:
+        if r is not None:
             if r.status_code==429:
                 #self.logging.append({'WARNING':'Received too many requests error (429)...'})
                 sleeptime = 1
