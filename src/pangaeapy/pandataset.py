@@ -1276,6 +1276,7 @@ class PanDataSet:
                         self._setParameters(panXMLMatrixColumn)
                         panXMLEvents=xml.findall("./md:event", self.ns)
                         self._setEvents(panXMLEvents)
+                        self._setCitation()
                     else:
                         #self.logging.append({'ERROR': 'Dataset is deleted or of unknown status: ' + str(self.datastatus)})
                         self.log(logging.ERROR, 'Dataset is deleted or of unknown status: ' + str(self.datastatus))
@@ -1286,8 +1287,7 @@ class PanDataSet:
                     #self.logging.append({'ERROR': 'Failed to parse metadata information: '+str(e)})
                     self.log(logging.ERROR,'Failed to parse metadata information: '+str(e))
                     #print( str(xmlText))
-                    if self.datastatus not in ['deleted', None]:
-                        self._setCitation()
+
 
             else:
                 #self.logging.append({'ERROR': 'Data set does not exist, 404'})
