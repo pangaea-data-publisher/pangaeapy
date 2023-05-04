@@ -1275,6 +1275,16 @@ class PanDataSet:
                             self.licence = PanLicence(label, name, URI)
                         if xml.find("./md:comment", self.ns) != None:
                             self.comment = xml.find("./md:comment", self.ns).text
+                        for reference in xml.findall("./md:reference", self.ns):
+                            refURI=None
+                            reftitle = None
+                            reftype = reference.get('relationType')
+                            refid = reference.get('id')
+                            if reference.find("md:URI", self.ns)!=None:
+                                refURI = reference.find("md:URI", self.ns).text
+                            if reference.find("md:title", self.ns)!=None:
+                                reftitle = reference.find("md:title", self.ns).text
+                            self.relations.append({"id":refid,"title":reftitle,"uri":refURI,"type":reftype})
                         panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
                         self._setParameters(panXMLMatrixColumn)
                         panXMLEvents=xml.findall("./md:event", self.ns)
