@@ -453,6 +453,7 @@ class PanDataSet:
         self.qcdata = pd.DataFrame()
         self.title=None
         self.abstract = None
+        self.comment = None
         self.moratorium=None
         self.curationlevel=None;
         self.processinglevel=None;
@@ -469,6 +470,7 @@ class PanDataSet:
         self.authors=[]
         self.terms_cache = {} #temporary cache for terms
         self.terms_conn = sl.connect(os.path.join(self.module_dir,'data','terms.db'))
+        self.relations = [] #list of relations as given in
         try:
             sql = 'create table if not exists terms (term_id integer PRIMARY KEY, term_name text, term_json text, entry_date datetime default current_timestamp)'
             self.terms_conn.execute(sql)
@@ -1271,7 +1273,8 @@ class PanDataSet:
                             if license.find("md:URI", self.ns)!=None:
                                 URI=license.find("md:URI", self.ns).text
                             self.licence = PanLicence(label, name, URI)
-
+                        if xml.find("./md:comment", self.ns) != None:
+                            self.comment = xml.find("./md:comment", self.ns).text
                         panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
                         self._setParameters(panXMLMatrixColumn)
                         panXMLEvents=xml.findall("./md:event", self.ns)
