@@ -63,7 +63,7 @@ class PanQuery:
                 position = offset
                 for rset in response:
                     if re.search(r'>[0-9]+\sdatasets<', rset.get('html')):
-                        rset['type']='parent'
+                        rset['type']='collection'
                     else:
                         rset['type']='child'
                     rset['position'] = position

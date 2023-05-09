@@ -407,9 +407,9 @@ class PanDataSet:
     loginstatus : str
         a label which indicates if the data set is protected or not default value: 'unrestricted'            
     isParent : boolean
-        indicates if this dataset is a parent data set within a collection of child data sets
+        indicates if this dataset is a collection data set within a collection of child data sets
     children : list
-        a list of DOIs of all child data sets in case the data set is a parent data set
+        a list of DOIs of all child data sets in case the data set is a collection data set
 	moratorium : str
 		a label which provides the date until the dataset is under moratorium
 	datastatus : str
@@ -536,8 +536,7 @@ class PanDataSet:
                     if self.cache==True:
                         self.to_pickle()
                 else:
-                    #self.logging.append({'WARNING':'Dataset is either restricted or of type "parent"'})
-                    self.log(logging.WARNING,'Dataset is either restricted or of type "parent"')
+                    self.log(logging.WARNING,'Dataset is either restricted or of type "collection"')
         else:
             #self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
             self.log(logging.ERROR,'Dataset id missing, could not initialize PanDataSet object for: '+str(id))
@@ -1170,13 +1169,20 @@ class PanDataSet:
                                 self.log(logging.WARNING,'Data set is protected')
                         if xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns)!= None:
                             self.lastupdate = xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns).get('value')
-                        hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
+
+                        if xml.find('./md:technicalInfo/md:entry[@key="collectionType"]',self.ns) != None:
+                            self.log(logging.WARNING,
+                                     'Data set is of type collection, please select one of its child datasets')
+                            self.isParent = True
+                            self._setChildren()
+
+                        '''hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
                         if hierarchyLevel!=None:
                             if hierarchyLevel.get('value')=='parent':
                                 #self.logging.append({'WARNING':'Data set is of type parent, please select one of its child datasets'})
-                                self.log(logging.WARNING, 'Data set is of type parent, please select one of its child datasets')
+                                self.log(logging.WARNING, 'Data set is of type collection, please select one of its child datasets')
                                 self.isParent=True
-                                self._setChildren()
+                                self._setChildren()'''
                         self.title=xml.find("./md:citation/md:title", self.ns).text
                         if xml.find("./md:abstract", self.ns)!=None:
                             self.abstract = xml.find("./md:abstract", self.ns).text
@@ -1187,8 +1193,10 @@ class PanDataSet:
                             self.curationlevel= xml.find('./md:status/md:curationLevel/md:name',self.ns).text
                         if xml.find('./md:status/md:processingLevel/md:name',self.ns)!=None:
                             self.processinglevel= xml.find('./md:status/md:processingLevel/md:name',self.ns).text
-                        self.year=xml.find("./md:citation/md:year", self.ns).text
-                        self.date=xml.find("./md:citation/md:dateTime", self.ns).text
+                        if xml.find("./md:citation/md:year", self.ns) != None:
+                            self.year=xml.find("./md:citation/md:year", self.ns).text
+                        if xml.find("./md:citation/md:dateTime", self.ns) != None:
+                            self.date=xml.find("./md:citation/md:dateTime", self.ns).text
                         if self.lastupdate == None:
                             self.lastupdate = self.date
                         self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
