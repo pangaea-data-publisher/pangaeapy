@@ -24,7 +24,7 @@ Given a DOI, pangaeapy uses PANGAEA’s web services to automatically load PANGA
 ## Usage
 
 ```python
-import src.pangaeapy.pandataset as pd
+import pangaeapy.pandataset as pd
 
 ds = pd.PanDataSet(787140)
 print(ds.title)
