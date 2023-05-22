@@ -1294,7 +1294,7 @@ class PanDataSet:
                             if reference.find("md:title", self.ns)!=None:
                                 reftitle = reference.find("md:title", self.ns).text
                             self.relations.append({"id":refid,"title":reftitle,"uri":refURI,"type":reftype})
-                        if xml.find("./md:citation/md:supplementTo", self.ns):
+                        if xml.find("./md:citation/md:supplementTo", self.ns) is not None:
                             suppl = xml.find("./md:citation/md:supplementTo", self.ns)
                             suppURI = None
                             supptitle = None
