@@ -1312,7 +1312,7 @@ class PanDataSet:
                                 "uri": suppURI,
                                 "year": suppyear
                             }
-                            
+
                         panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
                         self._setParameters(panXMLMatrixColumn)
                         panXMLEvents=xml.findall("./md:event", self.ns)
