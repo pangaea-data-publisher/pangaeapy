@@ -470,6 +470,7 @@ class PanDataSet:
         self.authors=[]
         self.terms_cache = {} #temporary cache for terms
         self.terms_conn = sl.connect(os.path.join(self.module_dir,'data','terms.db'))
+        self.supplement_to = {} # If this dataset is supllementary to another publication, give that publications title and URI here.
         self.relations = [] #list of relations as given in
         try:
             sql = 'create table if not exists terms (term_id integer PRIMARY KEY, term_name text, term_json text, entry_date datetime default current_timestamp)'
@@ -1293,6 +1294,25 @@ class PanDataSet:
                             if reference.find("md:title", self.ns)!=None:
                                 reftitle = reference.find("md:title", self.ns).text
                             self.relations.append({"id":refid,"title":reftitle,"uri":refURI,"type":reftype})
+                        if xml.find("./md:citation/md:supplementTo", self.ns) is not None:
+                            suppl = xml.find("./md:citation/md:supplementTo", self.ns)
+                            suppURI = None
+                            supptitle = None
+                            suppyear = None
+                            suppid = suppl.get("id")
+                            if suppl.find("md:year", self.ns) is not None:
+                                suppyear = suppl.find("md:year", self.ns).text
+                            if suppl.find("md:title", self.ns) is not None:
+                                supptitle = suppl.find("md:title", self.ns).text
+                            if suppl.find("md:URI", self.ns) is not None:
+                                suppURI = suppl.find("md:URI", self.ns).text
+                            self.supplement_to = {
+                                "id": suppid,
+                                "title": supptitle,
+                                "uri": suppURI,
+                                "year": suppyear
+                            }
+
                         panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
                         self._setParameters(panXMLMatrixColumn)
                         panXMLEvents=xml.findall("./md:event", self.ns)

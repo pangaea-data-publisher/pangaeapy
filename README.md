@@ -15,7 +15,9 @@ Given a DOI, pangaeapy uses PANGAEA’s web services to automatically load PANGA
 ## Installation
 
 * Source code from [github](https://github.com/pangaea-data-publisher/pangaeapy)
-    * `pip install git+https://github.com/pangaea-data-publisher/pangaeapy`
+    * `git clone https://github.com/pangaea-data-publisher/pangaeapy`
+    * `cd pangaeapy/src/pangaeapy`
+    * `pip install .`
 * Wheels for Python from [PyPI](https://pypi.org/project/pangaeapy/)
     * `pip install pangaeapy`
 
