@@ -17,7 +17,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         self.dwcnames = {'Event': 'EventID', 'Latitude': 'decimalLatitude', 'Longitude': 'decimalLongitude',
                     'Date/Time': 'eventDate','Depth water': 'minimumDepthInMeters', 'Elevation':'minimumElevationInMeters'}
         self.dwcfields = ['id', 'occurrenceID','modified', 'institutionCode', 'CollectionCode', 'datasetID', 'basisOfRecord', 'catalogNumber',
-                     'recordedBy', 'eventDate', 'scientificName', 'kingdom', 'geodeticDatum', 'decimalLatitude',
+                     'recordedBy', 'eventDate', 'scientificName', 'phylum','kingdom', 'geodeticDatum', 'decimalLatitude',
                      'decimalLongitude', 'organismQuantity', 'organismQuantityType']
         #http://vocab.nerc.ac.uk/collection/S11/current/
         self.taxon_lifestages = ['adult','juvenile','larvae','eggs','nauplii','copepodites']
@@ -78,8 +78,10 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             # TODO: extend to some adjectives e.g. juvenile, adult etc..
             try:
                 for term in param.terms:
+                    semantic_uri = ''
                     name_parts = re.split(r',\s?',param.name)
                     taxon_candidate = str(param.name)
+                    semantic_uri = term.get('semantic_uri')
 
                     taxon_attribute = None
                     if len(name_parts) == 2:
@@ -103,13 +105,20 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                     if test_taxon .lower() == str(term.get('name')).lower() and is_valid_unit:
                         if term.get('classification'):
                             if 'Biological Classification' in term.get('classification'):
+                                phylum = ''
+                                for classtax in term.get('classification'):
+                                    #phyla list from worms
+                                    if classtax in ['Acanthocephala', 'Acidobacteria', 'Acritarcha', 'Actinobacteria', 'Amoebozoa', 'Annelida', 'Anthocerotophyta', 'Apusomonada', 'Apusozoa', 'Aquificae', 'Arthropoda', 'Aschelminthes', 'Ascomycota', 'Bacillariophyta', 'Bacteria incertae sedis', 'Bacteroidetes', 'Basidiomycota', 'Bigyra', 'Brachiopoda', 'Bryophyta', 'Bryozoa', 'Caldiserica', 'Cephalorhyncha', 'Cercozoa', 'Chaetognatha', 'Charophyta', 'Chlamydiae', 'Chlorarachniophyta', 'Chlorobi', 'Chloroflexi', 'Chlorophyta', 'Chloroplastida', 'Choanoflagellata', 'Choanozoa', 'Chordata', 'Chromeridophyta', 'Chrysomonada', 'Chrysophyta', 'Chytridiomycota', 'Ciliophora', 'Cnidaria', 'Coelenterata', 'Craspediophyta', 'Craspedophyta', 'Crenarchaeota', 'Cryptophyta', 'Ctenophora', 'Cyanobacteria', 'Cycliophora', 'Deferribacteres', 'Deinococcus-Thermus', 'Deuteromycota', 'Dicyemida', 'Dinomastigota', 'Dinophyta', 'Discomitochondria', 'Echinodermata', 'Ectoprocta', 'Elusimicrobia', 'Entoprocta', 'Euglenophyta', 'Euglenozoa', 'Eumycota', 'Euryarchaeota', 'Fibrobacteres', 'Firmicutes', 'Flagellates', 'Foraminifera', 'Fungi Imperfecti', 'Fusobacteria', 'Gastrotricha', 'Gemmatimonadetes', 'Glaucophyta', 'Glomeromycota', 'Gnathifera', 'Gnathostomulida', 'Granuloreticulosa', 'Haplosporidia', 'Haptomonada', 'Haptophyta', 'Heliozoa', 'Hemichordata', 'Hemimastigophora', 'Heterokontophyta', 'Kinorhyncha', 'Korarchaeota', 'Labyrinthulata', 'Lentisphaerae', 'Lophophorata', 'Loricifera', 'Loukozoa', 'Marchantiophyta', 'Mesozoa', 'Metamonada', 'Microspora', 'Microsporidia', 'Mollusca', 'Myxospora', 'Myzozoa', 'Nanoarchaeota', 'Nemata', 'Nematoda', 'Nematomorpha', 'Nemertea', 'Nemertina', 'Nemertini', 'Nitrospirae', 'Ochrophyta', 'Oomycota', 'Orthonectida', 'Pentastomida', 'Percolozoa', 'Phaeophycota', 'Phaeophyta', 'Phoronida', 'Picozoa', 'Placozoa', 'Planctomycetes', 'Plantae incertae sedis', 'Platyhelminthes', 'Pogonophora', 'Porifera', 'Prasinodermatophyta', 'Prasinophyta', 'Priapulida', 'Proteobacteria', 'Prymnesiophyta', 'Pseudofungi', 'Pteridophyta', 'Radiozoa', 'Rhizopoda', 'Rhodelphidia', 'Rhodophycota', 'Rhodophyta', 'Rhynchocoela', 'Rotatoria', 'Rotifera', 'Sarcomastigophora', 'Sipunculida', 'Solenopora', 'Spirochaetes', 'Sulcozoa', 'Synergistetes', 'Tardigrada', 'Tenericutes', 'Thaumarchaeota', 'Thermodesulfobacteria', 'Thermotogae', 'Tracheophyta', 'Verrucomicrobia', 'Xanthophyta', 'Xenacoelomorpha', 'Zygomycota']:
+                                        phylum = classtax
                                 kingdom = list({'Animalia', 'Archaea', 'Bacteria', 'Chromista', 'Fungi', 'Plantae', 'Protozoa',
                                                 'Viruses'} & set(term.get('classification')))[0]
                                 if kingdom not in self.taxonomic_coverage:
                                     self.taxonomic_coverage.append(kingdom)
+                                if phylum not in self.taxonomic_coverage:
+                                    self.taxonomic_coverage.append(phylum)
 
                                 taxoncolumns[pkey] = {'taxon': taxon_candidate, 'series': param.dataseries, 'author': param.PI,
-                                                      'kingdom': kingdom, 'colno': param.colno, 'unit': param.unit,'dimension': dimension}
+                                                      'kingdom': kingdom, 'phylum': phylum, 'colno': param.colno, 'unit': param.unit,'dimension': dimension}
                                 if taxon_attribute:
                                     if taxon_attribute in self.taxon_sex:
                                         taxoncolumns[pkey]['sex'] = taxon_attribute
@@ -196,6 +205,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                 taxonframe['recordedBy'] = taxonframe['Colname'].apply(lambda x: None if not taxoncolumns.get(x).get('author') else taxoncolumns.get(x).get('author').get('name'))
                 taxonframe['scientificName'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('taxon'))
                 taxonframe['geodeticDatum'] = 'WGS84'
+                taxonframe['phylum'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('phylum'))
                 taxonframe['kingdom'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('kingdom'))
                 #taxonframe['organismQuantityType'] = 'individuals (' + taxonframe['Colname'].apply(
                 #    lambda x: taxoncolumns.get(x).get('unit')).astype(str) + ')'

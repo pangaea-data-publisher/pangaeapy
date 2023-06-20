@@ -53,9 +53,20 @@
 						</ulink>
 					</para>
 				</intellectualRights>
+				<licensed>
+					<licenseName>
+						<xsl:value-of select="md:MetaData/md:license/md:name"/>
+					</licenseName>
+					<url>
+						<xsl:value-of select="md:MetaData/md:license/md:URI"/>
+					</url>
+					<identifier>
+						<xsl:value-of select="md:MetaData/md:license/md:label"/>
+					</identifier>
+				</licensed>
 				<distribution>
 				<online>
-				<url function="metadata"><xsl:value-of select="md:MetaData/md:citation/md:URI"/></url>
+				<url function="information"><xsl:value-of select="md:MetaData/md:citation/md:URI"/></url>
 				</online>
 				</distribution>
 				<coverage>
@@ -92,10 +103,21 @@
 				</boundingCoordinates>
 				</geographicCoverage>
 				</coverage>
-				<contact>
-				<organizationName>PANGAEA - Data Publisher for Earth &amp;  Environmental Science</organizationName>
-					<electronicMailAddress>info@pangaea.de</electronicMailAddress>
-					<onlineUrl>http://www.pangaea.de</onlineUrl>
+				<contact scope="system">
+					<individualName>
+						<surName>Glöckner</surName>
+						<givenName>Frank-Oliver</givenName>
+						<role>administrative contact</role>
+						<electronicMailAddress>management@pangaea.de</electronicMailAddress>
+					</individualName>
+				</contact>
+				<contact scope="system">
+					<individualName>
+						<surName>Huber</surName>
+						<givenName>Robert</givenName>
+						<role>technical contact</role>
+						<electronicMailAddress>rhuber@pangaea.de</electronicMailAddress>
+					</individualName>
 				</contact>
 				<xsl:if test="md:MetaData/md:project">
 				<project>
