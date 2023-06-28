@@ -65,7 +65,7 @@ class PanQuery:
                     if re.search(r'>[0-9]+\sdatasets<', rset.get('html')):
                         rset['type']='collection'
                     else:
-                        rset['type']='child'
+                        rset['type']='member'
                     rset['position'] = position
                     position+=1
             elif r.status_code == 500:

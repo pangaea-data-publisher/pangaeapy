@@ -406,9 +406,9 @@ class PanDataSet:
         a pandas dataframe holding all the data
     loginstatus : str
         a label which indicates if the data set is protected or not default value: 'unrestricted'            
-    isParent : boolean
+    isCollection : boolean
         indicates if this dataset is a collection data set within a collection of child data sets
-    children : list
+    collection_members : list
         a list of DOIs of all child data sets in case the data set is a collection data set
 	moratorium : str
 		a label which provides the date until the dataset is under moratorium
@@ -438,7 +438,7 @@ class PanDataSet:
         self.cache=enable_cache
         self.cache_expiry_days= cache_expiry_days
         self.uri = self.doi = '' #the doi
-        self.isParent=False
+        self.isCollection=False
         self.params=dict()
         self.parameters = self.params
         self.defaultparams=['Latitude','Longitude','Event','Elevation','Date/Time']
@@ -484,7 +484,7 @@ class PanDataSet:
         self.allowNetCDF=True        
         self.eventInMatrix=False
         self.deleteFlag=deleteFlag
-        self.children=[]
+        self.collection_members=[]
         self.include_data=include_data
         if isinstance(expand_terms, int):
             expand_terms = [expand_terms]
@@ -527,7 +527,7 @@ class PanDataSet:
                 # check if title is already there, otherwise load metadata
                 if not self.title:
                     self.setMetadata()
-                if (self.loginstatus=='unrestricted' or self.auth_token)  and self.isParent!=True:
+                if (self.loginstatus=='unrestricted' or self.auth_token)  and self.isCollection!=True:
                     self.setData()
                     self.defaultparams = [s for s in self.defaultparams if s in self.params.keys()]
                     if self.paramlist!=None:
@@ -1174,16 +1174,16 @@ class PanDataSet:
                         if xml.find('./md:technicalInfo/md:entry[@key="collectionType"]',self.ns) != None:
                             self.log(logging.WARNING,
                                      'Data set is of type collection, please select one of its child datasets')
-                            self.isParent = True
-                            self._setChildren()
+                            self.isCollection = True
+                            self._setCollectionMembers()
 
                         '''hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
                         if hierarchyLevel!=None:
                             if hierarchyLevel.get('value')=='parent':
                                 #self.logging.append({'WARNING':'Data set is of type parent, please select one of its child datasets'})
                                 self.log(logging.WARNING, 'Data set is of type collection, please select one of its child datasets')
-                                self.isParent=True
-                                self._setChildren()'''
+                                self.isCollection=True
+                                self._setCollectionMembers()'''
                         self.title=xml.find("./md:citation/md:title", self.ns).text
                         if xml.find("./md:abstract", self.ns)!=None:
                             self.abstract = xml.find("./md:abstract", self.ns).text
@@ -1337,7 +1337,7 @@ class PanDataSet:
         else:
             self.log(logging.ERROR, 'No HTTP response object received for: ' + str(self.id))
 
-    def _setChildren(self):
+    def _setCollectionMembers(self):
         cheaders = {'Accept': 'application/json'}
         if self.auth_token:
             cheaders['Authorization'] = 'Bearer ' + str(self.auth_token)
@@ -1346,7 +1346,7 @@ class PanDataSet:
         if r.status_code != 404:
             s = r.json()
             for p in s['results']: 
-                self.children.append(p['URI'])
+                self.collection_members.append(p['URI'])
                 #print(p['URI'])
             
     def getGeometry(self):

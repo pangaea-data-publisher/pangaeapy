@@ -64,7 +64,7 @@ class PanFrictionlessExporter(PanExporter):
     def create(self):
         in_memory_zip = False
         ret = False
-        if not self.pandataset.isParent:
+        if not self.pandataset.isCollection:
             if self.pandataset.loginstatus == 'unrestricted':
                 try:
                     in_memory_zip = BytesIO()
@@ -79,7 +79,7 @@ class PanFrictionlessExporter(PanExporter):
             else:
                 self.logging.append({'ERROR': 'Dataset is protected'})
         else:
-            self.logging.append({'ERROR':'Cannot export a parent type dataset to frictionless'})
+            self.logging.append({'ERROR':'Cannot export a collection type dataset to frictionless'})
         return in_memory_zip
 
     def save(self):
