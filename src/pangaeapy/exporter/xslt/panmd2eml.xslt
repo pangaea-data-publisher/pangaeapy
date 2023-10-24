@@ -129,6 +129,19 @@
 				</project>				
 				</xsl:if>
 			</dataset>
+			<additionalMetadata>
+    			<metadata>
+      				<gbif>
+						<dateStamp><xsl:value-of select="md:MetaData/md:citation/md:dateTime"/></dateStamp>
+          				<hierarchyLevel>dataset</hierarchyLevel>
+            			<citation>
+							<xsl:attribute name="identifier">
+								<xsl:value-of select="md:MetaData/md:citation/md:URI"/>
+							</xsl:attribute>
+						</citation>
+					</gbif>
+				</metadata>
+			</additionalMetadata>
 		</eml:eml>
 	</xsl:template>
 </xsl:stylesheet>

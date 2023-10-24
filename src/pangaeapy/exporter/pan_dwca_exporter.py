@@ -283,6 +283,10 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                 panxml = et.fromstring(self.pandataset.metaxml.encode())
                 transform = et.XSLT(xslt)
                 emlxml = transform(panxml)
+                gbifcitation = emlxml.find("additionalMetadata/metadata/gbif/citation")
+                if gbifcitation is not None:
+                    gbifcitation.text = self.pandataset.citation
+
                 coverage = emlxml.find("dataset/coverage")
                 if coverage is not None and self.taxonomic_coverage:
                     taxcovelem = lxml.etree.Element('taxonomicCoverage')
