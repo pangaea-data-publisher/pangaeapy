@@ -2,8 +2,9 @@ from setuptools import setup, find_packages
 
 setup(
     name='pangaeapy',
-    version='1.0.16',
-    install_requires=['lxml>=4.9.1','requests>=2.26.0','pandas>=1.3.5','numpy>=1.21.0','netcdf4~=1.6.3'],
+    python_requires='>=3.8',
+    version='1.0.17',
+    install_requires=['lxml>=4.9.3','requests>=2.26.0','pandas>=2.0.3','numpy>=1.24.4','netcdf4~=1.6.3', 'cftime>=1.6.3'],
     packages=['pangaeapy','pangaeapy.exporter'],
     package_dir={'pangaeapy': ''},
     #package_data={'mypkg': ['data/*.dat']},
