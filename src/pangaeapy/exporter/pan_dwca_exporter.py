@@ -49,6 +49,8 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                             istaxonrelated = True
                             if umatch[1] == '#':
                                 dimension = 'individuals'
+                                if 'pollen' in str(self.pandataset.title).lower():
+                                    dimension = 'number of pollen'
                             else:
                                 dimension = 'percentage'
                             if umatch[2] is not None:
@@ -236,7 +238,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
 
                 taxonframe = taxonframe[taxonframe['organismQuantity'].notna()]
 
-                dwcdata = taxonframe.to_csv(index=False,sep='|',line_terminator='\n',date_format ='%Y-%m-%dT%H:%M:%S', encoding='utf-8')
+                dwcdata = taxonframe.to_csv(index=False,sep='|',lineterminator='\n',date_format ='%Y-%m-%dT%H:%M:%S', encoding='utf-8')
 
             except Exception as e2:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
