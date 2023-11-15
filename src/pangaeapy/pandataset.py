@@ -1043,10 +1043,11 @@ class PanDataSet:
                         self.data = self.data.apply(pd.to_numeric, errors='ignore')
                         try:
                             if 'Date/Time' in self.data.columns:
-                                self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y/%m/%dT%H:%M:%S')
+                                self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y-%m-%dT%H:%M:%S')
                         except Exception as e:
                             #try to preserve the year at least:
                             self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'].replace({r'^.*([0-9]{4}){1}.*$': r'\1'}, regex = True), format='%Y',errors='coerce')
+                            self.log(logging.WARNING,'Date/Time transformation failed: '+(str(e)))
                             pass
 
                     else:
