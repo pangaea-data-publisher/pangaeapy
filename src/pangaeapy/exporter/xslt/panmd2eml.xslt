@@ -42,7 +42,7 @@
 				<abstract><para><xsl:value-of select="md:MetaData/md:abstract"/></para></abstract>
 				<intellectualRights>
 					<para>
-					This work is licensed under a 
+						<xsl:text>This work is licensed under a </xsl:text>
 						<ulink>
 							<xsl:attribute name="url">
 								<xsl:value-of select="md:MetaData/md:license/md:URI"/>
@@ -50,8 +50,7 @@
 							<citetitle>
 								<xsl:value-of select="md:MetaData/md:license/md:name"/>
 							</citetitle>
-						</ulink>
-					</para>
+						</ulink>.</para>
 				</intellectualRights>
 				<licensed>
 					<licenseName>
