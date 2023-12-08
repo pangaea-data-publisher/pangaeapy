@@ -422,6 +422,9 @@ class PanDataSet:
 	    the PANGAEA auhentication token, you can find it at pangaea.de on your user page
 	cache_expiry_days : int
 	    the duration a cached pickle/cache is accepted, after this pangaeapy will load it again and ignor ethe cache
+    keywords : list[str]
+        A list of keyword names. Only actual keywords, technical and
+        auto-generated ones are ignored right now.
 
     """
     def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False, include_data=True, expand_terms=[], auth_token = None, cache_expiry_days=1):
@@ -472,6 +475,7 @@ class PanDataSet:
         self.terms_conn = sl.connect(os.path.join(self.module_dir,'data','terms.db'))
         self.supplement_to = {} # If this dataset is supllementary to another publication, give that publications title and URI here.
         self.relations = [] #list of relations as given in
+        self.keywords = []  # list of keywords
         try:
             sql = 'create table if not exists terms (term_id integer PRIMARY KEY, term_name text, term_json text, entry_date datetime default current_timestamp)'
             self.terms_conn.execute(sql)
@@ -1313,6 +1317,9 @@ class PanDataSet:
                                 "uri": suppURI,
                                 "year": suppyear
                             }
+                        for keyword in xml.findall("./md:keywords/md:keyword", self.ns):
+                            # Only iterate over actual `md:keyword`; ignore, e.g., `md:techKeyword`.
+                            self.keywords.append(keyword.text)
 
                         panXMLMatrixColumn=xml.findall("./md:matrixColumn", self.ns)
                         self._setParameters(panXMLMatrixColumn)
