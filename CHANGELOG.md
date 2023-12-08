@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added ###
 
+* [#56](https://github.com/pangaea-data-publisher/pangaeapy/issues/56):
+  `PanDataSet.keywords`, a list of the (human-readable) dataset keywords,
+  ignoring the auto-generated and technical ones.
+
 ### Changed ###
 
 ### Deprecated ###
