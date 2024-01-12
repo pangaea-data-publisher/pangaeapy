@@ -812,7 +812,6 @@ class PanDataSet:
                 termid = int(termidparts.get('term'))
             terminologyid = int(terminfo.get('terminologyId'))
             termuri = terminfo.get('semanticURI')
-
         try:
             if self.expand_terms and (terminologyid in self.expand_terms):
                 if isinstance(termid, int):
@@ -1047,7 +1046,8 @@ class PanDataSet:
                         self.data = self.data.apply(pd.to_numeric, errors='ignore')
                         try:
                             if 'Date/Time' in self.data.columns:
-                                self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y-%m-%dT%H:%M:%S')
+                                self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='ISO8601')
+                                #self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y-%m-%dT%H:%M:%S')
                         except Exception as e:
                             #try to preserve the year at least:
                             self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'].replace({r'^.*([0-9]{4}){1}.*$': r'\1'}, regex = True), format='%Y',errors='coerce')
