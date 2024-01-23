@@ -438,6 +438,11 @@ class PanDataSet:
         # Mapping should be moved to e.g netCDF class/module??
         #moddir = os.path.dirname(os.path.abspath(__file__))
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
+        # setting up the chache directory in the users home folder
+        homedir = os.path.expanduser("~")
+        self.cachedir = os.path.join(homedir, 'pangaeapy_cache')
+        if not os.path.exists(self.cachedir):
+            os.makedirs(self.cachedir)
         self.cache=enable_cache
         self.cache_expiry_days= cache_expiry_days
         self.uri = self.doi = '' #the doi
@@ -472,7 +477,7 @@ class PanDataSet:
         self.topotype = None
         self.authors=[]
         self.terms_cache = {} #temporary cache for terms
-        self.terms_conn = sl.connect(os.path.join(self.module_dir,'data','terms.db'))
+        self.terms_conn = sl.connect(os.path.join(self.cachedir, 'terms.db'))
         self.supplement_to = {} # If this dataset is supllementary to another publication, give that publications title and URI here.
         self.relations = [] #list of relations as given in
         self.keywords = []  # list of keywords
@@ -509,11 +514,6 @@ class PanDataSet:
         self.quality_flag_replace={'ok':0,'?':1,'/':2,'*':3}
         if self.id != None:
             gotData=False
-            #setting up the chache directory in the users home folder
-            homedir = os.path.expanduser("~")
-            self.cachedir = os.path.join(homedir,'pangaeapy_cache')
-            if not os.path.exists(self.cachedir):
-                os.makedirs(self.cachedir)
 
             if self.cache==True:
                 #self.logging.append({'INFO':'Caching activated..trying to load data and metadata from cache'})
