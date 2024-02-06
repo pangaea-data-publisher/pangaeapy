@@ -1043,7 +1043,11 @@ class PanDataSet:
                         self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
 
                         # --- Adjust Column Data Types
-                        self.data = self.data.apply(pd.to_numeric, errors='ignore')
+                        for col in self.data:
+                            try:
+                                self.data[col] = pd.to_numeric(self.data[col])
+                            except (ValueError, TypeError):
+                                pass
                         try:
                             if 'Date/Time' in self.data.columns:
                                 self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='ISO8601')
