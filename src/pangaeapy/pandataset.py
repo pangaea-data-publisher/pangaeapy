@@ -1083,11 +1083,12 @@ class PanDataSet:
             for paramcolumn in list(self.params.keys()):
                 if self.params[paramcolumn].type in ['numeric', 'datetime']:
                     tmp_qc_series = self.data[paramcolumn].astype(
-                        str).str.extract(r'(^[\*/\?])?(.+)')[0]
+                        str).str.extract(r'(^[\*/\?])?(.+)')[0].astype(str)
                     #self.qcdata[paramcolumn] = self.data[paramcolumn].astype(
                     #    str).str.extract(r'(^[\*/\?])?(.+)')[0]
                     #self.qcdata[paramcolumn].fillna(value='ok', inplace=True)
-                    tmp_qc_series.replace(to_replace=self.quality_flag_replace, inplace=True)
+                    tmp_qc_series.replace(to_replace={key: str(val) for key, val in self.quality_flag_replace.items()}, inplace=True)
+                    tmp_qc_series = pd.to_numeric(tmp_qc_series, errors='coerce')
                     tmp_qc_column_list.append(tmp_qc_series)
                     #self.qcdata[paramcolumn].replace(to_replace=self.quality_flag_replace, inplace=True)
             self.qcdata = pd.concat(tmp_qc_column_list, axis=1)
