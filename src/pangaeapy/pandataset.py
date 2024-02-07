@@ -1012,8 +1012,8 @@ class PanDataSet:
                                         self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','event','m')
                                     if 'Date/Time' not in self.data.columns:
                                         addEvDat=True
-                                        self.data['Date/Time']=np.nan
-                                        self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','numeric','event','')
+                                        self.data['Date/Time']="NaN"
+                                        self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','datetime','event','')
                                     for iev,pevent in enumerate(self.events):
                                         if pevent.latitude is not None and addEvLat==True:
                                             self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isnull()),['Latitude']]=self.events[iev].latitude
@@ -1022,7 +1022,7 @@ class PanDataSet:
                                         if pevent.elevation is not None and addEvEle:
                                             self.data.loc[(self.data['Event']== pevent.label) & (self.data['Elevation'].isnull()),['Elevation']]=self.events[iev].elevation
                                         if pevent.datetime is not None and addEvDat:
-                                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isnull()),['Date/Time']]=str(self.events[iev].datetime)
+                                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time']=="NaN"),['Date/Time']]=str(self.events[iev].datetime)
                         # -- delete values with given QC flags
                         if self.deleteFlag!='':
                             if self.deleteFlag=='?' or self.deleteFlag=='*':
