@@ -7,25 +7,27 @@ Created on Tue Aug 21 13:31:30 2018
 @author: Egor Gordeev
 @author: Aarthi Balamurugan
 """
-import json
-import time
 import datetime
-
-import requests
-import pandas as pd
-import numpy as np
-import lxml.etree as ET
-import re
 import io
+import json
+import logging
+import logging.handlers
 import os
-import textwrap
-import sqlite3 as sl
-import logging, logging.handlers
-
 import pickle
-from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
-from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
+import re
+import sqlite3 as sl
+import textwrap
+import time
+
+import lxml.etree as ET
+import numpy as np
+import pandas as pd
+import requests
+
 from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
+from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
+from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
+
 class PanProject:
     """PANGAEA Project Class
     This class creates objects which contain the project context information for each dataset
