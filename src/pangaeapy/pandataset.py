@@ -1012,8 +1012,8 @@ class PanDataSet:
                                         self.params['Elevation']=PanParam(8128,'Elevation','Elevation','numeric','event','m')
                                     if 'Date/Time' not in self.data.columns:
                                         addEvDat=True
-                                        self.data['Date/Time']=np.nan
-                                        self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','numeric','event','')
+                                        self.data['Date/Time']="NaN"
+                                        self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','datetime','event','')
                                     for iev,pevent in enumerate(self.events):
                                         if pevent.latitude is not None and addEvLat==True:
                                             self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isnull()),['Latitude']]=self.events[iev].latitude
@@ -1022,7 +1022,7 @@ class PanDataSet:
                                         if pevent.elevation is not None and addEvEle:
                                             self.data.loc[(self.data['Event']== pevent.label) & (self.data['Elevation'].isnull()),['Elevation']]=self.events[iev].elevation
                                         if pevent.datetime is not None and addEvDat:
-                                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time'].isnull()),['Date/Time']]=str(self.events[iev].datetime)
+                                            self.data.loc[(self.data['Event']== pevent.label) & (self.data['Date/Time']=="NaN"),['Date/Time']]=str(self.events[iev].datetime)
                         # -- delete values with given QC flags
                         if self.deleteFlag!='':
                             if self.deleteFlag=='?' or self.deleteFlag=='*':
@@ -1043,7 +1043,11 @@ class PanDataSet:
                         self.data.replace(regex=r'^[\?/\*#\<\>]',value='',inplace=True)
 
                         # --- Adjust Column Data Types
-                        self.data = self.data.apply(pd.to_numeric, errors='ignore')
+                        for col in self.data:
+                            try:
+                                self.data[col] = pd.to_numeric(self.data[col])
+                            except (ValueError, TypeError):
+                                pass
                         try:
                             if 'Date/Time' in self.data.columns:
                                 self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='ISO8601')
@@ -1079,11 +1083,12 @@ class PanDataSet:
             for paramcolumn in list(self.params.keys()):
                 if self.params[paramcolumn].type in ['numeric', 'datetime']:
                     tmp_qc_series = self.data[paramcolumn].astype(
-                        str).str.extract(r'(^[\*/\?])?(.+)')[0]
+                        str).str.extract(r'(^[\*/\?])?(.+)')[0].astype(str)
                     #self.qcdata[paramcolumn] = self.data[paramcolumn].astype(
                     #    str).str.extract(r'(^[\*/\?])?(.+)')[0]
                     #self.qcdata[paramcolumn].fillna(value='ok', inplace=True)
-                    tmp_qc_series.replace(to_replace=self.quality_flag_replace, inplace=True)
+                    tmp_qc_series.replace(to_replace={key: str(val) for key, val in self.quality_flag_replace.items()}, inplace=True)
+                    tmp_qc_series = pd.to_numeric(tmp_qc_series, errors='coerce')
                     tmp_qc_column_list.append(tmp_qc_series)
                     #self.qcdata[paramcolumn].replace(to_replace=self.quality_flag_replace, inplace=True)
             self.qcdata = pd.concat(tmp_qc_column_list, axis=1)
