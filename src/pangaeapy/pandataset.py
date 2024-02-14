@@ -114,7 +114,7 @@ class PanAuthor:
         self.id = id
         if affiliations:
             self.affiliations = affiliations
-        if firstname!=None and  firstname!='':
+        if firstname:
             self.fullname+=', '+self.firstname
 
 class PanEvent:
@@ -167,23 +167,23 @@ class PanEvent:
     def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, location=None, campaign=None, id = None, deviceid = None):
         self.label = label
         self.id = id
-        if latitude !=None:
+        if latitude is not None:
             self.latitude=float(latitude)
         else:
             self.latitude=None
-        if longitude !=None:
+        if longitude is not None:
             self.longitude=float(longitude)
         else:
             self.longitude=None
-        if latitude2 !=None:
+        if latitude2 is not None:
             self.latitude2=float(latitude2)
         else:
             self.latitude2=None
-        if longitude2 !=None:
+        if longitude2 is not None:
             self.longitude2=float(longitude2)
         else:
             self.longitude2=None
-        if elevation !=None:
+        if elevation is not None:
             self.elevation=float(elevation)
         else:
             self.elevation=None
@@ -514,10 +514,10 @@ class PanDataSet:
         #self.logger.info('Test')
         self.quality_flags={'ok':'valid','?':'questionable','/':'not_valid','*':'unknown'}
         self.quality_flag_replace={'ok':0,'?':1,'/':2,'*':3}
-        if self.id != None:
+        if self.id is not None:
             gotData=False
 
-            if self.cache==True:
+            if self.cache:
                 #self.logging.append({'INFO':'Caching activated..trying to load data and metadata from cache'})
                 self.log(logging.INFO,'Caching activated..trying to load data and metadata from cache')
                 if self.check_pickle():
@@ -533,14 +533,14 @@ class PanDataSet:
                 # check if title is already there, otherwise load metadata
                 if not self.title:
                     self.setMetadata()
-                if (self.loginstatus=='unrestricted' or self.auth_token)  and self.isCollection!=True:
+                if (self.loginstatus=='unrestricted' or self.auth_token)  and not self.isCollection:
                     self.setData()
                     self.defaultparams = [s for s in self.defaultparams if s in self.params.keys()]
-                    if self.paramlist!=None:
+                    if self.paramlist is not None:
                         if  len(self.paramlist)!=len(self.paramlist_index):
                             #self.logging.append({'WARNING':'Inconsistent number of detected parameters, expected: '+str(len(self.paramlist))+' vs '+str(len(self.paramlist_index))})
                             self.log(logging.WARNING, 'Inconsistent number of detected parameters, expected: '+str(len(self.paramlist))+' vs '+str(len(self.paramlist_index)))
-                    if self.cache==True:
+                    if self.cache:
                         self.to_pickle()
                 else:
                     self.log(logging.WARNING,'Dataset is either restricted or of type "collection"')
@@ -694,65 +694,65 @@ class PanDataSet:
 
             eventID = self._getIDParts(event.get('id')).get('event')
 
-            if event.find('md:elevation',self.ns)!=None:                
+            if event.find('md:elevation',self.ns) is not None:
                 eventElevation=event.find('md:elevation',self.ns).text
-            if event.find('md:dateTime',self.ns)!=None:
+            if event.find('md:dateTime',self.ns) is not None:
                 eventDateTime= event.find('md:dateTime',self.ns).text
-            if event.find('md:dateTime2',self.ns)!=None:
+            if event.find('md:dateTime2',self.ns) is not None:
                 eventDateTime2= event.find('md:dateTime2',self.ns).text
-            if event.find('md:longitude',self.ns)!=None:
+            if event.find('md:longitude',self.ns) is not None:
                 eventLongitude= event.find('md:longitude',self.ns).text
-            if event.find('md:latitude',self.ns)!=None:
+            if event.find('md:latitude',self.ns) is not None:
                 eventLatitude= event.find('md:latitude',self.ns).text
-            if event.find('md:longitude2',self.ns)!=None:
+            if event.find('md:longitude2',self.ns) is not None:
                 eventLongitude2= event.find('md:longitude2',self.ns).text
-            if event.find('md:latitude2',self.ns)!=None:
+            if event.find('md:latitude2',self.ns) is not None:
                 eventLatitude2= event.find('md:latitude2',self.ns).text
-            if event.find('md:label',self.ns)!=None:
+            if event.find('md:label',self.ns) is not None:
                 eventLabel= event.find('md:label',self.ns).text
-            if event.find('md:location/md:name',self.ns)!=None:
+            if event.find('md:location/md:name',self.ns) is not None:
                 eventLocation= event.find('md:location/md:name',self.ns).text
-            if event.find('md:method/md:name',self.ns)!=None:
+            if event.find('md:method/md:name',self.ns) is not None:
                 eventDevice= event.find('md:method/md:name',self.ns).text
                 eventDeviceID = self._getIDParts(event.find('md:method',self.ns).get('id')).get('method')
-            if event.find('md:basis',self.ns)!=None:
+            if event.find('md:basis',self.ns) is not None:
                 basis= event.find('md:basis',self.ns)
-                if basis.find('md:name',self.ns)!=None:
+                if basis.find('md:name',self.ns) is not None:
                     basis_name= basis.find('md:name',self.ns).text
                 else:
                     basis_name=None
-                if basis.find('md:URI',self.ns)!=None:
+                if basis.find('md:URI',self.ns) is not None:
                     basis_URI= basis.find('md:URI',self.ns).text
                 else:
                     basis_URI=None
-                if basis.find('md:callSign',self.ns)!=None:
+                if basis.find('md:callSign',self.ns) is not None:
                     basis_callsign= basis.find('md:callSign',self.ns).text
                 else:
                     basis_callsign=None
-                if basis.find('md:IMOnumber',self.ns)!=None:
+                if basis.find('md:IMOnumber',self.ns) is not None:
                     basis_imonumber= basis.find('md:IMOnumber',self.ns).text
                 else:
                     basis_imonumber=None
                 eventBasis=PanBasis(basis_name,basis_URI,basis_callsign,basis_imonumber)
             else:
                 eventBasis=None
-            if event.find("md:campaign", self.ns)!=None:
+            if event.find("md:campaign", self.ns) is not None:
                 campaign=event.find("md:campaign", self.ns)
-                if campaign.find('md:name',self.ns)!=None:
+                if campaign.find('md:name',self.ns) is not None:
                     campaign_name= campaign.find('md:name',self.ns).text
-                if campaign.find('md:URI',self.ns)!=None:
+                if campaign.find('md:URI',self.ns) is not None:
                     campaign_URI= campaign.find('md:URI',self.ns).text
-                if campaign.find('md:start',self.ns)!=None:
+                if campaign.find('md:start',self.ns) is not None:
                     campaign_start= campaign.find('md:start',self.ns).text
-                if campaign.find('md:end',self.ns)!=None:
+                if campaign.find('md:end',self.ns) is not None:
                     campaign_end= campaign.find('md:end',self.ns).text
-                if campaign.find('md:attribute[@name="Start location"]',self.ns)!=None:
+                if campaign.find('md:attribute[@name="Start location"]',self.ns) is not None:
                     startlocation= campaign.find('md:attribute[@name="Start location"]',self.ns).text
-                if campaign.find('md:attribute[@name="End location"]',self.ns)!=None:
+                if campaign.find('md:attribute[@name="End location"]',self.ns) is not None:
                     endlocation= campaign.find('md:attribute[@name="End location"]',self.ns).text
-                if campaign.find('md:attribute[@name="BSH ID"]',self.ns)!=None:
+                if campaign.find('md:attribute[@name="BSH ID"]',self.ns) is not None:
                     BSHID= campaign.find('md:attribute[@name="BSH ID"]',self.ns).text
-                if campaign.find('md:attribute[@name="Expedition Program"]',self.ns)!=None:
+                if campaign.find('md:attribute[@name="Expedition Program"]',self.ns) is not None:
                     expeditionprogram= campaign.find('md:attribute[@name="Expedition Program"]',self.ns).text
                 else:
                     expeditionprogram=None
@@ -807,7 +807,7 @@ class PanDataSet:
         termret = {}
         termid = None
         termname = None
-        if terminfo.find("md:name", self.ns) != None:
+        if terminfo.find("md:name", self.ns) is not None:
             termname = terminfo.find("md:name", self.ns).text
             termidparts = self._getIDParts(str(terminfo.get('id')))
             if termidparts.get('term'):
@@ -855,7 +855,7 @@ class PanDataSet:
         Initializes the list of parameter objects from the metadata XML info
         """
         coln=dict()
-        if panXMLMatrixColumn!=None:
+        if panXMLMatrixColumn is not None:
             panGeoCode=[]
             for matrix in panXMLMatrixColumn:  
                 panparCFName=None
@@ -872,7 +872,7 @@ class PanDataSet:
                 if paramidparts.get('ds'):
                     dataseriesID = int(paramidparts.get('ds'))
                 panparShortName='';
-                if(paramstr.find('md:shortName',self.ns) != None):
+                if(paramstr.find('md:shortName',self.ns) is not None):
                     panparShortName=paramstr.find('md:shortName',self.ns).text
                     panparIndex = panparShortName
                     #Rename duplicate column headers
@@ -883,19 +883,19 @@ class PanDataSet:
                         coln[panparShortName]=1
                 panparType=matrix.get('type')
                 panparUnit=None
-                if(paramstr.find('md:unit',self.ns)!=None):
+                if(paramstr.find('md:unit',self.ns) is not None):
                     panparUnit=paramstr.find('md:unit',self.ns).text
                 panparComment=None
-                if(matrix.find('md:comment',self.ns)!=None):
+                if(matrix.find('md:comment',self.ns) is not None):
                     panparComment=matrix.find('md:comment',self.ns).text
                 panparMethodID = None
-                if (paramstr.find('md:method', self.ns) != None):
+                if (paramstr.find('md:method', self.ns) is not None):
                     panparMethodID = self._getIDParts(paramstr.find('md:method', self.ns).get('id')).get('method')
                 panparPI = None
                 panparPI_firstname,panparPI_lastname = None, None
-                if(matrix.find('md:PI', self.ns) != None):
+                if(matrix.find('md:PI', self.ns) is not None):
                     panparPI_ID = self._getIDParts(matrix.find('md:PI', self.ns).get('id')).get('pi')
-                    if(matrix.find('md:PI/md:firstName', self.ns) !=None):
+                    if(matrix.find('md:PI/md:firstName', self.ns) is not None):
                         panparPI_firstname= matrix.find('md:PI/md:firstName', self.ns).text
                     panparPI_lastname = matrix.find('md:PI/md:lastName', self.ns).text
                     panparPI_fullname = ', '.join(filter(None, [panparPI_lastname,panparPI_firstname]))
@@ -949,7 +949,7 @@ class PanDataSet:
 
         # converting list of parameters` short names (from user input) to the list of parameters` indexes
         # the list of parameters` indexes is an argument for pd.read_csv
-        if self.paramlist!=None:
+        if self.paramlist is not None:
             self.paramlist += self.defaultparams
             for parameter in self.paramlist:
                 iter=0
@@ -962,7 +962,7 @@ class PanDataSet:
                 self.log(logging.WARNING,'Error entering parameters`short names, inconsitent number of parameters')
         else:
             self.paramlist_index=None
-        if self.include_data==True:
+        if self.include_data:
             try:
                 dataURL="https://doi.pangaea.de/10.1594/PANGAEA."+str(self.id)
                 requestheader = {'Accept': 'text/tab-separated-values'}
@@ -992,7 +992,7 @@ class PanDataSet:
                         # add geocode/dimension columns from Event
 
                         #if addEventColumns==True and self.topotype!="not specified":
-                        if addEventColumns==True:
+                        if addEventColumns:
                             if len(self.events)==1:
                                 if 'Event' not in self.data.columns:
                                     self.data['Event']=self.events[0].label
@@ -1017,7 +1017,7 @@ class PanDataSet:
                                         self.data['Date/Time']="NaN"
                                         self.params['Date/Time']=PanParam(1599,'Date/Time','Date/Time','datetime','event','')
                                     for iev,pevent in enumerate(self.events):
-                                        if pevent.latitude is not None and addEvLat==True:
+                                        if pevent.latitude is not None and addEvLat:
                                             self.data.loc[(self.data['Event']== pevent.label) & (self.data['Latitude'].isnull()),['Latitude']]=self.events[iev].latitude
                                         if pevent.longitude is not None and addEvLon:
                                             self.data.loc[(self.data['Event']== pevent.label) & (self.data['Longitude'].isnull()),['Longitude']]=self.events[iev].longitude
@@ -1180,10 +1180,10 @@ class PanDataSet:
                             else:
                                 #self.logging.append({'WARNING': 'Data set is protected'})
                                 self.log(logging.WARNING,'Data set is protected')
-                        if xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns)!= None:
+                        if xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns) is not None:
                             self.lastupdate = xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns).get('value')
 
-                        if xml.find('./md:technicalInfo/md:entry[@key="collectionType"]',self.ns) != None:
+                        if xml.find('./md:technicalInfo/md:entry[@key="collectionType"]',self.ns) is not None:
                             self.log(logging.WARNING,
                                      'Data set is of type collection, please select one of its child datasets')
                             self.isCollection = True
@@ -1197,51 +1197,51 @@ class PanDataSet:
                                 self.isCollection=True
                                 self._setCollectionMembers()'''
                         self.title=xml.find("./md:citation/md:title", self.ns).text
-                        if xml.find("./md:abstract", self.ns)!=None:
+                        if xml.find("./md:abstract", self.ns) is not None:
                             self.abstract = xml.find("./md:abstract", self.ns).text
                         self.registrystatus=xml.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]',self.ns).get('value')
-                        if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns) != None:
+                        if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns) is not None:
                             self.moratorium=xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]',self.ns).get('value')
-                        if xml.find('./md:status/md:curationLevel/md:name',self.ns)!=None:
+                        if xml.find('./md:status/md:curationLevel/md:name',self.ns) is not None:
                             self.curationlevel= xml.find('./md:status/md:curationLevel/md:name',self.ns).text
-                        if xml.find('./md:status/md:processingLevel/md:name',self.ns)!=None:
+                        if xml.find('./md:status/md:processingLevel/md:name',self.ns) is not None:
                             self.processinglevel= xml.find('./md:status/md:processingLevel/md:name',self.ns).text
-                        if xml.find("./md:citation/md:year", self.ns) != None:
+                        if xml.find("./md:citation/md:year", self.ns) is not None:
                             self.year=xml.find("./md:citation/md:year", self.ns).text
-                        if xml.find("./md:citation/md:dateTime", self.ns) != None:
+                        if xml.find("./md:citation/md:dateTime", self.ns) is not None:
                             self.date=xml.find("./md:citation/md:dateTime", self.ns).text
-                        if self.lastupdate == None:
+                        if self.lastupdate is None:
                             self.lastupdate = self.date
                         self.doi=self.uri=xml.find("./md:citation/md:URI", self.ns).text
                         #extent
-                        if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns)!=None:
+                        if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns) is not None:
                             self.mintimeextent=xml.find("./md:extent/md:temporal/md:minDateTime", self.ns).text
-                        if xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns)!=None:
+                        if xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns) is not None:
                             self.maxtimeextent=xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:westBoundLongitude", self.ns) != None:
+                        if xml.find("./md:extent/md:geographic/md:westBoundLongitude", self.ns) is not None:
                             self.geometryextent['westBoundLongitude'] = xml.find("./md:extent/md:geographic/md:westBoundLongitude",
                                                                self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:eastBoundLongitude", self.ns) != None:
+                        if xml.find("./md:extent/md:geographic/md:eastBoundLongitude", self.ns) is not None:
                             self.geometryextent['eastBoundLongitude'] = xml.find("./md:extent/md:geographic/md:eastBoundLongitude",
                                                                self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:southBoundLatitude", self.ns) != None:
+                        if xml.find("./md:extent/md:geographic/md:southBoundLatitude", self.ns) is not None:
                             self.geometryextent['southBoundLatitude'] = xml.find("./md:extent/md:geographic/md:southBoundLatitude",
                                                                self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns) != None:
+                        if xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns) is not None:
                             self.geometryextent['northBoundLatitude'] = xml.find("./md:extent/md:geographic/md:northBoundLatitude",
                                                                self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns) != None:
+                        if xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns) is not None:
                             self.geometryextent['northBoundLatitude'] = xml.find("./md:extent/md:geographic/md:northBoundLatitude",
                                                                self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:meanLongitude", self.ns) != None:
+                        if xml.find("./md:extent/md:geographic/md:meanLongitude", self.ns) is not None:
                             self.geometryextent['meanLongitude'] = xml.find("./md:extent/md:geographic/md:meanLongitude",
                                                                self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:meanLatitude", self.ns) != None:
+                        if xml.find("./md:extent/md:geographic/md:meanLatitude", self.ns) is not None:
                             self.geometryextent['meanLatitude'] = xml.find("./md:extent/md:geographic/md:meanLatitude",
                                                                self.ns).text
 
                         topotypeEl=xml.find("./md:extent/md:topoType", self.ns)
-                        if topotypeEl!=None:
+                        if topotypeEl is not None:
                             self.topotype=topotypeEl.text
                         else:
                             self.topotype=None
@@ -1249,11 +1249,11 @@ class PanDataSet:
                             lastname=None
                             firstname=None
                             orcid=None
-                            if author.find("md:lastName", self.ns)!=None:
+                            if author.find("md:lastName", self.ns) is not None:
                                 lastname=author.find("md:lastName", self.ns).text
-                            if author.find("md:firstName", self.ns)!=None:
+                            if author.find("md:firstName", self.ns) is not None:
                                 firstname=author.find("md:firstName", self.ns).text
-                            if author.find("md:orcid", self.ns)!=None:
+                            if author.find("md:orcid", self.ns) is not None:
                                 orcid=author.find("md:orcid", self.ns).text
                             #if author.find("md:affiliation", self.ns)!=None:
                             authoraffiliations = []
@@ -1271,39 +1271,39 @@ class PanDataSet:
                             name=None
                             URI=None
                             awardURI=None
-                            if project.find("md:label", self.ns)!=None:
+                            if project.find("md:label", self.ns) is not None:
                                 label=project.find("md:label", self.ns).text
-                            if project.find("md:name", self.ns)!=None:
+                            if project.find("md:name", self.ns) is not None:
                                 name=project.find("md:name", self.ns).text
-                            if project.find("md:URI", self.ns)!=None:
+                            if project.find("md:URI", self.ns) is not None:
                                 URI=project.find("md:URI", self.ns).text
-                            if project.find("md:award/md:URI", self.ns)!=None:
+                            if project.find("md:award/md:URI", self.ns) is not None:
                                 awardURI=project.find("md:award/md:URI", self.ns).text
                             if project.get('id'):
                                 projectid=str(project.get('id')).replace('project','')
                             self.projects.append(PanProject(label, name, URI, awardURI,int(projectid)))
-                        if xml.find("./md:license",self.ns) != None:
+                        if xml.find("./md:license",self.ns) is not None:
                             license = xml.find("./md:license",self.ns)
                             label=None
                             name=None
                             URI=None
-                            if license.find("md:label", self.ns)!=None:
+                            if license.find("md:label", self.ns) is not None:
                                 label=license.find("md:label", self.ns).text
-                            if license.find("md:name", self.ns)!=None:
+                            if license.find("md:name", self.ns) is not None:
                                 name=license.find("md:name", self.ns).text
-                            if license.find("md:URI", self.ns)!=None:
+                            if license.find("md:URI", self.ns) is not None:
                                 URI=license.find("md:URI", self.ns).text
                             self.licence = PanLicence(label, name, URI)
-                        if xml.find("./md:comment", self.ns) != None:
+                        if xml.find("./md:comment", self.ns) is not None:
                             self.comment = xml.find("./md:comment", self.ns).text
                         for reference in xml.findall("./md:reference", self.ns):
                             refURI=None
                             reftitle = None
                             reftype = reference.get('relationType')
                             refid = reference.get('id')
-                            if reference.find("md:URI", self.ns)!=None:
+                            if reference.find("md:URI", self.ns) is not None:
                                 refURI = reference.find("md:URI", self.ns).text
-                            if reference.find("md:title", self.ns)!=None:
+                            if reference.find("md:title", self.ns) is not None:
                                 reftitle = reference.find("md:title", self.ns).text
                             self.relations.append({"id":refid,"title":reftitle,"uri":refURI,"type":reftype})
                         if xml.find("./md:citation/md:supplementTo", self.ns) is not None:
@@ -1388,10 +1388,10 @@ class PanDataSet:
         elif 'Depth_soil' in self.data.columns:
             z='Depth_soil'
 
-        if t!=None:
+        if t is not None:
             tgroup.append(t)
             pt=len(self.data.groupby(tgroup))
-        if z!=None:
+        if z is not None:
             zgroup.append(z)
             pz=len(self.data.groupby(zgroup))
         if p==1:
