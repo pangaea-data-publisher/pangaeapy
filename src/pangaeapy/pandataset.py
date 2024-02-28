@@ -869,6 +869,8 @@ class PanDataSet:
                 panparMethodID = None
                 if paramstr.find("md:method", self.ns) is not None:
                     panparMethodID = self._getIDParts(paramstr.find("md:method", self.ns).get("id")).get("method")
+                elif matrix.find("md:method", self.ns) is not None:
+                    panparMethodID = self._getIDParts(matrix.find("md:method", self.ns).get("id")).get("method")
                 panparPI = None
                 panparPI_firstname, panparPI_lastname = None, None
                 if matrix.find("md:PI", self.ns) is not None:
