@@ -26,6 +26,39 @@ import pickle
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
 from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
 from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
+
+
+class PanMethod:
+    """PANGAEA Method Class
+    This class creates objects which contain the method context information for e.g. parameters and events
+
+    Parameters
+    ----------
+    id : str
+        The method id internally used in PANGAEA
+    name : str
+        The full name of the method
+    terms: list
+        a list of dictionaries containing al related terms for this method
+        example : {'id': 38477, 'name': 'carbon', 'semantic_uri': 'http://purl.obolibrary.org/obo/CHEBI_27594', 'ontology': 18}
+
+
+    Attributes
+    ----------
+    id : str
+        The method id internally used in PANGAEA
+    name : str
+        The full name of the method
+    terms: list
+        a list of dictionaries containing al related terms for this method
+    """
+
+    def __init__(self, id, name, terms = []):
+        self.id = id
+        self.name = name
+        self.terms = terms
+
+
 class PanProject:
     """PANGAEA Project Class
     This class creates objects which contain the project context information for each dataset
@@ -264,8 +297,10 @@ class PanParam:
         defines the category or source for a parameter (e.g. geocode, data, event)... very PANGAEA specific ;)
     unit : str
         the unit of measurement used with this parameter (e.g. m/s, kg etc..)
-    terms : dict
-        a dictionary containing al related terms for this parameter structure:{term:id}
+    terms : list
+        a list of dictionaries containing all related terms for this parameter structure:
+        example: [{'id': 38477, 'name': 'carbon', 'semantic_uri': 'http://purl.obolibrary.org/obo/CHEBI_27594', 'ontology': 18}, {'id': 44419, 'name': 'organic', 'semantic_uri': None, 'ontology': 18}, {'id': 44029, 'name': 'Molar Flux', 'semantic_uri': None, 'ontology': 13}]
+
     comment : str
         an optional comment explaining some details of the parameter
     PI : dict
@@ -298,8 +333,8 @@ class PanParam:
         the unit of measurement used with this parameter (e.g. m/s, kg etc..)
     format: str
         the number format string given by PANGAEA e.g ##.000 which defines the displayed precision of the number
-    terms : dict
-        a dictionary containing al related terms for this parameter {term:id}
+    terms : list
+        a list of dictionaries containing all related terms for this parameter
     comment : str
         an optional comment explaining some details of the parameter
     PI : dict
@@ -430,6 +465,7 @@ class PanDataSet:
     def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False, include_data=True, expand_terms=[], auth_token = None, cache_expiry_days=1):
         self.module_dir = os.path.dirname(__file__)
         self.id = None
+        self.uri, self.doi = '',''  # the doi
         self.logging = []
         self.logger = logging.getLogger('dataset')
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
@@ -445,7 +481,6 @@ class PanDataSet:
             os.makedirs(self.cachedir)
         self.cache=enable_cache
         self.cache_expiry_days= cache_expiry_days
-        self.uri = self.doi = '' #the doi
         self.isCollection=False
         self.params=dict()
         self.parameters = self.params
@@ -887,8 +922,8 @@ class PanDataSet:
                 if(matrix.find('md:comment',self.ns)!=None):
                     panparComment=matrix.find('md:comment',self.ns).text
                 panparMethodID = None
-                if (paramstr.find('md:method', self.ns) != None):
-                    panparMethodID = self._getIDParts(paramstr.find('md:method', self.ns).get('id')).get('method')
+                if (matrix.find('md:method', self.ns) != None):
+                    panparMethodID = self._getIDParts(matrix.find('md:method', self.ns).get('id')).get('method')
                 panparPI = None
                 panparPI_firstname,panparPI_lastname = None, None
                 if(matrix.find('md:PI', self.ns) != None):
