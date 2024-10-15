@@ -195,7 +195,7 @@ class PanEvent:
     campaign : PanCampaign
         The campaign during which the event was performed
     """
-    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None, device=None, basis=None, location=None, campaign=None, id = None, deviceid = None):
+    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None,  basis=None, location=None, campaign=None, id = None, method = None):
         self.label = label
         self.id = id
         if latitude !=None:
@@ -218,8 +218,12 @@ class PanEvent:
             self.elevation=float(elevation)
         else:
             self.elevation=None
-        self.device = device
-        self.deviceid = deviceid
+        if isinstance(method, PanMethod):
+            self.device = method.name
+            self.deviceid = method.id
+            self.method = method
+        else:
+            self.device, self.deviceid, self.method = None, None, None
         self.basis = basis
         # -- NEED TO CARE ABOUT datetime2!!!
         self.datetime=datetime
@@ -309,8 +313,8 @@ class PanParam:
         the dataseries (column id)
     colno : int
         the column number
-    methodid : int
-        the id of the used method or device
+    method : PanMethod
+        the used method or device
 
 
     
@@ -344,14 +348,19 @@ class PanParam:
     colno : int
         the column number
     methodid : int
-        the id of the used method or device
+        the id of the used method or device (legacy only)
+    method : PanMethod
+        the  method (object) used
         
     
     
     """
-    def __init__(self, id, name, shortName, param_type, source, unit=None, unit_id = None, format=None, terms =[], comment=None, PI = dict(), dataseries = None, colno = None, methodid = None):
+    def __init__(self, id, name, shortName, param_type, source, unit=None, unit_id = None, format=None, terms =[], comment=None, PI = dict(), dataseries = None, colno = None, method = None):
         self.id=id
-        self.methodid = methodid
+        self.methodid = None
+        self.method = method
+        if isinstance(method, PanMethod):
+            self.methodid = method.id
         self.name=name
         self.shortName=shortName
         # Synonym namespace dict predefined keys are CF: CF variables (), OS:OceanSites, SD:SeaDataNet abbreviations (TEMP, PSAL etc..)
@@ -746,8 +755,13 @@ class PanDataSet:
             if event.find('md:location/md:name',self.ns)!=None:
                 eventLocation= event.find('md:location/md:name',self.ns).text
             if event.find('md:method/md:name',self.ns)!=None:
+                eventDeviceTerms =[]
                 eventDevice= event.find('md:method/md:name',self.ns).text
                 eventDeviceID = self._getIDParts(event.find('md:method',self.ns).get('id')).get('method')
+                for terminfo in event.findall('md:method/md:term', self.ns):
+                    eventDeviceTerms.append(self._getTermInfo(terminfo))
+                eventMethod = PanMethod(eventDeviceID, eventDevice,eventDeviceTerms)
+
             if event.find('md:basis',self.ns)!=None:
                 basis= event.find('md:basis',self.ns)
                 if basis.find('md:name',self.ns)!=None:
@@ -801,16 +815,15 @@ class PanDataSet:
                                         eventElevation,
                                         eventDateTime,
                                         eventDateTime2,
-                                        eventDevice,
-                                        eventBasis,									
+                                        eventBasis,
                                         eventLocation,
                                         eventCampaign,
                                         eventID,
-                                        eventDeviceID
+                                        eventMethod
                                         ))
 
 
-    def _getTermInfo(self, termid):
+    def _getExtendedTermInfo(self, termid):
         termJSON = None
         try:
             selsql = 'select * from terms where term_id='+str(termid)
@@ -832,7 +845,7 @@ class PanDataSet:
                 print('getTermInfo ERROR II: ',e, inssql)
         return termJSON
 
-    def _expandTerm(self,terminfo, terminology_id = None):
+    def _getTermInfo(self,terminfo, terminology_id = None):
         """
         Uses terms webservice to enrich the parameter info with linked terms and their classification
         terminology_id: restrict to given terminology
@@ -852,7 +865,7 @@ class PanDataSet:
                 if isinstance(termid, int):
                     if termid not in self.terms_cache:
                         try:
-                            termJSON = self._getTermInfo(termid)
+                            termJSON = self._getExtendedTermInfo(termid)
                             if termJSON.get('_source'):
                                 self.terms_cache[termid] = []
                                 if termJSON['_source'].get('main_topics'):
@@ -921,9 +934,16 @@ class PanDataSet:
                 panparComment=None
                 if(matrix.find('md:comment',self.ns)!=None):
                     panparComment=matrix.find('md:comment',self.ns).text
-                panparMethodID = None
+                panparMethod = None
                 if (matrix.find('md:method', self.ns) != None):
+                    panparMethodTerms = []
+                    panparMethodName = ''
+                    if (matrix.find('md:method/md:name', self.ns) != None):
+                        panparMethodName = matrix.find('md:method/md:name', self.ns).text
                     panparMethodID = self._getIDParts(matrix.find('md:method', self.ns).get('id')).get('method')
+                    for pmterminfo in matrix.findall('md:method/md:term', self.ns):
+                        panparMethodTerms.append(self._getTermInfo(pmterminfo))
+                    panparMethod = PanMethod(panparMethodID, panparMethodName,panparMethodTerms)
                 panparPI = None
                 panparPI_firstname,panparPI_lastname = None, None
                 if(matrix.find('md:PI', self.ns) != None):
@@ -941,8 +961,8 @@ class PanDataSet:
                 #Add information about terms/ontologies used:
                 termlist=[]
                 for terminfo in paramstr.findall('md:term', self.ns):
-                    termlist.append(self._expandTerm(terminfo))
-                self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID, colno = colno, methodid = panparMethodID)
+                    termlist.append(self._getTermInfo(terminfo))
+                self.params[panparIndex]=PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID, colno = colno, method = panparMethod)
                 self.parameters = self.params
                 if panparType=='geocode':
                     if panparShortName in panGeoCode:
