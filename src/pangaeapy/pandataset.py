@@ -955,7 +955,7 @@ class PanDataSet:
                 termlist = []
                 for terminfo in paramstr.findall("md:term", self.ns):
                     termlist.append(self._getTermInfo(terminfo))
-                self.params[panparIndex] = PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID, colno = colno, methodid = panparMethodID)
+                self.params[panparIndex] = PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID, colno = colno, method = panparMethod)
                 self.parameters = self.params
                 if panparType == "geocode":
                     if panparShortName in panGeoCode:
