@@ -194,7 +194,20 @@ class PanEvent:
     campaign : PanCampaign
         The campaign during which the event was performed
     """
-    def __init__(self, label, latitude=None, longitude=None, latitude2=None, longitude2=None, elevation=None, datetime=None, datetime2=None,  basis=None, location=None, campaign=None, id = None, method = None):
+    def __init__(self,
+                 label,
+                 latitude=None,
+                 longitude=None,
+                 latitude2=None,
+                 longitude2=None,
+                 elevation=None,
+                 datetime=None,
+                 datetime2=None,
+                 basis=None,
+                 location=None,
+                 campaign=None,
+                 id = None,
+                 method = None):
         self.label = label
         self.id = id
         if latitude is not None:
@@ -755,7 +768,8 @@ class PanDataSet:
                 for terminfo in event.findall("md:method/md:term", self.ns):
                     eventDeviceTerms.append(self._getTermInfo(terminfo))
                 eventMethod = PanMethod(eventDeviceID, eventDevice,eventDeviceTerms)
-
+            else:
+                eventMethod = None
             if event.find("md:basis",self.ns) != None:
                 basis= event.find("md:basis",self.ns)
                 if basis.find("md:name",self.ns) != None:
