@@ -420,7 +420,7 @@ class PanDataSet:
         in case quality flags are avialable, this parameter defines a flag for which data should not be included in the data dataFrame.
         Possible values are listed here: https://wiki.pangaea.de/wiki/Quality_flag
     enable_cache : boolean
-        If set to True, PanDataSet objects are cached as pickle files on the local home directory within a directory called 'pangaeapy_cache' in order to avoid unnecessary downloads.
+        If set to True, PanDataSet objects are cached as pickle files either on the local home directory within a directory called 'pangaeapy_cache' or in cache_dir given by the user in order to avoid unnecessary downloads.
     include_data : boolean
         determines if data table is downloaded and added to the self.data dataframe. If you are interested in metadata only set this to False
     expand_terms : list or int
@@ -464,24 +464,28 @@ class PanDataSet:
         indicates if this dataset is a collection data set within a collection of child data sets
     collection_members : list
         a list of DOIs of all child data sets in case the data set is a collection data set
-        moratorium : str
-                a label which provides the date until the dataset is under moratorium
-        datastatus : str
-                a label which provides the detail about the status of the dataset whether it is published or in review or deleted
-        registrystatus : str
-                a string which indicates the registration status of a dataset
-        licence : PanLicence
-            a licence object, usually creative commons
-        auth_token : str
-            the PANGAEA auhentication token, you can find it at pangaea.de on your user page
-        cache_expiry_days : int
-            the duration a cached pickle/cache is accepted, after this pangaeapy will load it again and ignor ethe cache
+    moratorium : str
+        a label which provides the date until the dataset is under moratorium
+    datastatus : str
+        a label which provides the detail about the status of the dataset whether it is published or in review or deleted
+    registrystatus : str
+        a string which indicates the registration status of a dataset
+    licence : PanLicence
+        a licence object, usually creative commons
+    auth_token : str
+        the PANGAEA auhentication token, you can find it at pangaea.de on your user page
+    cache_expiry_days : int
+        the duration a cached pickle/cache is accepted, after this pangaeapy will load it again and ignor ethe cache
+    cache_dir: str
+        the full path to the cache directory, will be created if it doesn't exist
     keywords : list[str]
         A list of keyword names. Only actual keywords, technical and
         auto-generated ones are ignored right now.
 
     """
-    def __init__(self, id=None,paramlist=None, deleteFlag='', enable_cache=False, include_data=True, expand_terms=[], auth_token = None, cache_expiry_days=1):
+    def __init__(self, id=None, paramlist=None, deleteFlag='', enable_cache=False,
+                 cache_dir=None, include_data=True, expand_terms=[],
+                 auth_token = None, cache_expiry_days=1):
         self.module_dir = os.path.dirname(__file__)
         self.id = None
         self.uri, self.doi = "",""  # the doi
@@ -490,12 +494,15 @@ class PanDataSet:
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
         self.setID(id)
         self.ns = {"md": "http://www.pangaea.de/MetaData"}
-        # Mapping should be moved to e.g netCDF class/module??
+        # Mapping should be moved to e.g. netCDF class/module??
         #moddir = os.path.dirname(os.path.abspath(__file__))
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
-        # setting up the chache directory in the users home folder
-        homedir = os.path.expanduser("~")
-        self.cachedir = os.path.join(homedir, "pangaeapy_cache")
+        # setting up the cache directory in the users home folder if no path is given
+        if cache_dir is None:
+            homedir = os.path.expanduser("~")
+            self.cachedir = os.path.join(homedir, "pangaeapy_cache")
+        else:
+            self.cachedir = cache_dir
         if not os.path.exists(self.cachedir):
             os.makedirs(self.cachedir)
         self.cache = enable_cache
