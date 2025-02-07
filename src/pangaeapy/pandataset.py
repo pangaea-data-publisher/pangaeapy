@@ -1050,7 +1050,7 @@ class PanDataSet:
                 panDataTxt = dataResponse.text
                 if int(dataResponse.status_code) == 200:
                     if "text" in str(dataResponse.headers.get("Content-Type")):
-                        panData = re.sub(r"/\*(.*)\*/", "", panDataTxt, 1, re.DOTALL).strip()
+                        panData = re.sub(r"/\*(.*)\*/", "", panDataTxt, count=1, flags=re.DOTALL).strip()
                         # Read in PANGAEA Data
                         self.data = pd.read_csv(io.StringIO(panData), index_col=False, on_bad_lines="skip", sep="\t", usecols=self.paramlist_index, names=list(self.params.keys()), skiprows=[0])
                         # add geocode/dimension columns from Event
