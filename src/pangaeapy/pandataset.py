@@ -768,7 +768,8 @@ class PanDataSet:
                 for terminfo in event.findall("md:method/md:term", self.ns):
                     eventDeviceTerms.append(self._getTermInfo(terminfo))
                 eventMethod = PanMethod(eventDeviceID, eventDevice,eventDeviceTerms)
-
+            else:
+                eventMethod = None
             if event.find("md:basis",self.ns) != None:
                 basis= event.find("md:basis",self.ns)
                 if basis.find("md:name",self.ns) != None:
