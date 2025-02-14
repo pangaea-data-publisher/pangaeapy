@@ -7,6 +7,8 @@ Test the PanDataSet class
 """
 import os
 import tempfile
+from xmlrpc.client import Binary
+
 from pangaeapy.pandataset import PanDataSet
 
 def test_default_cache_dir():
@@ -21,3 +23,8 @@ def test_custom_cache_dir():
         assert ds.cachedir == tmpdir
         ds.terms_conn.close()  # explicitly close the sqlite database
 
+def test_download_binary():
+    ds = PanDataSet(944101, enable_cache=True)
+    downloads = ds.download()
+    # TODO: Check if files are there and if size matches
+    # ds.data["Binary (Size)"]
