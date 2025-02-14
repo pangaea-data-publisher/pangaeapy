@@ -11,6 +11,9 @@ import json
 import time
 import datetime
 
+import aiohttp
+import asyncio
+import xarray as xr
 import requests
 import pandas as pd
 import numpy as np
@@ -1557,3 +1560,135 @@ class PanDataSet:
         # print(dwca_exporter.logging)
         self.logging.extend(dwca_exporter.logging)
         return ret
+
+    def download(self):
+        """Download binary data if available; otherwise, save dataframe as CSV."""
+        # ask user for custom cache dir
+        if self.cachedir == os.path.join(os.path.expanduser("~"), "pangaeapy_cache"):
+            self.log(logging.WARNING, f"Download data to cache: {self.cachedir}")
+            new_cache = input("Would you like to specify a different cache directory? (y/n): ")
+            if new_cache.lower() == 'y':
+                self.cachedir = input("Enter new cache directory path: ")
+                os.makedirs(self.cachedir, exist_ok=True)
+                self.log(logging.WARNING, f"Cache directory set to: {self.cachedir}")
+
+        # the binary column can have different names
+        self.column_name = next((col for col in ["Binary", "netCDF"] if col in self.data.columns), None)
+        if self.column_name is not None:
+            harvester = PanDataHarvester(self)
+            return harvester.run_download()
+        else:
+            self.log(logging.WARNING, "Warning: No binary data available.")
+            self.log(logging.WARNING, f"The dataset will be saved as a CSV file in the default cache directory: {self.cachedir}")
+
+            csv_path = os.path.join(self.cachedir, "dataset.csv")
+            self.data.to_csv(csv_path, index=False)
+            self.log(logging.WARNING, f"Dataset saved to {csv_path}")
+
+
+class PanDataHarvester:
+    """
+    Downloads binary data from the PANGAEA tape archive.
+    Main functionality to be implemented:
+    - inherit metadata from PanDataSet
+    - only available if there is at least one "Binary"/"netCDF column in PanDataSet.data
+    - user selected download
+        - list available data sets
+        - warn before big download
+        - show size of download
+    - show progress of download
+    - asynchronous download of multiple files
+    - automatic download for small files (< 50MB)
+    - ask user to confirm cache directory to permanently store files and allow for new cache directory
+    - check if files are already available in the cache either as pickle objects or in binary format
+    """
+
+    def __init__(self, dataset):
+        if not hasattr(dataset, "data") or not isinstance(dataset.data, pd.DataFrame):
+            raise ValueError("dataset must have a pandas DataFrame as 'data' attribute.")
+
+        self.dataset = dataset
+        self.cache_dir = dataset.cachedir
+        os.makedirs(self.cache_dir, exist_ok=True)
+        self.column_name = dataset.column_name
+
+
+    def list_available_data(self):
+        """List available binary data in the dataset."""
+        return self.dataset.data[self.dataset.data[self.column_name].notna()][[self.column_name]]
+
+    def _file_exists(self, filename):
+        """Check if a file is already in cache."""
+        return os.path.exists(os.path.join(self.cache_dir, filename))
+
+    async def _download_file(self, session, dataset_id, filename, max_retries=3):
+        """Download a single file asynchronously, handling 503 errors."""
+        url = f'https://download.pangaea.de/dataset/{dataset_id}/files/{filename}'
+        filepath = os.path.join(self.cache_dir, filename)
+        if self._file_exists(filename):
+            print(f"File {filename} already exists in cache. Skipping download.")
+            return filepath
+
+        attempt = 0
+        while attempt < max_retries:
+            try:
+                async with session.get(url) as response:
+                    if response.status == 503:
+                        print(f"{filename} is being retrieved from tape. Retrying in 2 minutes...")
+                        await asyncio.sleep(120)  # Wait 2 minutes before retrying
+                        attempt += 1
+                        continue
+
+                    total_size = int(response.headers.get('content-length', 0))
+                    with open(filepath, "wb") as f:
+                        async for chunk in response.content.iter_any():
+                            f.write(chunk)
+                print(f"Downloaded {filename} successfully!")
+                return filepath
+            except aiohttp.ClientResponseError as e:
+                attempt += 1
+                if attempt == max_retries:
+                    raise e
+                print(f"Error {e.status} encountered. Retrying ({attempt}/{max_retries})...")
+
+    async def download_files(self, confirm_large=True):
+        """Download all binary files asynchronously."""
+        binary_files = self.list_available_data()
+        dataset_id = self.dataset.id
+
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for _, row in binary_files.iterrows():
+                filename = os.path.basename(row[self.column_name])
+
+                # Get file size before downloading (if possible)
+                url = f'https://download.pangaea.de/dataset/{dataset_id}/files/{filename}'
+                async with asyncio.TaskGroup() as tg:
+                    async with session.head(url) as response:
+                        size = int(response.headers.get('content-length', 0))
+
+                        # Ask confirmation for large files (>50MB)
+                        if size > 50 * 1024 * 1024 and confirm_large:
+                            confirm = input(f"{filename} is {size / (1024 * 1024):.2f} MB. Download? (y/n) ")
+                            if confirm.lower() != 'y':
+                                continue
+
+                        tasks.append(tg.create_task((self._download_file(session, dataset_id, filename))))
+
+            downloaded_files = [task.result() for task in tasks]
+
+        return [f for f in downloaded_files if f is not None]
+
+    def run_download(self):
+        """Start asynchronous file download and return datasets if applicable."""
+        downloaded_files = asyncio.run(self.download_files())
+        datasets = []
+
+        # for file in downloaded_files:
+        #     if file.endswith(".nc"):
+        #         print(f"Opening netCDF file: {file}")
+        #         ds = xr.open_dataset(file)
+        #         datasets.append(ds)
+
+        return datasets if datasets else downloaded_files
+
