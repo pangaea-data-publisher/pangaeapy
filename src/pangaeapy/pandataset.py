@@ -24,6 +24,7 @@ import os
 import textwrap
 import sqlite3 as sl
 import logging, logging.handlers
+import toml
 
 import pickle
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
@@ -488,6 +489,9 @@ class PanDataSet:
         auto-generated ones are ignored right now.
 
     """
+    CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pangaeapy")
+    CONFIG_PATH = os.path.join(CONFIG_DIR, "config.toml")
+
     def __init__(self, id=None, paramlist=None, deleteFlag='', enable_cache=False,
                  cache_dir=None, include_data=True, expand_terms=[],
                  auth_token = None, cache_expiry_days=1):
@@ -502,14 +506,28 @@ class PanDataSet:
         # Mapping should be moved to e.g. netCDF class/module??
         #moddir = os.path.dirname(os.path.abspath(__file__))
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
-        # setting up the cache directory in the users home folder if no path is given
+
+        # Load cache directory from config file (if exists)
+        if cache_dir is None:
+            cache_dir = self._load_config()
+
+        # Default to user home directory cache if not set
         if cache_dir is None:
             homedir = os.path.expanduser("~")
-            self.cachedir = os.path.join(homedir, "pangaeapy_cache")
+            self.cache_dir = os.path.join(homedir, ".pangaeapy_cache")
         else:
-            self.cachedir = cache_dir
-        if not os.path.exists(self.cachedir):
-            os.makedirs(self.cachedir)
+            self.cache_dir = cache_dir
+
+        # Create cache directory if it doesn’t exist
+        os.makedirs(self.cache_dir, exist_ok=True)
+
+        # Save the cache directory in config file
+        self._save_config(self.cache_dir)
+
+        # Inform the user about the config file location
+        print(f"[INFO] Cache directory set to: {self.cache_dir}")
+        print(f"[INFO] To change the cache directory permanently, edit: {self.CONFIG_PATH}")
+
         self.cache = enable_cache
         self.cache_expiry_days = cache_expiry_days
         self.isCollection = False
@@ -543,7 +561,7 @@ class PanDataSet:
         self.topotype = None
         self.authors = []
         self.terms_cache = {}  # temporary cache for terms
-        self.terms_conn = sl.connect(os.path.join(self.cachedir, "terms.db"))
+        self.terms_conn = sl.connect(os.path.join(self.cache_dir, "terms.db"))
         self.supplement_to = {}  # If this dataset is supllementary to another publication, give that publications title and URI here.
         self.relations = []  # list of relations as given in
         self.keywords = []  # list of keywords
@@ -611,6 +629,29 @@ class PanDataSet:
         else:
             # self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
             self.log(logging.ERROR, "Dataset id missing, could not initialize PanDataSet object for: " + str(id))
+        # the binary column can have different names
+        self.column_name = next((col for col in ["Binary", "netCDF"] if col in self.data.columns), None)
+
+    def _load_config(self):
+        """Load cache directory from a JSON config file."""
+        if os.path.exists(self.CONFIG_PATH):
+            try:
+                with open(self.CONFIG_PATH, "r") as f:
+                    config = toml.load(f)
+                    return config.get("settings", {}).get("cache_dir")
+            except (json.JSONDecodeError, OSError):
+                print("[INFO]: Failed to load cache config. Using default cache path.")
+        return None
+
+    def _save_config(self, cache_dir):
+        """Save cache directory to a JSON config file."""
+        try:
+            os.makedirs(self.CONFIG_DIR, exist_ok=True)  # Ensure config directory exists
+            config = {"settings": {"cache_dir": cache_dir}}
+            with open(self.CONFIG_PATH, "w") as f:
+                toml.dump(config, f)
+        except OSError:
+            print("[Warning]: Failed to save cache config.")
 
     def log(self, level, message):
         message += " - " + str(self.doi)
@@ -620,7 +661,7 @@ class PanDataSet:
 
     def get_pickle_path(self):
         dirs = textwrap.wrap(str(self.id).zfill(8), 2)
-        dirpath = os.path.join(self.cachedir, *dirs)
+        dirpath = os.path.join(self.cache_dir, *dirs)
         try:
             os.makedirs(dirpath)
         except Exception as e:
@@ -1564,18 +1605,8 @@ class PanDataSet:
     def download(self, confirm_large=True):
         """Download binary data if available; otherwise, save dataframe as CSV."""
 
-        # ask user for custom cache dir
-        if self.cachedir == os.path.join(os.path.expanduser("~"), "pangaeapy_cache"):
-            self.log(logging.WARNING, f"Download data to cache: {self.cachedir}")
-            new_cache = input("Would you like to specify a different cache directory? (y/n): ")
-            if new_cache.lower() == 'y':
-                self.cachedir = input("Enter new cache directory path: ")
-                os.makedirs(self.cachedir, exist_ok=True)
-                self.log(logging.WARNING, f"Cache directory set to: {self.cachedir}")
-
-        # the binary column can have different names
-        self.column_name = next((col for col in ["Binary", "netCDF"] if col in self.data.columns), None)
         if self.column_name is not None:
+            print(f"Downloading files to {self.cache_dir}")
             print(f"Available files\n"
                   f"{self.data.loc[:, (self.column_name, self.column_name + ' (Size)')]}\n")
             idx = input("Please supply a list of comma separated indices of the files you wish to download (empty for all):")
@@ -1589,9 +1620,9 @@ class PanDataSet:
             return harvester.run_download()
         else:
             self.log(logging.WARNING, "Warning: No binary data available.")
-            self.log(logging.WARNING, f"The dataset will be saved as a CSV file in the cache directory: {self.cachedir}")
+            self.log(logging.WARNING, f"The dataset will be saved as a CSV file to {self.cache_dir}")
 
-            csv_path = os.path.join(self.cachedir, f"{self.id}_data.csv")
+            csv_path = os.path.join(self.cache_dir, f"{self.id}_data.csv")
             self.data.to_csv(csv_path, index=False)
             self.log(logging.WARNING, f"Dataset saved to {csv_path}")
 
@@ -1618,7 +1649,7 @@ class PanDataHarvester:
             raise ValueError("dataset must have a pandas DataFrame as 'data' attribute.")
 
         self.dataset = dataset
-        self.cache_dir = dataset.cachedir
+        self.cache_dir = dataset.cache_dir
         os.makedirs(self.cache_dir, exist_ok=True)
         self.column_name = dataset.column_name
         self.data_index = dataset.data_index
