@@ -1656,7 +1656,12 @@ class PanDataHarvester:
 
     def list_available_data(self):
         """List available binary data in the dataset."""
-        return list(self.dataset.data.iloc[self.data_index][self.column_name])
+        if self.data_index:
+            available_data = list(self.dataset.data.iloc[self.data_index][self.column_name])
+        else:
+            # If the list is empty return all rows
+            available_data = list(self.dataset.data[self.column_name])
+        return available_data
 
     def _file_exists(self, filename):
         """Check if a file is already in cache."""
