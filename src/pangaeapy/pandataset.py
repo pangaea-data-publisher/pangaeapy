@@ -1589,9 +1589,9 @@ class PanDataSet:
             return harvester.run_download()
         else:
             self.log(logging.WARNING, "Warning: No binary data available.")
-            self.log(logging.WARNING, f"The dataset will be saved as a CSV file in the default cache directory: {self.cachedir}")
+            self.log(logging.WARNING, f"The dataset will be saved as a CSV file in the cache directory: {self.cachedir}")
 
-            csv_path = os.path.join(self.cachedir, "dataset.csv")
+            csv_path = os.path.join(self.cachedir, f"{self.id}_data.csv")
             self.data.to_csv(csv_path, index=False)
             self.log(logging.WARNING, f"Dataset saved to {csv_path}")
 
