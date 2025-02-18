@@ -1559,8 +1559,9 @@ class PanDataSet:
         self.logging.extend(dwca_exporter.logging)
         return ret
 
-    def download(self):
+    def download(self, confirm_large=True):
         """Download binary data if available; otherwise, save dataframe as CSV."""
+
         # ask user for custom cache dir
         if self.cachedir == os.path.join(os.path.expanduser("~"), "pangaeapy_cache"):
             self.log(logging.WARNING, f"Download data to cache: {self.cachedir}")
@@ -1573,7 +1574,16 @@ class PanDataSet:
         # the binary column can have different names
         self.column_name = next((col for col in ["Binary", "netCDF"] if col in self.data.columns), None)
         if self.column_name is not None:
-            harvester = PanDataHarvester(self)
+            print(f"Available files\n"
+                  f"{self.data.loc[:, (self.column_name, self.column_name + ' (Size)')]}\n")
+            idx = input("Please supply a list of comma separated indices of the files you wish to download (empty for all):")
+            # convert string to list of integers
+            self.data_index = [int(s) for s in idx.split(",") if s.isdigit()]
+            self.data_index.sort()
+            # raise error if an index is larger than the available row numbers
+            if any([x >= self.data.shape[0] for x in self.data_index]):
+                raise ValueError("Index out of range")
+            harvester = PanDataHarvester(self, confirm_large=confirm_large)
             return harvester.run_download()
         else:
             self.log(logging.WARNING, "Warning: No binary data available.")
@@ -1601,7 +1611,7 @@ class PanDataHarvester:
     - check if files are already available in the cache either as pickle objects or in binary format
     """
 
-    def __init__(self, dataset):
+    def __init__(self, dataset, confirm_large):
         if not hasattr(dataset, "data") or not isinstance(dataset.data, pd.DataFrame):
             raise ValueError("dataset must have a pandas DataFrame as 'data' attribute.")
 
@@ -1609,19 +1619,20 @@ class PanDataHarvester:
         self.cache_dir = dataset.cachedir
         os.makedirs(self.cache_dir, exist_ok=True)
         self.column_name = dataset.column_name
+        self.data_index = dataset.data_index
+        self.confirm_large = confirm_large
 
 
     def list_available_data(self):
         """List available binary data in the dataset."""
-        return self.dataset.data[self.dataset.data[self.column_name].notna()][[self.column_name]]
+        return list(self.dataset.data.iloc[self.data_index][self.column_name])
 
     def _file_exists(self, filename):
         """Check if a file is already in cache."""
         return os.path.exists(os.path.join(self.cache_dir, filename))
 
-    async def _download_file(self, session, dataset_id, filename, max_retries=3):
+    async def _download_file(self, session, url, filename, max_retries=3):
         """Download a single file asynchronously, handling 503 errors."""
-        url = f'https://download.pangaea.de/dataset/{dataset_id}/files/{filename}'
         filepath = os.path.join(self.cache_dir, filename)
         if self._file_exists(filename):
             print(f"File {filename} already exists in cache. Skipping download.")
@@ -1637,7 +1648,6 @@ class PanDataHarvester:
                         attempt += 1
                         continue
 
-                    total_size = int(response.headers.get('content-length', 0))
                     with open(filepath, "wb") as f:
                         async for chunk in response.content.iter_any():
                             f.write(chunk)
@@ -1649,39 +1659,50 @@ class PanDataHarvester:
                     raise e
                 print(f"Error {e.status} encountered. Retrying ({attempt}/{max_retries})...")
 
-    async def download_files(self, confirm_large=True):
+    async def download_files(self):
         """Download all binary files asynchronously."""
         binary_files = self.list_available_data()
         dataset_id = self.dataset.id
+        downloaded_files = []
 
         async with aiohttp.ClientSession() as session:
-            tasks = []
-            for _, row in binary_files.iterrows():
-                filename = os.path.basename(row[self.column_name])
-
-                # Get file size before downloading (if possible)
+            task_map = {}
+            for filename in binary_files:
                 url = f'https://download.pangaea.de/dataset/{dataset_id}/files/{filename}'
                 async with asyncio.TaskGroup() as tg:
                     async with session.head(url) as response:
+                        # Get file size before downloading
                         size = int(response.headers.get('content-length', 0))
 
                         # Ask confirmation for large files (>50MB)
-                        if size > 50 * 1024 * 1024 and confirm_large:
+                        if size > 50 * 1024 * 1024 and self.confirm_large:
                             confirm = input(f"{filename} is {size / (1024 * 1024):.2f} MB. Download? (y/n) ")
                             if confirm.lower() != 'y':
+                                print(f"Skipping {filename}...")
                                 continue
 
-                        tasks.append(tg.create_task((self._download_file(session, dataset_id, filename))))
+                        task = tg.create_task(self._download_file(session, url, filename))
+                        task_map[task] = filename  # Store filename for later
 
-            downloaded_files = [task.result() for task in tasks]
+            for task, filename in task_map.items():
+                result = task.result()  # Get result of the completed task
+                if result:
+                    downloaded_files.append(result)
 
-        return [f for f in downloaded_files if f is not None]
+        return downloaded_files
 
     def run_download(self):
         """Start asynchronous file download and return datasets if applicable."""
-        downloaded_files = asyncio.run(self.download_files())
-        datasets = []
+        if asyncio.get_event_loop().is_running():
+            # If already inside an event loop (e.g., Jupyter Notebook)
+            future = asyncio.ensure_future(self.download_files())
+            asyncio.get_event_loop().run_until_complete(future)
+            downloaded_files = future.result()
+        else:
+            # If no event loop is running, use asyncio.run()
+            downloaded_files = asyncio.run(self.download_files())
 
+        datasets = []
         # for file in downloaded_files:
         #     if file.endswith(".nc"):
         #         print(f"Opening netCDF file: {file}")
