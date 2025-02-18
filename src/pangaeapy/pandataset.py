@@ -11,6 +11,9 @@ import json
 import time
 import datetime
 
+import aiohttp
+import asyncio
+import xarray as xr
 import requests
 import pandas as pd
 import numpy as np
@@ -21,6 +24,7 @@ import os
 import textwrap
 import sqlite3 as sl
 import logging, logging.handlers
+import toml
 
 import pickle
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
@@ -483,6 +487,9 @@ class PanDataSet:
         auto-generated ones are ignored right now.
 
     """
+    CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pangaeapy")
+    CONFIG_PATH = os.path.join(CONFIG_DIR, "config.toml")
+
     def __init__(self, id=None, paramlist=None, deleteFlag='', enable_cache=False,
                  cache_dir=None, include_data=True, expand_terms=[],
                  auth_token = None, cache_expiry_days=1):
@@ -497,14 +504,28 @@ class PanDataSet:
         # Mapping should be moved to e.g. netCDF class/module??
         #moddir = os.path.dirname(os.path.abspath(__file__))
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
-        # setting up the cache directory in the users home folder if no path is given
+
+        # Load cache directory from config file (if exists)
+        if cache_dir is None:
+            cache_dir = self._load_config()
+
+        # Default to user home directory cache if not set
         if cache_dir is None:
             homedir = os.path.expanduser("~")
-            self.cachedir = os.path.join(homedir, "pangaeapy_cache")
+            self.cache_dir = os.path.join(homedir, ".pangaeapy_cache")
         else:
-            self.cachedir = cache_dir
-        if not os.path.exists(self.cachedir):
-            os.makedirs(self.cachedir)
+            self.cache_dir = cache_dir
+
+        # Create cache directory if it doesn’t exist
+        os.makedirs(self.cache_dir, exist_ok=True)
+
+        # Save the cache directory in config file
+        self._save_config(self.cache_dir)
+
+        # Inform the user about the config file location
+        print(f"[INFO] Cache directory set to: {self.cache_dir}")
+        print(f"[INFO] To change the cache directory permanently, edit: {self.CONFIG_PATH}")
+
         self.cache = enable_cache
         self.cache_expiry_days = cache_expiry_days
         self.isCollection = False
@@ -538,7 +559,7 @@ class PanDataSet:
         self.topotype = None
         self.authors = []
         self.terms_cache = {}  # temporary cache for terms
-        self.terms_conn = sl.connect(os.path.join(self.cachedir, "terms.db"))
+        self.terms_conn = sl.connect(os.path.join(self.cache_dir, "terms.db"))
         self.supplement_to = {}  # If this dataset is supllementary to another publication, give that publications title and URI here.
         self.relations = []  # list of relations as given in
         self.keywords = []  # list of keywords
@@ -606,6 +627,29 @@ class PanDataSet:
         else:
             # self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
             self.log(logging.ERROR, "Dataset id missing, could not initialize PanDataSet object for: " + str(id))
+        # the binary column can have different names
+        self.column_name = next((col for col in ["Binary", "netCDF"] if col in self.data.columns), None)
+
+    def _load_config(self):
+        """Load cache directory from a JSON config file."""
+        if os.path.exists(self.CONFIG_PATH):
+            try:
+                with open(self.CONFIG_PATH, "r") as f:
+                    config = toml.load(f)
+                    return config.get("settings", {}).get("cache_dir")
+            except (json.JSONDecodeError, OSError):
+                print("[INFO]: Failed to load cache config. Using default cache path.")
+        return None
+
+    def _save_config(self, cache_dir):
+        """Save cache directory to a JSON config file."""
+        try:
+            os.makedirs(self.CONFIG_DIR, exist_ok=True)  # Ensure config directory exists
+            config = {"settings": {"cache_dir": cache_dir}}
+            with open(self.CONFIG_PATH, "w") as f:
+                toml.dump(config, f)
+        except OSError:
+            print("[Warning]: Failed to save cache config.")
 
     def log(self, level, message):
         message += " - " + str(self.doi)
@@ -615,7 +659,7 @@ class PanDataSet:
 
     def get_pickle_path(self):
         dirs = textwrap.wrap(str(self.id).zfill(8), 2)
-        dirpath = os.path.join(self.cachedir, *dirs)
+        dirpath = os.path.join(self.cache_dir, *dirs)
         try:
             os.makedirs(dirpath)
         except Exception as e:
@@ -1555,3 +1599,151 @@ class PanDataSet:
         # print(dwca_exporter.logging)
         self.logging.extend(dwca_exporter.logging)
         return ret
+
+    def download(self, confirm_large=True):
+        """Download binary data if available; otherwise, save dataframe as CSV."""
+
+        if self.column_name is not None:
+            print(f"Downloading files to {self.cache_dir}")
+            print(f"Available files\n"
+                  f"{self.data.loc[:, (self.column_name, self.column_name + ' (Size)')]}\n")
+            idx = input("Please supply a list of comma separated indices of the files you wish to download (empty for all):")
+            # convert string to list of integers
+            self.data_index = [int(s) for s in idx.split(",") if s.isdigit()]
+            self.data_index.sort()
+            # raise error if an index is larger than the available row numbers
+            if any([x >= self.data.shape[0] for x in self.data_index]):
+                raise ValueError("Index out of range")
+            harvester = PanDataHarvester(self, confirm_large=confirm_large)
+            return harvester.run_download()
+        else:
+            self.log(logging.WARNING, "Warning: No binary data available.")
+            self.log(logging.WARNING, f"The dataset will be saved as a CSV file to {self.cache_dir}")
+
+            csv_path = os.path.join(self.cache_dir, f"{self.id}_data.csv")
+            self.data.to_csv(csv_path, index=False)
+            self.log(logging.WARNING, f"Dataset saved to {csv_path}")
+
+
+class PanDataHarvester:
+    """
+    Downloads binary data from the PANGAEA tape archive.
+    Main functionality to be implemented:
+    - inherit metadata from PanDataSet
+    - only available if there is at least one "Binary"/"netCDF column in PanDataSet.data
+    - user selected download
+        - list available data sets
+        - warn before big download
+        - show size of download
+    - show progress of download
+    - asynchronous download of multiple files
+    - automatic download for small files (< 50MB)
+    - ask user to confirm cache directory to permanently store files and allow for new cache directory
+    - check if files are already available in the cache either as pickle objects or in binary format
+    """
+
+    def __init__(self, dataset, confirm_large):
+        if not hasattr(dataset, "data") or not isinstance(dataset.data, pd.DataFrame):
+            raise ValueError("dataset must have a pandas DataFrame as 'data' attribute.")
+
+        self.dataset = dataset
+        self.cache_dir = dataset.cache_dir
+        os.makedirs(self.cache_dir, exist_ok=True)
+        self.column_name = dataset.column_name
+        self.data_index = dataset.data_index
+        self.confirm_large = confirm_large
+
+
+    def list_available_data(self):
+        """List available binary data in the dataset."""
+        if self.data_index:
+            available_data = list(self.dataset.data.iloc[self.data_index][self.column_name])
+        else:
+            # If the list is empty return all rows
+            available_data = list(self.dataset.data[self.column_name])
+        return available_data
+
+    def _file_exists(self, filename):
+        """Check if a file is already in cache."""
+        return os.path.exists(os.path.join(self.cache_dir, filename))
+
+    async def _download_file(self, session, url, filename, max_retries=3):
+        """Download a single file asynchronously, handling 503 errors."""
+        filepath = os.path.join(self.cache_dir, filename)
+        if self._file_exists(filename):
+            print(f"File {filename} already exists in cache. Skipping download.")
+            return filepath
+
+        attempt = 0
+        while attempt < max_retries:
+            try:
+                async with session.get(url) as response:
+                    if response.status == 503:
+                        print(f"{filename} is being retrieved from tape. Retrying in 2 minutes...")
+                        await asyncio.sleep(120)  # Wait 2 minutes before retrying
+                        attempt += 1
+                        continue
+
+                    with open(filepath, "wb") as f:
+                        async for chunk in response.content.iter_any():
+                            f.write(chunk)
+                print(f"Downloaded {filename} successfully!")
+                return filepath
+            except aiohttp.ClientResponseError as e:
+                attempt += 1
+                if attempt == max_retries:
+                    raise e
+                print(f"Error {e.status} encountered. Retrying ({attempt}/{max_retries})...")
+
+    async def download_files(self):
+        """Download all binary files asynchronously."""
+        binary_files = self.list_available_data()
+        dataset_id = self.dataset.id
+        downloaded_files = []
+
+        async with aiohttp.ClientSession() as session:
+            task_map = {}
+            for filename in binary_files:
+                url = f'https://download.pangaea.de/dataset/{dataset_id}/files/{filename}'
+                async with asyncio.TaskGroup() as tg:
+                    async with session.head(url) as response:
+                        # Get file size before downloading
+                        size = int(response.headers.get('content-length', 0))
+
+                        # Ask confirmation for large files (>50MB)
+                        if size > 50 * 1024 * 1024 and self.confirm_large:
+                            confirm = input(f"{filename} is {size / (1024 * 1024):.2f} MB. Download? (y/n) ")
+                            if confirm.lower() != 'y':
+                                print(f"Skipping {filename}...")
+                                continue
+
+                        task = tg.create_task(self._download_file(session, url, filename))
+                        task_map[task] = filename  # Store filename for later
+
+            for task, filename in task_map.items():
+                result = task.result()  # Get result of the completed task
+                if result:
+                    downloaded_files.append(result)
+
+        return downloaded_files
+
+    def run_download(self):
+        """Start asynchronous file download and return datasets if applicable."""
+        if asyncio.get_event_loop().is_running():
+            # If already inside an event loop (e.g., Jupyter Notebook)
+            future = asyncio.ensure_future(self.download_files())
+            asyncio.get_event_loop().run_until_complete(future)
+            downloaded_files = future.result()
+        else:
+            # If no event loop is running, use asyncio.run()
+            downloaded_files = asyncio.run(self.download_files())
+
+        datasets = []
+        # for file in downloaded_files:
+        #     if file.endswith(".nc"):
+        #         print(f"Opening netCDF file: {file}")
+        #         ds = xr.open_dataset(file)
+        #         datasets.append(ds)
+
+        return datasets if datasets else downloaded_files
+

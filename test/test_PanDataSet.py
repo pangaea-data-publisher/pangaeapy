@@ -7,17 +7,23 @@ Test the PanDataSet class
 """
 import os
 import tempfile
+
 from pangaeapy.pandataset import PanDataSet
 
 def test_default_cache_dir():
     ds = PanDataSet(968912, enable_cache=True)
-    assert ds.cachedir is not None
-    assert os.path.isdir(ds.cachedir)  # Ensure the directory was created
+    assert ds.cache_dir is not None
+    assert os.path.isdir(ds.cache_dir)  # Ensure the directory was created
 
 
 def test_custom_cache_dir():
     with tempfile.TemporaryDirectory() as tmpdir:
         ds = PanDataSet(968912, enable_cache=True, cache_dir=tmpdir)
-        assert ds.cachedir == tmpdir
+        assert ds.cache_dir == tmpdir
         ds.terms_conn.close()  # explicitly close the sqlite database
 
+# def test_download_binary():
+    # ds = PanDataSet(944101, enable_cache=True)
+    # downloads = ds.download()
+    # TODO: Check if files are there and if size matches
+    # ds.data["Binary (Size)"]
