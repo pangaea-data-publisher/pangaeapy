@@ -1735,13 +1735,14 @@ class PanDataHarvester:
 
     def run_download(self):
         """Start asynchronous file download and return datasets if applicable."""
-        if asyncio.get_event_loop().is_running():
-            # If already inside an event loop (e.g., Jupyter Notebook)
+        try:
+            # Check if there's a running event loop
+            loop = asyncio.get_running_loop()
+            # If we reach here, a loop is running
             future = asyncio.ensure_future(self.download_files())
-            asyncio.get_event_loop().run_until_complete(future)
-            downloaded_files = future.result()
-        else:
-            # If no event loop is running, use asyncio.run()
+            downloaded_files = loop.run_until_complete(future)
+        except RuntimeError:
+            # No running event loop, create a new one
             downloaded_files = asyncio.run(self.download_files())
 
         datasets = []
