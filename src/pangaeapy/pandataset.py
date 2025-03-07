@@ -647,7 +647,7 @@ class PanDataSet:
         """Save cache directory to a JSON config file."""
         try:
             os.makedirs(self.CONFIG_DIR, exist_ok=True)  # Ensure config directory exists
-            config = {"settings": {"cache_dir": cache_dir}}
+            config = {"settings": {"cache_dir": str(cache_dir)}}
             with open(self.CONFIG_PATH, "w") as f:
                 toml.dump(config, f)
         except OSError:
@@ -1630,18 +1630,22 @@ class PanDataSet:
 class PanDataHarvester:
     """
     Downloads binary data from the PANGAEA tape archive.
-    Main functionality to be implemented:
-    - inherit metadata from PanDataSet
-    - only available if there is at least one "Binary"/"netCDF column in PanDataSet.data
-    - user selected download
-        - list available data sets
-        - warn before big download
-        - show size of download
-    - show progress of download
-    - asynchronous download of multiple files
-    - automatic download for small files (< 50MB)
-    - ask user to confirm cache directory to permanently store files and allow for new cache directory
-    - check if files are already available in the cache either as pickle objects or in binary format
+
+    Parameters
+    ----------
+    dataset: PanDataSet
+        The dataset, which initiates the PanDataHarvester
+
+    Attributes
+    ----------
+    confirm_large: bool
+        Whether to ask the user for permission to download data larger than 50 MB
+
+    This class bundles the download functionality of the pangaeapy.
+    When initiated via PanDataSet.download(), the selected files are downloaded asynchronously.
+    They are stored in the local cache in their original file format.
+    The Harvester will check if the file already exists before downloading.
+
     """
 
     def __init__(self, dataset, confirm_large):
@@ -1656,7 +1660,7 @@ class PanDataHarvester:
         self.confirm_large = confirm_large
 
 
-    def list_available_data(self):
+    def _list_available_data(self):
         """List available binary data in the dataset."""
         if self.data_index:
             available_data = list(self.dataset.data.iloc[self.data_index][self.column_name])
@@ -1699,7 +1703,7 @@ class PanDataHarvester:
 
     async def download_files(self):
         """Download all binary files asynchronously."""
-        binary_files = self.list_available_data()
+        binary_files = self._list_available_data()
         dataset_id = self.dataset.id
         downloaded_files = []
 
@@ -1741,11 +1745,11 @@ class PanDataHarvester:
             downloaded_files = asyncio.run(self.download_files())
 
         datasets = []
-        # for file in downloaded_files:
-        #     if file.endswith(".nc"):
-        #         print(f"Opening netCDF file: {file}")
-        #         ds = xr.open_dataset(file)
-        #         datasets.append(ds)
+        for file in downloaded_files:
+            if file.endswith(".nc"):
+                print(f"Opening netCDF file: {file}")
+                ds = xr.open_dataset(file)
+                datasets.append(ds)
 
         return datasets if datasets else downloaded_files
 
