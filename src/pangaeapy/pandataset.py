@@ -1749,5 +1749,5 @@ class PanDataHarvester:
                 ds = xr.open_dataset(file)
                 datasets.append(ds)
 
-        return datasets if datasets else downloaded_files
+        return downloaded_files, datasets if datasets else downloaded_files
 
