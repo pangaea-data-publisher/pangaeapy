@@ -6,9 +6,8 @@
 Test the PanDataSet class
 """
 import os
-import tempfile
-
 from pangaeapy.pandataset import PanDataSet
+import xarray as xr
 
 def test_default_cache_dir():
     ds = PanDataSet(968912, enable_cache=True)
@@ -16,14 +15,16 @@ def test_default_cache_dir():
     assert os.path.isdir(ds.cache_dir)  # Ensure the directory was created
 
 
-def test_custom_cache_dir():
-    with tempfile.TemporaryDirectory() as tmpdir:
-        ds = PanDataSet(968912, enable_cache=True, cache_dir=tmpdir)
-        assert ds.cache_dir == tmpdir
-        ds.terms_conn.close()  # explicitly close the sqlite database
+def test_custom_cache_dir(tmp_path):
+    ds = PanDataSet(968912, enable_cache=True, cache_dir=tmp_path)
+    assert ds.cache_dir == tmp_path
+    ds.terms_conn.close()  # explicitly close the sqlite database
 
-# def test_download_binary():
-    # ds = PanDataSet(944101, enable_cache=True)
-    # downloads = ds.download()
-    # TODO: Check if files are there and if size matches
-    # ds.data["Binary (Size)"]
+def test_netcdf_download(monkeypatch):
+    # Simulate user input
+    monkeypatch.setattr('builtins.input', lambda _: '1,2,4')
+    ds = PanDataSet(944101, enable_cache=True)
+    filenames, downloads = ds.download()
+    for filename, download in zip(filenames, downloads):
+        assert os.path.isfile(filename)  # check if file was downloaded
+        assert type(download) == xr.Dataset
