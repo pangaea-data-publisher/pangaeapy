@@ -1643,6 +1643,14 @@ class PanDataHarvester:
     When initiated via PanDataSet.download(), the selected files are downloaded asynchronously.
     They are stored in the local cache in their original file format.
     The Harvester will check if the file already exists before downloading.
+    To use the download functionality in a jupyter notebook include
+
+    ```python
+    import nest_asyncio
+    nest_asyncio.apply()
+    ```
+    at the beginning of the notebook.
+
 
     """
 
@@ -1736,7 +1744,7 @@ class PanDataHarvester:
         try:
             # Check if there's a running event loop
             loop = asyncio.get_running_loop()
-            # If we reach here, a loop is running
+            # If we reach here, a loop is running (e.g. in a jupyter notebook)
             future = asyncio.ensure_future(self.download_files())
             downloaded_files = loop.run_until_complete(future)
         except RuntimeError:
