@@ -16,6 +16,7 @@ release = '2021'
 
 extensions = [
     'myst_parser',
+    'sphinx.ext.napoleon',
     'sphinx.ext.autodoc',
     'sphinx.ext.autosectionlabel',
     'sphinx.ext.viewcode',
