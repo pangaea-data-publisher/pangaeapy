@@ -631,8 +631,9 @@ class PanDataSet:
         ----------
         expirydays
 
-        Returns bool
+        Returns
         -------
+        bool
 
         """
         ret = True
@@ -705,7 +706,8 @@ class PanDataSet:
 
     def setID(self, id):
         """
-        Initialize the ID of a data set in case it was not defined in the constructur
+        Initialize the ID of a data set in case it was not defined in the constructor
+
         Parameters
         ----------
         id : str
@@ -1497,8 +1499,8 @@ class PanDataSet:
         Currently the method only supports simple types such as timeseries and profiles.
         The method created files are named as follows: [PANGAEA ID]_[type].cf
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         filelocation : str
             Indicates the location (directory) where the NetCDF file will be saved
         type : str
@@ -1522,8 +1524,8 @@ class PanDataSet:
         A package will be saved as directory
         The method created directories are named as follows: [PANGAEA ID]_frictionless
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         filelocation : str
             Indicates the location (directory) where the frictionless file will be saved
         save : Boolean
@@ -1541,8 +1543,8 @@ class PanDataSet:
         A package will be saved as directory
         The method created directories are named as follows: [PANGAEA ID]_dwca
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         filelocation : str
             Indicates the location (directory) where the DwC-A file will be saved
         save : Boolean
