@@ -1600,7 +1600,7 @@ class PanDataSet:
         self.logging.extend(dwca_exporter.logging)
         return ret
 
-    def download(self, interactive: bool = False, confirm_large: bool = True):
+    def download(self, interactive: bool = False, confirm_large: bool = False):
         """Download binary data if available; otherwise, save dataframe as CSV.
 
         When exploring data sets for the first time it is recommended to set interactive to True.
