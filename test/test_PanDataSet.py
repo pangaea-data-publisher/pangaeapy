@@ -24,7 +24,6 @@ def test_netcdf_download(monkeypatch):
     # Simulate user input
     monkeypatch.setattr('builtins.input', lambda _: '1,2,4')
     ds = PanDataSet(944101, enable_cache=True)
-    filenames, downloads = ds.download()
-    for filename, download in zip(filenames, downloads):
+    filenames = ds.download()
+    for filename in filenames:
         assert os.path.isfile(filename)  # check if file was downloaded
-        assert type(download) == xr.Dataset

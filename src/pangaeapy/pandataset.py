@@ -1601,7 +1601,12 @@ class PanDataSet:
         return ret
 
     def download(self, confirm_large=True):
-        """Download binary data if available; otherwise, save dataframe as CSV."""
+        """Download binary data if available; otherwise, save dataframe as CSV.
+
+        Returns
+        -------
+            List of downloaded or saved filenames
+        """
 
         if self.column_name is not None:
             print(f"Downloading files to {self.cache_dir}")
@@ -1622,7 +1627,8 @@ class PanDataSet:
 
             csv_path = os.path.join(self.cache_dir, f"{self.id}_data.csv")
             self.data.to_csv(csv_path, index=False)
-            self.log(logging.WARNING, f"Dataset saved to {csv_path}")
+            print(f"Dataset saved to {csv_path}")
+            return [csv_path]
 
 
 class PanDataHarvester:
@@ -1751,12 +1757,5 @@ class PanDataHarvester:
             # No running event loop, create a new one
             downloaded_files = asyncio.run(self.download_files())
 
-        datasets = []
-        for file in downloaded_files:
-            if file.endswith(".nc"):
-                print(f"Opening netCDF file: {file}")
-                ds = xr.open_dataset(file)
-                datasets.append(ds)
-
-        return downloaded_files, datasets if datasets else downloaded_files
+        return downloaded_files
 
