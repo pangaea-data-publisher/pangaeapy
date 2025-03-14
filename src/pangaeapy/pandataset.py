@@ -1600,20 +1600,41 @@ class PanDataSet:
         self.logging.extend(dwca_exporter.logging)
         return ret
 
-    def download(self, confirm_large=True):
-        """Download binary data if available; otherwise, save dataframe as CSV."""
+    def download(self, interactive: bool = False, confirm_large: bool = False):
+        """Download binary data if available; otherwise, save dataframe as CSV.
+
+        When exploring data sets for the first time it is recommended to set interactive to True.
+        Also, consider to explicitly define the pangaeapy cache when calling PanDataSet or in
+        `~/.config/pangaeapy/config.toml` to save the data outside your home directory.
+
+        Parameters
+        ----------
+        interactive : bool
+            Ask user for input on which files to download.
+            Default is to download all files.
+        confirm_large : bool
+            Ask for permission before downloading files larger than 50Mb.
+
+        Returns
+        -------
+            List of downloaded or saved filenames
+        """
 
         if self.column_name is not None:
             print(f"Downloading files to {self.cache_dir}")
             print(f"Available files\n"
                   f"{self.data.loc[:, (self.column_name, self.column_name + ' (Size)')]}\n")
-            idx = input("Please supply a list of comma separated indices of the files you wish to download (empty for all):")
-            # convert string to list of integers
-            self.data_index = [int(s) for s in idx.split(",") if s.isdigit()]
-            self.data_index.sort()
-            # raise error if an index is larger than the available row numbers
-            if any([x >= self.data.shape[0] for x in self.data_index]):
-                raise ValueError("Index out of range")
+            if interactive:
+                idx = input("Please supply a list of comma separated indices of the files you wish to download (empty for all):")
+                # convert string to list of integers
+                self.data_index = [int(s) for s in idx.split(",") if s.isdigit()]
+                self.data_index.sort()
+                # raise error if an index is larger than the available row numbers
+                if any([x >= self.data.shape[0] for x in self.data_index]):
+                    raise ValueError("Index out of range")
+            else:
+                self.data_index = []
+
             harvester = PanDataHarvester(self, confirm_large=confirm_large)
             return harvester.run_download()
         else:
@@ -1622,7 +1643,8 @@ class PanDataSet:
 
             csv_path = os.path.join(self.cache_dir, f"{self.id}_data.csv")
             self.data.to_csv(csv_path, index=False)
-            self.log(logging.WARNING, f"Dataset saved to {csv_path}")
+            print(f"Dataset saved to {csv_path}")
+            return [csv_path]
 
 
 class PanDataHarvester:
@@ -1637,9 +1659,9 @@ class PanDataHarvester:
     Attributes
     ----------
     confirm_large: bool
-        Whether to ask the user for permission to download data larger than 50 MB
+        Ask the user for permission to download data larger than 50 MB
 
-    This class bundles the download functionality of the pangaeapy.
+    This class bundles the download functionality of pangaeapy.
     When initiated via PanDataSet.download(), the selected files are downloaded asynchronously.
     They are stored in the local cache in their original file format.
     The Harvester will check if the file already exists before downloading.
@@ -1751,12 +1773,5 @@ class PanDataHarvester:
             # No running event loop, create a new one
             downloaded_files = asyncio.run(self.download_files())
 
-        datasets = []
-        for file in downloaded_files:
-            if file.endswith(".nc"):
-                print(f"Opening netCDF file: {file}")
-                ds = xr.open_dataset(file)
-                datasets.append(ds)
-
-        return downloaded_files, datasets if datasets else downloaded_files
+        return downloaded_files
 
