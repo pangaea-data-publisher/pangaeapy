@@ -1620,6 +1620,10 @@ class PanDataSet:
             List of downloaded or saved filenames
         """
 
+        if self.data.empty:
+            raise ValueError(f"Dataset has no available data to download!\n"
+                             f"Check {self.doi} for more information on dataset.")
+
         if self.column_name is not None:
             print(f"Downloading files to {self.cache_dir}")
             print(f"Available files\n"
@@ -1677,8 +1681,6 @@ class PanDataHarvester:
     """
 
     def __init__(self, dataset, confirm_large):
-        if not hasattr(dataset, "data") or not isinstance(dataset.data, pd.DataFrame):
-            raise ValueError("dataset must have a pandas DataFrame as 'data' attribute.")
 
         self.dataset = dataset
         self.cache_dir = dataset.cache_dir
