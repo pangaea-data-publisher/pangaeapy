@@ -44,3 +44,20 @@ pangaeapy = [
   "exporter/xslt/*.xslt",
   "mappings/*.json",
 ]
+
+[tool.tox]
+requires = ["tox >= 4.0"]
+env_list = [
+  "py39",
+  "py310",
+  "py311",
+  "py312",
+  "py313",
+]
+
+[tool.tox.env_run_base]
+deps = [
+  "pytest >= 8.0",
+  "pytest-sugar",
+]
+commands = [["pytest"]]
