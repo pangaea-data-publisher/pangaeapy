@@ -13,7 +13,6 @@ import datetime
 
 import aiohttp
 import asyncio
-import xarray as xr
 import requests
 import pandas as pd
 import numpy as np
@@ -627,8 +626,6 @@ class PanDataSet:
         else:
             # self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
             self.log(logging.ERROR, "Dataset id missing, could not initialize PanDataSet object for: " + str(id))
-        # the binary column can have different names
-        self.column_name = next((col for col in ["Binary", "netCDF"] if col in self.data.columns), None)
 
     def _load_config(self):
         """Load cache directory from a JSON config file."""
@@ -1620,19 +1617,42 @@ class PanDataSet:
             List of downloaded or saved filenames
         """
 
-        if self.column_name is not None:
+        if self.data.empty:
+            raise ValueError(f"Dataset has no available data to download!\n"
+                             f"Check {self.doi} for more information on dataset.")
+
+        # possible names for binary column(s) in the data table of a data set
+        binary_columns = ["binary", "netcdf", "image", "video", "text", "url", "csv"]
+        # case-insensitive matching of any column starting with one of the possible binary column names
+        # (?!.*\() -> negative look ahead assertion to skip columns with (
+        # such columns mostly contain additional information about the binary file (e.g. Binary (Size))
+        pattern = "(?i)^(" + "|".join(binary_columns) + r")(?!.*\()"
+        column_names = self.data.filter(regex=pattern).columns.tolist()
+
+        if column_names:
             print(f"Downloading files to {self.cache_dir}")
-            print(f"Available files\n"
-                  f"{self.data.loc[:, (self.column_name, self.column_name + ' (Size)')]}\n")
+            # do not truncate any columns
+            with pd.option_context('display.max_columns', None, 'display.width', None):
+                print(f"Available files\n"
+                      f"{self.data.loc[:, column_names]}\n")
             if interactive:
+                columns = input(f"Please supply the names of the columns you want to download.\n"
+                                f"Possible values: {column_names} (empty for all): ")
+                # convert string to list of strings by splitting the input string if it is not empty
+                self.columns = [s.strip() for s in columns.split(",")] if columns.strip() else column_names
+                if not all([x in column_names for x in self.columns]):
+                    raise ValueError(f"Not all given columns ({self.columns}) are available.")
+
                 idx = input("Please supply a list of comma separated indices of the files you wish to download (empty for all):")
-                # convert string to list of integers
-                self.data_index = [int(s) for s in idx.split(",") if s.isdigit()]
+                # convert string to list of integers if the input string is not empty
+                self.data_index = [int(s) for s in idx.split(",") if idx.strip()]
                 self.data_index.sort()
                 # raise error if an index is larger than the available row numbers
                 if any([x >= self.data.shape[0] for x in self.data_index]):
                     raise ValueError("Index out of range")
+
             else:
+                self.columns = column_names
                 self.data_index = []
 
             harvester = PanDataHarvester(self, confirm_large=confirm_large)
@@ -1677,24 +1697,30 @@ class PanDataHarvester:
     """
 
     def __init__(self, dataset, confirm_large):
-        if not hasattr(dataset, "data") or not isinstance(dataset.data, pd.DataFrame):
-            raise ValueError("dataset must have a pandas DataFrame as 'data' attribute.")
 
-        self.dataset = dataset
+        self.id = dataset.id
+        self.data = dataset.data
         self.cache_dir = dataset.cache_dir
         os.makedirs(self.cache_dir, exist_ok=True)
-        self.column_name = dataset.column_name
+        self.columns = dataset.columns
         self.data_index = dataset.data_index
         self.confirm_large = confirm_large
 
 
     def _list_available_data(self):
-        """List available binary data in the dataset."""
+        """List available binary data (filenames) in the dataset.
+
+        Returns
+        -------
+            List of filenames
+        """
         if self.data_index:
-            available_data = list(self.dataset.data.iloc[self.data_index][self.column_name])
+            available_data = (self.data
+                              .iloc[self.data_index][self.columns]  # select rows and columns
+                              .to_numpy().flatten().tolist())  # extract values and reduce dimensions
         else:
-            # If the list is empty return all rows
-            available_data = list(self.dataset.data[self.column_name])
+            # If no index is supplied return all rows
+            available_data = self.data[self.columns].to_numpy().flatten().tolist()
         return available_data
 
     def _file_exists(self, filename):
@@ -1732,7 +1758,7 @@ class PanDataHarvester:
     async def download_files(self):
         """Download all binary files asynchronously."""
         binary_files = self._list_available_data()
-        dataset_id = self.dataset.id
+        dataset_id = self.id
         downloaded_files = []
 
         async with aiohttp.ClientSession() as session:
