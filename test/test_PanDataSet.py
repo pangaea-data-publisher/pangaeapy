@@ -22,11 +22,16 @@ def test_custom_cache_dir(tmp_path):
     ds.terms_conn.close()  # explicitly close the sqlite database
 
 
-@pytest.mark.parametrize("interactive", [True, False])
-def test_netcdf_download(monkeypatch, interactive):
+@pytest.mark.parametrize("interactive, test_input", [
+    (True, ("", "")),
+    (True, ("Binary", "1,3, 4,  5")),
+    (False, None)
+])
+def test_netcdf_download(monkeypatch, interactive, test_input):
     # simulate user input only when interactive is True
     if interactive:
-        monkeypatch.setattr('builtins.input', lambda _: '1,2,4')
+        inputs = iter(test_input)
+        monkeypatch.setattr('builtins.input', lambda _: next(inputs))
 
     ds = PanDataSet(944101, enable_cache=True)
     filenames = ds.download(interactive=interactive)
