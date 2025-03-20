@@ -27,7 +27,7 @@ classifiers = [
 requires-python = ">= 3.9"
 dependencies = [
   "lxml >= 4.9.3",
-  "netCDF4 > 1.6.5",
+  "netcdf4 > 1.6.5",
   "numpy >= 1.24.4",
   "pandas >= 2.2.2",
   "requests >= 2.26.0",
@@ -46,18 +46,27 @@ pangaeapy = [
 ]
 
 [tool.tox]
-requires = ["tox >= 4.0"]
+requires = ["tox >= 4.19"]
 env_list = [
-  "py39",
-  "py310",
-  "py311",
-  "py312",
-  "py313",
+  "3.9",
+  "3.10",
+  "3.11",
+  "3.12",
+  "3.13",
+  "docs",
 ]
 
 [tool.tox.env_run_base]
-deps = [
-  "pytest >= 8.0",
-  "pytest-sugar",
-]
+deps = ["pytest >= 8.0"]
 commands = [["pytest"]]
+
+[tool.tox.env.docs]
+deps = [
+  "sphinx >= 8.0",
+  "sphinx-rtd-theme",
+  "sphinx-markdown-builder",
+]
+commands = [
+  ["sphinx-build", "-b", "html", "docs", "docs{/}_build{/}html"],
+  ["sphinx-build", "-b", "markdown", "docs", "docs{/}_build{/}markdown"],
+]
