@@ -46,15 +46,3 @@ def test_netcdf_download(monkeypatch, interactive, test_input):
 
     for filename in filenames:
         assert os.path.isfile(filename)  # check if file was downloaded
-
-
-
-# ds_id = 870454  # no data
-# ds_id = 974108  # multiple netCDF columns
-# ds_id = 971624  # normal dataset
-# ds_id = 956151  # Binary + Binary (Size)
-# ds_id = 944101  # netCDF file
-# ds_id = 823321  # many small files but URL column
-# ds_id = 968896  # many small netCDF file
-# self = PanDataSet(ds_id, enable_cache=True)
-# self.download(interactive=True)
