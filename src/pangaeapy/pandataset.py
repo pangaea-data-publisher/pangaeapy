@@ -1599,7 +1599,8 @@ class PanDataSet:
         self.logging.extend(dwca_exporter.logging)
         return ret
 
-    def download(self, interactive: bool = False, confirm_large: bool = False):
+    def download(self, interactive: bool = False, confirm_large: bool = False,
+                 indices: list = None, columns: list[str] = None):
         """Download binary data if available; otherwise, save dataframe as CSV.
 
         When exploring data sets for the first time it is recommended to set interactive to True.
@@ -1613,6 +1614,10 @@ class PanDataSet:
             Default is to download all files.
         confirm_large : bool
             Ask for permission before downloading files larger than 50Mb.
+        indices : list
+            Row indices of the data to download (e.g. [1, 2, 6]).
+        columns : list of strings
+            Column names of the data to download (e.g. ["Binary", "netCDF"]).
 
         Returns
         -------
@@ -1662,8 +1667,8 @@ class PanDataSet:
                     raise ValueError("Index out of range")
 
             else:
-                self.columns = column_names
-                self.data_index = []
+                self.columns = columns if columns else column_names
+                self.data_index = indices if indices else []
 
             harvester = PanDataHarvester(self, confirm_large=confirm_large)
             return harvester.run_download()
