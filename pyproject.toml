@@ -63,10 +63,7 @@ commands = [["pytest"]]
 [tool.tox.env.docs]
 deps = [
   "sphinx >= 8.0",
-  "sphinx-rtd-theme",
-  "sphinx-markdown-builder",
+  "myst-parser",
+  "furo",
 ]
-commands = [
-  ["sphinx-build", "-b", "html", "docs", "docs{/}_build{/}html"],
-  ["sphinx-build", "-b", "markdown", "docs", "docs{/}_build{/}markdown"],
-]
+commands = [["sphinx-build", "-b", "html", "docs", "docs{/}_build{/}html"]]

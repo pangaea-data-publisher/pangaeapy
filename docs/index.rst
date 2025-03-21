@@ -1,8 +1,10 @@
-pangaeapy documentation
+pangaeapy Documentation
 =======================
 
-.. automodule:: pangaeapy
-   :members:
+.. include:: ../README.md
+   :parser: myst_parser.sphinx_
 
 .. toctree::
    :hidden:
+
+   api

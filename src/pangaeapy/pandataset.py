@@ -27,6 +27,8 @@ from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
 from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
 from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
 
+logger = logging.getLogger(__name__)
+
 
 class PanMethod:
     """PANGAEA Method Class
@@ -62,7 +64,7 @@ class PanMethod:
 class PanProject:
     """PANGAEA Project Class
     This class creates objects which contain the project context information for each dataset
-    
+
     Parameters
     ----------
     acronym : str
@@ -361,9 +363,9 @@ class PanParam:
         the id of the used method or device (legacy only)
     method : PanMethod
         the  method (object) used
-        
-    
-    
+
+
+
     """
     def __init__(self, id, name, shortName, param_type, source, unit = None, unit_id = None, format = None, terms = [], comment = None, PI = dict(), dataseries = None, colno = None, method = None):
         self.id = id
@@ -390,7 +392,7 @@ class PanParam:
     def addSynonym(self,ns, name, uri=None, id=None, unit=None, unit_id = None):
         """
         Creates a new synonym for a parameter which is valid within the given name space. Synonyms are stored in the synonym attribute which is a dictionary
-        
+
         Parameters
         ----------
         name : str
@@ -490,7 +492,7 @@ class PanDataSet:
         self.id = None
         self.uri, self.doi = "",""  # the doi
         self.logging = []
-        self.logger = logging.getLogger("dataset")
+        self.logger = logger
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
         self.setID(id)
         self.ns = {"md": "http://www.pangaea.de/MetaData"}
@@ -822,8 +824,8 @@ class PanDataSet:
             else:
                 eventCampaign = None
 
-            self.events.append(PanEvent(eventLabel, 
-                                        eventLatitude, 
+            self.events.append(PanEvent(eventLabel,
+                                        eventLatitude,
                                         eventLongitude,
                                         eventLatitude2,
                                         eventLongitude2,

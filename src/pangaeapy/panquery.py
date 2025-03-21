@@ -3,7 +3,7 @@ import re
 
 import requests
 
-logger = logging.getLogger("panquery")
+logger = logging.getLogger(__name__)
 
 class PanQuery:
     """Run and analyze results of PANGAEA search queries.
