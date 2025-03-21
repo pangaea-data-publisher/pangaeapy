@@ -1643,9 +1643,17 @@ class PanDataSet:
                 if not all([x in column_names for x in self.columns]):
                     raise ValueError(f"Not all given columns ({self.columns}) are available.")
 
-                idx = input("Please supply a list of comma separated indices of the files you wish to download (empty for all):")
+                idx = input("Please supply a list of comma separated indices and/or a range (e.g. 1-3,5) of files you wish to download (empty for all):")
                 # convert string to list of integers if the input string is not empty
-                self.data_index = [int(s) for s in idx.split(",") if idx.strip()]
+                indices = []
+                if idx.strip():
+                    for part in idx.split(","):
+                        if "-" in part:  # Handle ranges
+                            start, end = map(int, part.split("-"))
+                            indices.extend(range(start, end + 1))  # Include end in the range
+                        else:  # Handle single indices
+                            indices.append(int(part))
+                self.data_index = indices
                 self.data_index.sort()
                 # raise error if an index is larger than the available row numbers
                 if any([x >= self.data.shape[0] for x in self.data_index]):
@@ -1733,8 +1741,8 @@ class PanDataHarvester:
             while attempt < max_retries:
                 try:
                     async with session.get(url) as response:
-                        size = response.headers.get('content-length', 0)
-                        if os.path.exists(filepath) and (os.path.getsize(filepath) >= int(size)):
+                        size = int(response.headers.get('content-length', 0))
+                        if os.path.exists(filepath) and (os.path.getsize(filepath) >= size):
                             print(f"File {filename} already exists, skipping.")
                             return filepath
 
