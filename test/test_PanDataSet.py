@@ -25,6 +25,7 @@ def test_custom_cache_dir(tmp_path):
 @pytest.mark.parametrize("interactive, test_input", [
     (True, ("", "")),
     (True, ("Binary", "1,3, 4,  5")),
+    (True, ("Binary", "1-3, 5")),
     (False, None)
 ])
 def test_netcdf_download(monkeypatch, interactive, test_input):
