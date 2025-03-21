@@ -1705,6 +1705,7 @@ class PanDataHarvester:
         self.columns = dataset.columns
         self.data_index = dataset.data_index
         self.confirm_large = confirm_large
+        self.semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
 
 
     def _list_available_data(self):
@@ -1723,52 +1724,19 @@ class PanDataHarvester:
             available_data = self.data[self.columns].to_numpy().flatten().tolist()
         return available_data
 
-    def _file_exists(self, filename):
-        """Check if a file is already in cache."""
-        return os.path.exists(os.path.join(self.cache_dir, filename))
-
-    async def _download_file(self, session, url, filename, max_retries=3):
+    async def _download_file(self, session, url, filename, max_retries=4):
         """Download a single file asynchronously, handling 503 errors."""
         filepath = os.path.join(self.cache_dir, filename)
-        if self._file_exists(filename):
-            print(f"File {filename} already exists in cache. Skipping download.")
-            return filepath
 
         attempt = 0
-        while attempt < max_retries:
-            try:
-                async with session.get(url) as response:
-                    if response.status == 503:
-                        print(f"{filename} is being retrieved from tape. Retrying in 2 minutes...")
-                        await asyncio.sleep(120)  # Wait 2 minutes before retrying
-                        attempt += 1
-                        continue
-
-                    with open(filepath, "wb") as f:
-                        async for chunk in response.content.iter_any():
-                            f.write(chunk)
-                print(f"Downloaded {filename} successfully!")
-                return filepath
-            except aiohttp.ClientResponseError as e:
-                attempt += 1
-                if attempt == max_retries:
-                    raise e
-                print(f"Error {e.status} encountered. Retrying ({attempt}/{max_retries})...")
-
-    async def download_files(self):
-        """Download all binary files asynchronously."""
-        binary_files = self._list_available_data()
-        dataset_id = self.id
-        downloaded_files = []
-
-        async with aiohttp.ClientSession() as session:
-            task_map = {}
-            for filename in binary_files:
-                url = f'https://download.pangaea.de/dataset/{dataset_id}/files/{filename}'
-                async with asyncio.TaskGroup() as tg:
-                    async with session.head(url) as response:
-                        # Get file size before downloading
-                        size = int(response.headers.get('content-length', 0))
+        async with self.semaphore:
+            while attempt < max_retries:
+                try:
+                    async with session.get(url) as response:
+                        size = response.headers.get('content-length', 0)
+                        if os.path.exists(filepath) and (os.path.getsize(filepath) >= int(size)):
+                            print(f"File {filename} already exists, skipping.")
+                            return filepath
 
                         # Ask confirmation for large files (>50MB)
                         if size > 50 * 1024 * 1024 and self.confirm_large:
@@ -1777,18 +1745,53 @@ class PanDataHarvester:
                                 print(f"Skipping {filename}...")
                                 continue
 
-                        task = tg.create_task(self._download_file(session, url, filename))
-                        task_map[task] = filename  # Store filename for later
+                        if response.status == 429:
+                            wait_time = response.headers.get('retry-after', 0)
+                            wait_time = int(wait_time) if wait_time != 0 else 10
+                            print(f"Got response status 429 (Too many connections) while trying to download {filename}.\n"
+                                  f" Retrying in {wait_time} seconds.")
+                            await asyncio.sleep(wait_time)
+                            attempt += 1
+                            continue
 
-            for task, filename in task_map.items():
-                result = task.result()  # Get result of the completed task
-                if result:
-                    downloaded_files.append(result)
+                        if response.status == 503:
+                            sleep = 30 * (attempt + 1)
+                            print(f"{filename} is being retrieved from tape. Retrying in {sleep} seconds...")
+                            await asyncio.sleep(sleep)  # Wait 2 minutes before retrying
+                            attempt += 1
+                            continue
+
+                        with open(filepath, "wb") as f:
+                            async for chunk in response.content.iter_any():
+                                f.write(chunk)
+
+                    print(f"Downloaded {filename} successfully!")
+                    return filepath
+
+                except aiohttp.ClientResponseError as e:
+                    attempt += 1
+                    if attempt == max_retries:
+                        raise e
+                    print(f"Error {e.status} encountered. Retrying ({attempt}/{max_retries})...")
+
+    async def download_files(self):
+        """Download all binary files asynchronously."""
+        binary_files = self._list_available_data()
+        dataset_id = self.id
+
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for filename in binary_files:
+                url = f'https://download.pangaea.de/dataset/{dataset_id}/files/{filename}'
+                tasks.append(self._download_file(session, url, filename))
+
+            results = await asyncio.gather(*tasks)
+            downloaded_files = [result for result in results if result]
 
         return downloaded_files
 
     def run_download(self):
-        """Start asynchronous file download and return datasets if applicable."""
+        """Start asynchronous file download and return list of files."""
         try:
             # Check if there's a running event loop
             loop = asyncio.get_running_loop()
