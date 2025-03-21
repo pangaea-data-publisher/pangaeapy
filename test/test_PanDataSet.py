@@ -24,9 +24,9 @@ def test_custom_cache_dir(tmp_path):
 
 @pytest.mark.parametrize("interactive, test_input", [
     (True, ("", "")),
-    (True, ("Binary", "1,3, 4,  5")),
+    (True, ("Binary", "1,3, 2,  5")),
     (True, ("Binary", "1-3, 5")),
-    (False, None)
+    (False, (None, None))
 ])
 def test_netcdf_download(monkeypatch, interactive, test_input):
     # simulate user input only when interactive is True
@@ -37,5 +37,24 @@ def test_netcdf_download(monkeypatch, interactive, test_input):
     ds = PanDataSet(944101, enable_cache=True)
     filenames = ds.download(interactive=interactive)
 
+    # check if the user input was parsed correctly
+    if any(test_input):
+        assert ds.data_index == [1, 2, 3, 5]
+        # the data set only has this column so this test is useless
+        # keep it and find a better test data set
+        assert ds.columns == ["Binary"]
+
     for filename in filenames:
         assert os.path.isfile(filename)  # check if file was downloaded
+
+
+
+# ds_id = 870454  # no data
+# ds_id = 974108  # multiple netCDF columns
+# ds_id = 971624  # normal dataset
+# ds_id = 956151  # Binary + Binary (Size)
+# ds_id = 944101  # netCDF file
+# ds_id = 823321  # many small files but URL column
+# ds_id = 968896  # many small netCDF file
+# self = PanDataSet(ds_id, enable_cache=True)
+# self.download(interactive=True)
