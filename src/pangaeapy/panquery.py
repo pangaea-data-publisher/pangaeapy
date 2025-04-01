@@ -87,3 +87,7 @@ class PanQuery:
                 result["type"] = "member"
             result["position"] = offset + i
         self.result = results
+
+    def get_doi(self):
+        """Return list of DOIs of search results."""
+        return [r["URI"] for r in self.result]
