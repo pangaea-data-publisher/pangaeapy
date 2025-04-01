@@ -1813,7 +1813,14 @@ class PanDataHarvester:
             # If we reach here, a loop is running (e.g. in a jupyter notebook)
             future = asyncio.ensure_future(self.download_files())
             downloaded_files = loop.run_until_complete(future)
-        except RuntimeError:
+        except RuntimeError as e:
+            # probably running download inside a jupyter notebook
+            if str(e) ==  "This event loop is already running":
+                print("You are probably calling download() inside a jupyter notebook.\n"
+                      "Insert\nimport nest_asyncio\nnest_asyncio.apply()\n"
+                      "in a notebook cell before calling download().")
+                raise
+
             # No running event loop, create a new one
             downloaded_files = asyncio.run(self.download_files())
 
