@@ -1636,11 +1636,11 @@ class PanDataSet:
 
         if column_names:
             print(f"Downloading files to {self.cache_dir}")
-            # do not truncate any columns
-            with pd.option_context('display.max_columns', None, 'display.width', None):
-                print(f"Available files\n"
-                      f"{self.data.loc[:, column_names]}\n")
             if interactive:
+                # do not truncate any columns
+                with pd.option_context('display.max_columns', None, 'display.width', None):
+                    print(f"Available files\n"
+                          f"{self.data.loc[:, column_names]}\n")
                 columns = input(f"Please supply the names of the columns you want to download.\n"
                                 f"Possible values: {column_names} (empty for all): ")
                 # convert string to list of strings by splitting the input string if it is not empty
