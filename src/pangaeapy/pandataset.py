@@ -1645,8 +1645,6 @@ class PanDataSet:
                                 f"Possible values: {column_names} (empty for all): ")
                 # convert string to list of strings by splitting the input string if it is not empty
                 self.columns = [s.strip() for s in columns.split(",")] if columns.strip() else column_names
-                if not all([x in column_names for x in self.columns]):
-                    raise ValueError(f"Not all given columns ({self.columns}) are available.")
 
                 idx = input("Please supply a list of comma separated indices and/or a range (e.g. 1-3,5) of files you wish to download (empty for all):")
                 # convert string to list of integers if the input string is not empty
@@ -1660,13 +1658,19 @@ class PanDataSet:
                             indices.append(int(part))
                 self.data_index = indices
                 self.data_index.sort()
-                # raise error if an index is larger than the available row numbers
-                if any([x >= self.data.shape[0] for x in self.data_index]):
-                    raise ValueError("Index out of range")
 
             else:
                 self.columns = columns if columns else column_names
                 self.data_index = indices if indices else []
+
+            # double check input
+            if not all([x in column_names for x in self.columns]):
+                raise ValueError(f"Not all given columns ({self.columns}) are available!\n"
+                                 f"Please select one or all of {column_names}.")
+            # raise error if an index is larger than the available row numbers
+            if any([x >= self.data.shape[0] for x in self.data_index]):
+                raise ValueError(f"Index out of range!\n"
+                                 f"Possible index range: 0 - {self.data.shape[0]}.")
 
             harvester = PanDataHarvester(self, confirm_large=confirm_large)
             return harvester.run_download()
