@@ -46,3 +46,25 @@ def test_netcdf_download(monkeypatch, interactive, test_input):
 
     for filename in filenames:
         assert os.path.isfile(filename)  # check if file was downloaded
+
+
+@pytest.mark.parametrize(
+    "indices, columns, expected_exception",
+    [
+        ([0], ["Binary"], None),  # Valid case
+        ([100], ["Binary"], ValueError),  # Invalid index
+        ([0], ["Not working"], ValueError),  # Invalid column
+    ],
+    ids=["valid_input", "invalid_index", "invalid_column"]
+)
+def test_download_kwargs(tmp_path, indices, columns, expected_exception):
+    """Tests various combinations of download kwargs"""
+    ds = PanDataSet(944101, enable_cache=True, cache_dir=tmp_path)
+
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            ds.download(indices=indices, columns=columns)
+    else:
+        filenames = ds.download(indices=indices, columns=columns)
+        assert all(os.path.isfile(f) for f in filenames), \
+            "All expected files should be created"
