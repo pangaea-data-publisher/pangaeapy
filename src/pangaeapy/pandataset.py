@@ -20,10 +20,12 @@ import lxml.etree as ET
 import re
 import io
 import os
+from pathlib import PurePosixPath
 import textwrap
 import sqlite3 as sl
 import logging, logging.handlers
 import toml
+from urllib.parse import urlparse, unquote
 
 import pickle
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
@@ -1799,7 +1801,14 @@ class PanDataHarvester:
         async with aiohttp.ClientSession() as session:
             tasks = []
             for filename in binary_files:
-                url = f'https://download.pangaea.de/dataset/{dataset_id}/files/{filename}'
+                if filename.startswith("https:"):
+                    url = filename
+                    parsed_url = urlparse(url)
+                    # extract filename from url and decode special characters
+                    filename = PurePosixPath(unquote(parsed_url.path)).name
+                else:
+                    url = f'https://download.pangaea.de/dataset/{dataset_id}/files/{filename}'
+
                 tasks.append(self._download_file(session, url, filename))
 
             results = await asyncio.gather(*tasks)
