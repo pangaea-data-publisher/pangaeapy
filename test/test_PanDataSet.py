@@ -68,3 +68,10 @@ def test_download_kwargs(tmp_path, indices, columns, expected_exception):
         filenames = ds.download(indices=indices, columns=columns)
         assert all(os.path.isfile(f) for f in filenames), \
             "All expected files should be created"
+
+
+def test_download_url_handling():
+    """Some data sets provide a full download URL in the URL field"""
+    ds = PanDataSet(896710, enable_cache=True)
+    filename = ds.download(indices=[0])
+    assert os.path.isfile(filename[0])
