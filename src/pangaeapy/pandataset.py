@@ -20,12 +20,13 @@ import lxml.etree as ET
 import re
 import io
 import os
-from pathlib import PurePosixPath
+from pathlib import PurePosixPath, Path
 import textwrap
 import sqlite3 as sl
 import logging, logging.handlers
 import toml
 from urllib.parse import urlparse, unquote
+import zipfile
 
 import pickle
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
@@ -478,7 +479,7 @@ class PanDataSet:
     licence : PanLicence
         a licence object, usually creative commons
     auth_token : str
-        the PANGAEA auhentication token, you can find it at pangaea.de on your user page
+        the PANGAEA auhentication token, you can find it at https://www.pangaea.de/user/
     cache_expiry_days : int
         the duration a cached pickle/cache is accepted, after this pangaeapy will load it again and ignor ethe cache
     cache_dir: str
@@ -490,10 +491,10 @@ class PanDataSet:
     """
     CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pangaeapy")
     CONFIG_PATH = os.path.join(CONFIG_DIR, "config.toml")
-
+    #TODO: set enable cache to True
     def __init__(self, id=None, paramlist=None, deleteFlag='', enable_cache=False,
                  cache_dir=None, include_data=True, expand_terms=[],
-                 auth_token = None, cache_expiry_days=1):
+                 auth_token=None, cache_expiry_days=1):
         self.module_dir = os.path.dirname(__file__)
         self.id = None
         self.uri, self.doi = "",""  # the doi
@@ -595,14 +596,14 @@ class PanDataSet:
         #self.logger.info('Test')
         self.quality_flags={'ok':'valid','?':'questionable','/':'not_valid','*':'unknown'}
         self.quality_flag_replace={'ok':0,'?':1,'/':2,'*':3}
-        if self.id != None:
-            gotData=False
+        if self.id is not None:
+            gotData = False
 
             if self.cache:
                 # self.logging.append({'INFO':'Caching activated..trying to load data and metadata from cache'})
                 self.log(logging.INFO, "Caching activated..trying to load data and metadata from cache")
                 if self.check_pickle():
-                    gotData=self.from_pickle()
+                    gotData = self.from_pickle()
                 else:
                     self.drop_pickle()
                     gotData = False
@@ -1047,11 +1048,10 @@ class PanDataSet:
         This method populates the data DataFrame with data from a PANGAEA dataset.
         In addition to the data given in the tabular ASCII file delivered by PANGAEA.
 
-
         Parameters:
         -----------
         addEventColumns : boolean
-            In case Latitude, Longititude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets,
+            In case Latitude, Longitude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets,
             the setData could add these columns to the dataframe using the information given in the metadata for Event. Default is 'True'
 
         """
@@ -1073,7 +1073,9 @@ class PanDataSet:
         if self.include_data:
             try:
                 dataURL = "https://doi.pangaea.de/10.1594/PANGAEA." + str(self.id)
-                requestheader = {"Accept": "text/tab-separated-values"}
+                #TODO: use dynamic version
+                requestheader = {"Accept": "text/tab-separated-values",
+                                 "User-Agent": f"pangaeapy/1.0.22"}
                 if self.auth_token:
                     requestheader["Authorization"] = "Bearer " + str(self.auth_token)
                 dataResponse = requests.get(dataURL, headers=requestheader)
@@ -1637,7 +1639,7 @@ class PanDataSet:
         column_names = self.data.filter(regex=pattern).columns.tolist()
 
         if column_names:
-            print(f"Downloading files to {self.cache_dir}")
+            self.log(logging.INFO, f"Downloading files to {self.cache_dir}")
             if interactive:
                 # do not truncate any columns
                 with pd.option_context('display.max_columns', None, 'display.width', None):
@@ -1718,6 +1720,7 @@ class PanDataHarvester:
     def __init__(self, dataset, confirm_large):
 
         self.id = dataset.id
+        self.auth_token = dataset.auth_token
         self.data = dataset.data
         self.cache_dir = dataset.cache_dir
         os.makedirs(self.cache_dir, exist_ok=True)
@@ -1799,6 +1802,9 @@ class PanDataHarvester:
         dataset_id = self.id
 
         async with aiohttp.ClientSession() as session:
+            #TODO: use dynamic version
+            session.headers.update({"Authorization": f"Bearer {self.auth_token}",
+                                    "User-Agent": "pangaeapy/1.0.22"})
             tasks = []
             for filename in binary_files:
                 if filename.startswith("https:"):
@@ -1807,7 +1813,7 @@ class PanDataHarvester:
                     # extract filename from url and decode special characters
                     filename = PurePosixPath(unquote(parsed_url.path)).name
                 else:
-                    url = f'https://download.pangaea.de/dataset/{dataset_id}/files/{filename}'
+                    url = f"https://download.pangaea.de/dataset/{dataset_id}/files/{filename}"
 
                 tasks.append(self._download_file(session, url, filename))
 
@@ -1817,23 +1823,86 @@ class PanDataHarvester:
         return downloaded_files
 
     def run_download(self):
-        """Start asynchronous file download and return list of files."""
-        try:
-            # Check if there's a running event loop
-            loop = asyncio.get_running_loop()
-            # If we reach here, a loop is running (e.g. in a jupyter notebook)
-            future = asyncio.ensure_future(self.download_files())
-            downloaded_files = loop.run_until_complete(future)
-        except RuntimeError as e:
-            # probably running download inside a jupyter notebook
-            if str(e) ==  "This event loop is already running":
-                print("You are probably calling download() inside a jupyter notebook.\n"
-                      "Insert\nimport nest_asyncio\nnest_asyncio.apply()\n"
-                      "in a notebook cell before calling download().")
-                raise
+        """Start asynchronous file download for single file downloads or download
+         the zip file and extract its contents if the whole data set is requested.
+         This requires a valid auth_token (also called Bearer Token).
 
-            # No running event loop, create a new one
-            downloaded_files = asyncio.run(self.download_files())
+         Returns
+         -------
+         List of downloaded files
+         """
+        if (self.data_index == []) and ("URL" not in self.columns):
+            # User wants the whole binary data set
+            # Download the data set via the ZIP link, which requires a valid auth_token
+            # Data sets with a URL binary column do not have a zip download available
+            downloaded_files = self.download_zip_file()
+        else:
+            try:
+                # Check if there's a running event loop
+                loop = asyncio.get_running_loop()
+                # If we reach here, a loop is running (e.g. in a jupyter notebook)
+                future = asyncio.ensure_future(self.download_files())
+                downloaded_files = loop.run_until_complete(future)
+            except RuntimeError as e:
+                # probably running download inside a jupyter notebook
+                if str(e) ==  "This event loop is already running":
+                    print("You are probably calling download() inside a jupyter notebook.\n"
+                          "Insert\nimport nest_asyncio\nnest_asyncio.apply()\n"
+                          "in a notebook cell before calling download().")
+                    raise
+
+                # No running event loop, create a new one
+                downloaded_files = asyncio.run(self.download_files())
 
         return downloaded_files
+
+
+    def download_zip_file(self):
+        """Download a complete binary data set via the ZIP link.
+        Requires a valid auth_token (also called Bearer Token), which can be found at https://www.pangaea.de/user/".
+        """
+        url = f"https://download.pangaea.de/dataset/{self.id}/allfiles.zip"
+        zip_path = Path(self.cache_dir) / "allfiles.zip"
+        extract_dir = Path(self.cache_dir)
+        #TODO: use dynamic version
+        url_headers = {
+            "Authorization": f"Bearer {self.auth_token}",
+            "User-Agent": "pangaeapy/1.0.22"
+        }
+        try:
+            with requests.get(url, stream=True, headers=url_headers) as r:
+                if r.status_code == 401:
+                    print(
+                        "401 Client Error: Unauthorized access.\n"
+                        "Please provide a valid auth_token when opening the data set.\n"
+                        "You can find your auth_token (Bearer Token) on your PANGAEA user page at https://www.pangaea.de/user/"
+                    )
+                    return []
+                r.raise_for_status()
+
+                # Stream download to disk
+                with open(zip_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+
+            # Extract and collect filenames
+            with zipfile.ZipFile(zip_path, "r") as zip_file:
+                downloaded_files = [os.path.join(self.cache_dir, f) for f in zip_file.namelist()]
+                zip_file.extractall(extract_dir)
+
+            return downloaded_files
+
+        except requests.exceptions.RequestException as e:
+            print(f"Download failed: {e}")
+            return []
+        except zipfile.BadZipFile as e:
+            print(f"Extraction failed: {e}")
+            return []
+        finally:
+            if zip_path.exists():
+                try:
+                    os.remove(zip_path)
+                except Exception as e:
+                    print(f"Failed to delete ZIP file: {e}")
 
