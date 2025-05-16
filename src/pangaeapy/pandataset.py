@@ -491,7 +491,7 @@ class PanDataSet:
     """
     CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pangaeapy")
     CONFIG_PATH = os.path.join(CONFIG_DIR, "config.toml")
-
+    #TODO: set enable cache to True
     def __init__(self, id=None, paramlist=None, deleteFlag='', enable_cache=False,
                  cache_dir=None, include_data=True, expand_terms=[],
                  auth_token=None, cache_expiry_days=1):
@@ -596,14 +596,14 @@ class PanDataSet:
         #self.logger.info('Test')
         self.quality_flags={'ok':'valid','?':'questionable','/':'not_valid','*':'unknown'}
         self.quality_flag_replace={'ok':0,'?':1,'/':2,'*':3}
-        if self.id != None:
-            gotData=False
+        if self.id is not None:
+            gotData = False
 
             if self.cache:
                 # self.logging.append({'INFO':'Caching activated..trying to load data and metadata from cache'})
                 self.log(logging.INFO, "Caching activated..trying to load data and metadata from cache")
                 if self.check_pickle():
-                    gotData=self.from_pickle()
+                    gotData = self.from_pickle()
                 else:
                     self.drop_pickle()
                     gotData = False
@@ -1048,11 +1048,10 @@ class PanDataSet:
         This method populates the data DataFrame with data from a PANGAEA dataset.
         In addition to the data given in the tabular ASCII file delivered by PANGAEA.
 
-
         Parameters:
         -----------
         addEventColumns : boolean
-            In case Latitude, Longititude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets,
+            In case Latitude, Longitude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets,
             the setData could add these columns to the dataframe using the information given in the metadata for Event. Default is 'True'
 
         """
@@ -1640,7 +1639,7 @@ class PanDataSet:
         column_names = self.data.filter(regex=pattern).columns.tolist()
 
         if column_names:
-            print(f"Downloading files to {self.cache_dir}")
+            self.log(logging.INFO, f"Downloading files to {self.cache_dir}")
             if interactive:
                 # do not truncate any columns
                 with pd.option_context('display.max_columns', None, 'display.width', None):
@@ -1865,6 +1864,7 @@ class PanDataHarvester:
         url = f"https://download.pangaea.de/dataset/{self.id}/allfiles.zip"
         zip_path = Path(self.cache_dir) / "allfiles.zip"
         extract_dir = Path(self.cache_dir)
+        #TODO: use dynamic version
         url_headers = {
             "Authorization": f"Bearer {self.auth_token}",
             "User-Agent": "pangaeapy/1.0.22"
