@@ -1,7 +1,7 @@
 import logging
 import re
-
 import requests
+import warnings
 
 logger = logging.getLogger(__name__)
 
@@ -87,3 +87,12 @@ class PanQuery:
                 result["type"] = "member"
             result["position"] = offset + i
         self.result = results
+
+    def get_dois(self) -> list:
+        """Return list of DOIs or URLs of search results.
+        Warn user if not all search results have a DOI.
+        """
+        dois = [r["URI"] for r in self.result]
+        if not all([d.startswith("doi:") for d in dois]) and dois != []:
+            warnings.warn("Not all returned data sets have a DOI. Returning the URI instead.", UserWarning)
+        return dois
