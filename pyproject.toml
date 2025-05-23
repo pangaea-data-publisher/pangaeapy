@@ -1,0 +1,69 @@
+[build-system]
+requires = ["setuptools >= 64.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pangaeapy"
+version = "1.0.22"
+authors = [
+  {name = "Robert Huber", email = "rhuber@uni-bremen.de"},
+]
+description = "Download and analyse (meta-)data of PANGAEA datasets"
+readme = "README.md"
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Scientific/Engineering",
+]
+requires-python = ">= 3.9"
+dependencies = [
+  "lxml >= 4.9.3",
+  "netcdf4 > 1.6.5",
+  "numpy >= 1.24.4",
+  "pandas >= 2.2.2",
+  "requests >= 2.26.0",
+]
+
+[project.urls]
+homepage = "https://www.pangaea.de"
+source = "https://github.com/pangaea-data-publisher/pangaeapy"
+issues = "https://github.com/pangaea-data-publisher/pangaeapy/issues"
+
+[tool.setuptools.package-data]
+pangaeapy = [
+  "data/*.csv",
+  "exporter/xslt/*.xslt",
+  "mappings/*.json",
+]
+
+[tool.tox]
+requires = ["tox >= 4.19"]
+env_list = [
+  "3.9",
+  "3.10",
+  "3.11",
+  "3.12",
+  "3.13",
+  "docs",
+]
+
+[tool.tox.env_run_base]
+deps = ["pytest >= 8.0"]
+commands = [["pytest"]]
+
+[tool.tox.env.docs]
+deps = [
+  "sphinx >= 8.0",
+  "myst-parser",
+  "furo",
+]
+commands = [["sphinx-build", "-b", "html", "docs", "docs{/}_build{/}html"]]
