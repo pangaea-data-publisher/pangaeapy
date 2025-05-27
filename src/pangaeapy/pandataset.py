@@ -566,7 +566,7 @@ class PanDataSet:
         #self.logger.info('Test')
         self.quality_flags={'ok':'valid','?':'questionable','/':'not_valid','*':'unknown'}
         self.quality_flag_replace={'ok':0,'?':1,'/':2,'*':3}
-        if self.id != None:
+        if self.id is not None:
             gotData=False
 
             if self.cache:
@@ -737,25 +737,25 @@ class PanDataSet:
 
             eventID = self._getIDParts(event.get("id")).get("event")
 
-            if event.find("md:elevation",self.ns) != None:
+            if event.find("md:elevation",self.ns) is not None:
                 eventElevation=event.find("md:elevation",self.ns).text
-            if event.find("md:dateTime",self.ns) != None:
+            if event.find("md:dateTime",self.ns) is not None:
                 eventDateTime= event.find("md:dateTime",self.ns).text
-            if event.find("md:dateTime2",self.ns) != None:
+            if event.find("md:dateTime2",self.ns) is not None:
                 eventDateTime2= event.find("md:dateTime2",self.ns).text
-            if event.find("md:longitude",self.ns) != None:
+            if event.find("md:longitude",self.ns) is not None:
                 eventLongitude= event.find("md:longitude",self.ns).text
-            if event.find("md:latitude",self.ns) != None:
+            if event.find("md:latitude",self.ns) is not None:
                 eventLatitude= event.find("md:latitude",self.ns).text
-            if event.find("md:longitude2",self.ns) != None:
+            if event.find("md:longitude2",self.ns) is not None:
                 eventLongitude2= event.find("md:longitude2",self.ns).text
-            if event.find("md:latitude2",self.ns) != None:
+            if event.find("md:latitude2",self.ns) is not None:
                 eventLatitude2= event.find("md:latitude2",self.ns).text
-            if event.find("md:label",self.ns) != None:
+            if event.find("md:label",self.ns) is not None:
                 eventLabel= event.find("md:label",self.ns).text
-            if event.find("md:location/md:name",self.ns) != None:
+            if event.find("md:location/md:name",self.ns) is not None:
                 eventLocation= event.find("md:location/md:name",self.ns).text
-            if event.find("md:method/md:name",self.ns) != None:
+            if event.find("md:method/md:name",self.ns) is not None:
                 eventDeviceTerms =[]
                 eventDevice= event.find("md:method/md:name",self.ns).text
                 eventDeviceID = self._getIDParts(event.find("md:method",self.ns).get("id")).get("method")
@@ -764,9 +764,9 @@ class PanDataSet:
                 eventMethod = PanMethod(eventDeviceID, eventDevice,eventDeviceTerms)
             else:
                 eventMethod = None
-            if event.find("md:basis",self.ns) != None:
+            if event.find("md:basis",self.ns) is not None:
                 basis= event.find("md:basis",self.ns)
-                if basis.find("md:name",self.ns) != None:
+                if basis.find("md:name",self.ns) is not None:
                     basis_name= basis.find("md:name",self.ns).text
                 else:
                     basis_name = None
@@ -930,16 +930,16 @@ class PanDataSet:
                         coln[panparShortName] = 1
                 panparType=matrix.get("type")
                 panparUnit = None
-                if(paramstr.find("md:unit",self.ns) != None):
+                if(paramstr.find("md:unit",self.ns) is not None):
                     panparUnit=paramstr.find("md:unit",self.ns).text
                 panparComment=None
-                if(matrix.find("md:comment",self.ns) != None):
+                if(matrix.find("md:comment",self.ns) is not None):
                     panparComment=matrix.find("md:comment",self.ns).text
                 panparMethod = None
-                if (matrix.find("md:method", self.ns) != None):
+                if (matrix.find("md:method", self.ns) is not None):
                     panparMethodTerms = []
                     panparMethodName = ""
-                    if (matrix.find("md:method/md:name", self.ns) != None):
+                    if (matrix.find("md:method/md:name", self.ns) is not None):
                         panparMethodName = matrix.find("md:method/md:name", self.ns).text
                     panparMethodID = self._getIDParts(matrix.find("md:method", self.ns).get('id')).get('method')
                     for pmterminfo in matrix.findall("md:method/md:term", self.ns):
