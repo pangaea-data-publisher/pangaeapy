@@ -704,18 +704,12 @@ class PanDataSet:
         id : str
             The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
         """
-        if type(id) == int:
-            self.id = id
-        elif isinstance(id, str):
-            idmatch = re.search(r"10\.1594\/PANGAEA\.([0-9]+)$", id, re.IGNORECASE)
-            if idmatch is not None:
-                self.id = idmatch[1]
-            else:
-                # self.logging.append({'ERROR': 'Invalid Identifier or DOI: '+str(id)})
-                self.log(logging.ERROR, "Invalid Identifier or DOI: " + str(id))
-                # print('Invalid Identifier')
-        else:
-            # self.logging.append({'ERROR': 'Invalid Identifier or DOI: ' + str(id)})
+        try:
+            self.id = int(re.fullmatch(
+                r"(?:(?:(?:https?://)?(?:dx\.)?doi\.org/|doi:)?10\.1594/PANGAEA\.)?(\d+)",
+                str(id).strip(),
+            ).group(1))
+        except AttributeError:
             self.log(logging.ERROR, "Invalid Identifier or DOI: " + str(id))
 
     def _getIDParts(self, idstr):
