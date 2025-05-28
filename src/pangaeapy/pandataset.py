@@ -1230,7 +1230,12 @@ class PanDataSet:
                         if xml.find('./md:technicalInfo/md:entry[@key="collectionType"]', self.ns) is not None:
                             self.log(logging.WARNING, "Data set is of type collection, please select one of its child datasets")
                             self.isCollection = True
-                            self._setCollectionMembers()
+                            self.collection_members = [
+                                f"doi:10.1594/PANGAEA.{el[1:]}"
+                                for el in xml.find(
+                                    './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
+                                ).get("value").split(",")
+                            ]
 
                         """hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
                         if hierarchyLevel!=None:
@@ -1381,18 +1386,6 @@ class PanDataSet:
                 self.id = None
         else:
             self.log(logging.ERROR, "No HTTP response object received for: " + str(self.id))
-
-    def _setCollectionMembers(self):
-        cheaders = {"Accept": "application/json"}
-        if self.auth_token:
-            cheaders["Authorization"] = "Bearer " + str(self.auth_token)
-        childqueryURL = "https://www.pangaea.de/advanced/search.php?q=incollection:" + str(self.id) + "&count=1000"
-        r = requests.get(childqueryURL, headers=cheaders)
-        if r.status_code != 404:
-            s = r.json()
-            for p in s["results"]:
-                self.collection_members.append(p["URI"])
-                # print(p['URI'])
 
     def getGeometry(self):
         """
