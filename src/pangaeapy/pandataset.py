@@ -1603,21 +1603,14 @@ class PanDataSet:
         self.logging.extend(dwca_exporter.logging)
         return ret
 
-    def download(self, interactive: bool = False, confirm_large: bool = False,
-                 indices: list = None, columns: list[str] = None):
+    def download(self, indices: list = None, columns: list[str] = None):
         """Download binary data if available; otherwise, save dataframe as CSV.
 
-        When exploring data sets for the first time it is recommended to set interactive to True.
-        Also, consider to explicitly define the pangaeapy cache when calling PanDataSet or in
-        `~/.config/pangaeapy/config.toml` to save the data outside your home directory.
+        Downloads can be very large. Consider explicitly defining the pangaeapy cache when calling PanDataSet or in
+        `~/.config/pangaeapy/config.toml` to save the data outside your home directory, which is the default cache location.
 
         Parameters
         ----------
-        interactive : bool
-            Ask user for input on which files to download.
-            Default is to download all files.
-        confirm_large : bool
-            Ask for permission before downloading files larger than 50Mb.
         indices : list
             Row indices of the data to download (e.g. [1, 2, 6]).
         columns : list of strings
@@ -1635,39 +1628,15 @@ class PanDataSet:
         # possible names for binary column(s) in the data table of a data set
         binary_columns = ["binary", "netcdf", "image", "video", "text", "url", "csv"]
         # case-insensitive matching of any column starting with one of the possible binary column names
-        # (?!.*\() -> negative look ahead assertion to skip columns with (
+        # (?!.*\() -> negative look ahead assertion to skip columns with "("
         # such columns mostly contain additional information about the binary file (e.g. Binary (Size))
         pattern = "(?i)^(" + "|".join(binary_columns) + r")(?!.*\()"
         column_names = self.data.filter(regex=pattern).columns.tolist()
 
         if column_names:
             self.log(logging.INFO, f"Downloading files to {self.cache_dir}")
-            if interactive:
-                # do not truncate any columns
-                with pd.option_context('display.max_columns', None, 'display.width', None):
-                    print(f"Available files\n"
-                          f"{self.data.loc[:, column_names]}\n")
-                columns = input(f"Please supply the names of the columns you want to download.\n"
-                                f"Possible values: {column_names} (empty for all): ")
-                # convert string to list of strings by splitting the input string if it is not empty
-                self.columns = [s.strip() for s in columns.split(",")] if columns.strip() else column_names
-
-                idx = input("Please supply a list of comma separated indices and/or a range (e.g. 1-3,5) of files you wish to download (empty for all):")
-                # convert string to list of integers if the input string is not empty
-                indices = []
-                if idx.strip():
-                    for part in idx.split(","):
-                        if "-" in part:  # Handle ranges
-                            start, end = map(int, part.split("-"))
-                            indices.extend(range(start, end + 1))  # Include end in the range
-                        else:  # Handle single indices
-                            indices.append(int(part))
-                self.data_index = indices
-                self.data_index.sort()
-
-            else:
-                self.columns = columns if columns else column_names
-                self.data_index = indices if indices else []
+            self.columns = columns if columns else column_names
+            self.data_index = indices if indices else []
 
             # double check input
             if not all([x in column_names for x in self.columns]):
@@ -1678,11 +1647,11 @@ class PanDataSet:
                 raise ValueError(f"Index out of range!\n"
                                  f"Possible index range: 0 - {self.data.shape[0]}.")
 
-            harvester = PanDataHarvester(self, confirm_large=confirm_large)
+            harvester = PanDataHarvester(self)
             return harvester.run_download()
         else:
-            self.log(logging.WARNING, "Warning: No binary data available.")
-            self.log(logging.WARNING, f"The dataset will be saved as a CSV file to {self.cache_dir}")
+            self.log(logging.INFO, "Info: No binary data available.")
+            self.log(logging.INFO, f"The dataset will be saved as a CSV file to {self.cache_dir}")
 
             csv_path = os.path.join(self.cache_dir, f"{self.id}_data.csv")
             self.data.to_csv(csv_path, index=False)
@@ -1699,14 +1668,10 @@ class PanDataHarvester:
     dataset: PanDataSet
         The dataset, which initiates the PanDataHarvester
 
-    Attributes
-    ----------
-    confirm_large: bool
-        Ask the user for permission to download data larger than 50 MB
 
     This class bundles the download functionality of pangaeapy.
     When initiated via PanDataSet.download(), the selected files are downloaded asynchronously.
-    They are stored in the local cache in their original file format.
+    They are stored in the local cache in their original file format and under their original name.
     The Harvester will check if the file already exists before downloading.
     To use the download functionality in a jupyter notebook include
 
@@ -1719,16 +1684,15 @@ class PanDataHarvester:
 
     """
 
-    def __init__(self, dataset, confirm_large):
+    def __init__(self, dataset):
 
         self.id = dataset.id
         self.auth_token = dataset.auth_token
         self.data = dataset.data
         self.cache_dir = dataset.cache_dir
         os.makedirs(self.cache_dir, exist_ok=True)
-        self.columns = dataset.columns
+        self.columns = dataset.columns  # list of column names
         self.data_index = dataset.data_index
-        self.confirm_large = confirm_large
         self.semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
 
 
@@ -1762,13 +1726,6 @@ class PanDataHarvester:
                             print(f"File {filename} already exists, skipping.")
                             return filepath
 
-                        # Ask confirmation for large files (>50MB)
-                        if size > 50 * 1024 * 1024 and self.confirm_large:
-                            confirm = input(f"{filename} is {size / (1024 * 1024):.2f} MB. Download? (y/n) ")
-                            if confirm.lower() != 'y':
-                                print(f"Skipping {filename}...")
-                                continue
-
                         if response.status == 429:
                             wait_time = response.headers.get('retry-after', 0)
                             wait_time = int(wait_time) if wait_time != 0 else 10
@@ -1798,6 +1755,10 @@ class PanDataHarvester:
                         raise e
                     print(f"Error {e.status} encountered. Retrying ({attempt}/{max_retries})...")
 
+            print(f"Exceeded maximum number of retries ({max_retries}). Cancel download.")
+            return None
+
+
     async def download_files(self):
         """Download all binary files asynchronously."""
         binary_files = self._list_available_data()
@@ -1824,6 +1785,7 @@ class PanDataHarvester:
 
         return downloaded_files
 
+
     def run_download(self):
         """Start asynchronous file download for single file downloads or download
          the zip file and extract its contents if the whole data set is requested.
@@ -1831,9 +1793,9 @@ class PanDataHarvester:
 
          Returns
          -------
-         List of downloaded files
+            List of downloaded files
          """
-        if (self.data_index == []) and ("URL" not in self.columns):
+        if (self.data_index == []) and (all(["URL" not in column for column in self.columns])):
             # User wants the whole binary data set
             # Download the data set via the ZIP link, which requires a valid auth_token
             # Data sets with a URL binary column do not have a zip download available
@@ -1905,6 +1867,8 @@ class PanDataHarvester:
             if zip_path.exists():
                 try:
                     os.remove(zip_path)
+                    return None
                 except Exception as e:
                     print(f"Failed to delete ZIP file: {e}")
+                    return None
 
