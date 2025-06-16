@@ -36,7 +36,7 @@ Please take a look at the example Jupyter Notebooks which you can find in the 'e
 
 ## Documentation
 
-https://github.com/pangaea-data-publisher/pangaeapy/blob/master/docs/pandataset.md
+https://pangaea-data-publisher.github.io/pangaeapy/
 
 ## Running the tests
 
