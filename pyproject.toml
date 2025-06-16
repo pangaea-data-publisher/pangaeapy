@@ -36,6 +36,7 @@ dependencies = [
 [project.urls]
 homepage = "https://www.pangaea.de"
 source = "https://github.com/pangaea-data-publisher/pangaeapy"
+documentation = "https://pangaea-data-publisher.github.io/pangaeapy/"
 issues = "https://github.com/pangaea-data-publisher/pangaeapy/issues"
 
 [tool.setuptools.package-data]
