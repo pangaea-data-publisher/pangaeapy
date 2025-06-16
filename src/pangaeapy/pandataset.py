@@ -14,7 +14,6 @@ import requests
 import sqlite3 as sl
 import textwrap
 import time
-import toml
 import zipfile
 
 from pathlib import PurePosixPath, Path
@@ -483,7 +482,7 @@ class PanDataSet:
 
     """
     CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pangaeapy")
-    CONFIG_PATH = os.path.join(CONFIG_DIR, "config.toml")
+    CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
     #TODO: set enable cache to True
     def __init__(self, id=None, paramlist=None, deleteFlag='', enable_cache=False,
                  cache_dir=None, include_data=True, expand_terms=[],
@@ -628,7 +627,7 @@ class PanDataSet:
         if os.path.exists(self.CONFIG_PATH):
             try:
                 with open(self.CONFIG_PATH, "r") as f:
-                    config = toml.load(f)
+                    config = json.load(f)
                     return config.get("settings", {}).get("cache_dir")
             except (json.JSONDecodeError, OSError):
                 print("[INFO]: Failed to load cache config. Using default cache path.")
@@ -640,7 +639,7 @@ class PanDataSet:
             os.makedirs(self.CONFIG_DIR, exist_ok=True)  # Ensure config directory exists
             config = {"settings": {"cache_dir": str(cache_dir)}}
             with open(self.CONFIG_PATH, "w") as f:
-                toml.dump(config, f)
+                json.dump(config, f, indent=4)
         except OSError:
             print("[Warning]: Failed to save cache config.")
 
@@ -1585,7 +1584,7 @@ class PanDataSet:
         """Download binary data if available; otherwise, save dataframe as CSV.
 
         Downloads can be very large. Consider explicitly defining the pangaeapy cache when calling PanDataSet or in
-        `~/.config/pangaeapy/config.toml` to save the data outside your home directory, which is the default cache location.
+        `~/.config/pangaeapy/config.json` to save the data outside your home directory, which is the default cache location.
 
         Parameters
         ----------
