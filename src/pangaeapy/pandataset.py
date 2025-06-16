@@ -1,14 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Aug 21 13:31:30 2018
-
-@author: Robert Huber
-@author: Markus Stocker
-@author: Egor Gordeev
-@author: Aarthi Balamurugan
-"""
-import json
-import time
 import datetime
 
 import aiohttp
@@ -19,19 +8,29 @@ import numpy as np
 import lxml.etree as ET
 import re
 import io
+import json
+import logging
 import os
+import pickle
+import re
 from pathlib import PurePosixPath, Path
 import textwrap
 import sqlite3 as sl
+import textwrap
+import time
 import logging, logging.handlers
 import toml
 from urllib.parse import urlparse, unquote
 import zipfile
 
-import pickle
-from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
-from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
+import lxml.etree as ET
+import numpy as np
+import pandas as pd
+import requests
+
 from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
+from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
+from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
 
 logger = logging.getLogger(__name__)
 
@@ -757,18 +756,12 @@ class PanDataSet:
         id : str
             The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
         """
-        if type(id) == int:
-            self.id = id
-        elif isinstance(id, str):
-            idmatch = re.search(r"10\.1594\/PANGAEA\.([0-9]+)$", id, re.IGNORECASE)
-            if idmatch is not None:
-                self.id = idmatch[1]
-            else:
-                # self.logging.append({'ERROR': 'Invalid Identifier or DOI: '+str(id)})
-                self.log(logging.ERROR, "Invalid Identifier or DOI: " + str(id))
-                # print('Invalid Identifier')
-        else:
-            # self.logging.append({'ERROR': 'Invalid Identifier or DOI: ' + str(id)})
+        try:
+            self.id = int(re.fullmatch(
+                r"(?:(?:(?:https?://)?(?:dx\.)?doi\.org/|doi:)?10\.1594/PANGAEA\.)?(\d+)",
+                str(id).strip(),
+            ).group(1))
+        except AttributeError:
             self.log(logging.ERROR, "Invalid Identifier or DOI: " + str(id))
 
     def _getIDParts(self, idstr):
@@ -796,25 +789,25 @@ class PanDataSet:
 
             eventID = self._getIDParts(event.get("id")).get("event")
 
-            if event.find("md:elevation",self.ns) != None:
+            if event.find("md:elevation",self.ns) is not None:
                 eventElevation=event.find("md:elevation",self.ns).text
-            if event.find("md:dateTime",self.ns) != None:
+            if event.find("md:dateTime",self.ns) is not None:
                 eventDateTime= event.find("md:dateTime",self.ns).text
-            if event.find("md:dateTime2",self.ns) != None:
+            if event.find("md:dateTime2",self.ns) is not None:
                 eventDateTime2= event.find("md:dateTime2",self.ns).text
-            if event.find("md:longitude",self.ns) != None:
+            if event.find("md:longitude",self.ns) is not None:
                 eventLongitude= event.find("md:longitude",self.ns).text
-            if event.find("md:latitude",self.ns) != None:
+            if event.find("md:latitude",self.ns) is not None:
                 eventLatitude= event.find("md:latitude",self.ns).text
-            if event.find("md:longitude2",self.ns) != None:
+            if event.find("md:longitude2",self.ns) is not None:
                 eventLongitude2= event.find("md:longitude2",self.ns).text
-            if event.find("md:latitude2",self.ns) != None:
+            if event.find("md:latitude2",self.ns) is not None:
                 eventLatitude2= event.find("md:latitude2",self.ns).text
-            if event.find("md:label",self.ns) != None:
+            if event.find("md:label",self.ns) is not None:
                 eventLabel= event.find("md:label",self.ns).text
-            if event.find("md:location/md:name",self.ns) != None:
+            if event.find("md:location/md:name",self.ns) is not None:
                 eventLocation= event.find("md:location/md:name",self.ns).text
-            if event.find("md:method/md:name",self.ns) != None:
+            if event.find("md:method/md:name",self.ns) is not None:
                 eventDeviceTerms =[]
                 eventDevice= event.find("md:method/md:name",self.ns).text
                 eventDeviceID = self._getIDParts(event.find("md:method",self.ns).get("id")).get("method")
@@ -823,9 +816,9 @@ class PanDataSet:
                 eventMethod = PanMethod(eventDeviceID, eventDevice,eventDeviceTerms)
             else:
                 eventMethod = None
-            if event.find("md:basis",self.ns) != None:
+            if event.find("md:basis",self.ns) is not None:
                 basis= event.find("md:basis",self.ns)
-                if basis.find("md:name",self.ns) != None:
+                if basis.find("md:name",self.ns) is not None:
                     basis_name= basis.find("md:name",self.ns).text
                 else:
                     basis_name = None
@@ -989,16 +982,16 @@ class PanDataSet:
                         coln[panparShortName] = 1
                 panparType=matrix.get("type")
                 panparUnit = None
-                if(paramstr.find("md:unit",self.ns) != None):
+                if(paramstr.find("md:unit",self.ns) is not None):
                     panparUnit=paramstr.find("md:unit",self.ns).text
                 panparComment=None
-                if(matrix.find("md:comment",self.ns) != None):
+                if(matrix.find("md:comment",self.ns) is not None):
                     panparComment=matrix.find("md:comment",self.ns).text
                 panparMethod = None
-                if (matrix.find("md:method", self.ns) != None):
+                if (matrix.find("md:method", self.ns) is not None):
                     panparMethodTerms = []
                     panparMethodName = ""
-                    if (matrix.find("md:method/md:name", self.ns) != None):
+                    if (matrix.find("md:method/md:name", self.ns) is not None):
                         panparMethodName = matrix.find("md:method/md:name", self.ns).text
                     panparMethodID = self._getIDParts(matrix.find("md:method", self.ns).get('id')).get('method')
                     for pmterminfo in matrix.findall("md:method/md:term", self.ns):
@@ -1290,7 +1283,12 @@ class PanDataSet:
                         if xml.find('./md:technicalInfo/md:entry[@key="collectionType"]', self.ns) is not None:
                             self.log(logging.WARNING, "Data set is of type collection, please select one of its child datasets")
                             self.isCollection = True
-                            self._setCollectionMembers()
+                            self.collection_members = [
+                                f"doi:10.1594/PANGAEA.{el[1:]}"
+                                for el in xml.find(
+                                    './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
+                                ).get("value").split(",")
+                            ]
 
                         """hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
                         if hierarchyLevel!=None:
@@ -1441,18 +1439,6 @@ class PanDataSet:
                 self.id = None
         else:
             self.log(logging.ERROR, "No HTTP response object received for: " + str(self.id))
-
-    def _setCollectionMembers(self):
-        cheaders = {"Accept": "application/json"}
-        if self.auth_token:
-            cheaders["Authorization"] = "Bearer " + str(self.auth_token)
-        childqueryURL = "https://www.pangaea.de/advanced/search.php?q=incollection:" + str(self.id) + "&count=1000"
-        r = requests.get(childqueryURL, headers=cheaders)
-        if r.status_code != 404:
-            s = r.json()
-            for p in s["results"]:
-                self.collection_members.append(p["URI"])
-                # print(p['URI'])
 
     def getGeometry(self):
         """
