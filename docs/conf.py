@@ -1,8 +1,9 @@
 import pangaeapy
 
 project = 'pangaeapy'
-copyright = '2021, Robert Huber'
-author = 'Robert Huber'
+copyright = '2025, Robert Huber'
+author = 'Robert Huber, Johannes Röttenbacher'
+release = '1.0.22'
 version = pangaeapy.__version__
 release = pangaeapy.__version__
 

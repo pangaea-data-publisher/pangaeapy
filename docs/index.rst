@@ -7,4 +7,5 @@ pangaeapy Documentation
 .. toctree::
    :hidden:
 
+   user_guide
    api
