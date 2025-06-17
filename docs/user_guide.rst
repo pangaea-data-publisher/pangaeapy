@@ -52,10 +52,14 @@ For tabular data sets you can access a pandas DataFrame under ``data``.
 
 If you want to access the data outside of python you can download the data as a csv file to your local cache using the ``download`` method.
 
+>>> ds.download()
+Dataset saved to /path/to/your/storage/900388_data.csv
+['/path/to/your/storage/900388_data.csv']
+
 Binary data
 ^^^^^^^^^^^
 
-Binary data refers to everything, which is not stored as a table in PANGAEA's database. This includes among others images, videos and `netCDF`_ files. If you open a binary data set you still get a table from the ``data`` attribute but this will only list the available files in the data set.
+Binary data refers to everything, which is not stored as a table in PANGAEA's database. This includes, among others, images, videos and `netCDF`_ files. If you open a binary data set you still get a table from the ``data`` attribute but this will only list the available files in the data set.
 
 You can also view this table on `PANGAEA`_ by clicking the "View dataset as HTML" button in the *Download Data* section on the data set landing page.
 
@@ -73,9 +77,9 @@ You can find your personal bearer token in your `PANGAEA user profile`_ meaning 
 
 .. note::
 
-    Your bearer token changes everytime you log out of PANGAEA. Thus, when you accidentally shared your code with your bearer token you can just log out to make it invalid.
+    Your bearer token changes everytime you log out of PANGAEA. Thus, when you accidentally share your code with your bearer token you can just log out to make it invalid.
 
-If you only need one or a couple of files from the data set you can also directly provide the indices of these as a list to the ``download`` method. This also works without a bearer token in order to simplify sharing code or tutorials for a specific data set.
+If you only need one or a couple of files from the data set you can also directly provide the row indices of these as a list to the ``download`` method. This also works without a bearer token in order to simplify sharing code or tutorials for a specific data set.
 
 .. code-block:: python
 
