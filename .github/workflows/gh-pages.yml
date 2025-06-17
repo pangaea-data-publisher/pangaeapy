@@ -2,7 +2,8 @@ name: Build and Deploy Documentation
 
 on:
   push:
-    branches: [ $default-branch ]
+    branches:
+      - master
 
   workflow_dispatch:
 
