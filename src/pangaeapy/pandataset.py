@@ -1,24 +1,24 @@
-import aiohttp
 import asyncio
 import datetime
 import io
 import json
 import logging
-import lxml.etree as ET
-import numpy as np
-import os
-import pandas as pd
+from pathlib import Path, PurePosixPath
 import pickle
 import re
-import requests
 import sqlite3 as sl
 import textwrap
 import time
+from urllib.parse import unquote, urlparse
 import zipfile
 
-from pathlib import PurePosixPath, Path
-from urllib.parse import urlparse, unquote
+import aiohttp
+import lxml.etree as ET
+import numpy as np
+import pandas as pd
+import requests
 
+from pangaeapy import __version__
 from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
 from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
@@ -418,7 +418,7 @@ class PanDataSet:
         in case quality flags are avialable, this parameter defines a flag for which data should not be included in the data dataFrame.
         Possible values are listed here: https://wiki.pangaea.de/wiki/Quality_flag
     enable_cache : boolean
-        If set to True, PanDataSet objects are cached as pickle files either on the local home directory within a directory called 'pangaeapy_cache' or in cache_dir given by the user in order to avoid unnecessary downloads.
+        If set to True, PanDataSet objects are cached as pickle files either on the local home directory within a directory called '.pangaeapy_cache' or in cache_dir given by the user in order to avoid unnecessary downloads.
     include_data : boolean
         determines if data table is downloaded and added to the self.data dataframe. If you are interested in metadata only set this to False
     expand_terms : list or int
@@ -481,13 +481,10 @@ class PanDataSet:
         auto-generated ones are ignored right now.
 
     """
-    CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "pangaeapy")
-    CONFIG_PATH = os.path.join(CONFIG_DIR, "config.json")
-    #TODO: set enable cache to True
     def __init__(self, id=None, paramlist=None, deleteFlag='', enable_cache=False,
                  cache_dir=None, include_data=True, expand_terms=[],
                  auth_token=None, cache_expiry_days=1):
-        self.module_dir = os.path.dirname(__file__)
+        self.module_dir = Path(__file__).parent
         self.id = None
         self.uri, self.doi = "",""  # the doi
         self.logging = []
@@ -498,28 +495,12 @@ class PanDataSet:
         # Mapping should be moved to e.g. netCDF class/module??
         #moddir = os.path.dirname(os.path.abspath(__file__))
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
-
-        # Load cache directory from config file (if exists)
+        # setting up the cache directory in the users home folder if no path is given
         if cache_dir is None:
-            cache_dir = self._load_config()
-
-        # Default to user home directory cache if not set
-        if cache_dir is None:
-            homedir = os.path.expanduser("~")
-            self.cache_dir = os.path.join(homedir, ".pangaeapy_cache")
+            self.cachedir = Path(Path.home(), ".pangaeapy_cache")
         else:
-            self.cache_dir = cache_dir
-
-        # Create cache directory if it doesn’t exist
-        os.makedirs(self.cache_dir, exist_ok=True)
-
-        # Save the cache directory in config file
-        self._save_config(self.cache_dir)
-
-        # Inform the user about the config file location
-        print(f"[INFO] Cache directory set to: {self.cache_dir}")
-        print(f"[INFO] To change the cache directory permanently, edit: {self.CONFIG_PATH}")
-
+            self.cachedir = Path(cache_dir)
+        self.cachedir.mkdir(parents=True, exist_ok=True)
         self.cache = enable_cache
         self.cache_expiry_days = cache_expiry_days
         self.isCollection = False
@@ -553,7 +534,7 @@ class PanDataSet:
         self.topotype = None
         self.authors = []
         self.terms_cache = {}  # temporary cache for terms
-        self.terms_conn = sl.connect(os.path.join(self.cache_dir, "terms.db"))
+        self.terms_conn = sl.connect(Path(self.cachedir, "terms.db"))
         self.supplement_to = {}  # If this dataset is supllementary to another publication, give that publications title and URI here.
         self.relations = []  # list of relations as given in
         self.keywords = []  # list of keywords
@@ -622,27 +603,6 @@ class PanDataSet:
             # self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
             self.log(logging.ERROR, "Dataset id missing, could not initialize PanDataSet object for: " + str(id))
 
-    def _load_config(self):
-        """Load cache directory from a JSON config file."""
-        if os.path.exists(self.CONFIG_PATH):
-            try:
-                with open(self.CONFIG_PATH, "r") as f:
-                    config = json.load(f)
-                    return config.get("settings", {}).get("cache_dir")
-            except (json.JSONDecodeError, OSError):
-                print("[INFO]: Failed to load cache config. Using default cache path.")
-        return None
-
-    def _save_config(self, cache_dir):
-        """Save cache directory to a JSON config file."""
-        try:
-            os.makedirs(self.CONFIG_DIR, exist_ok=True)  # Ensure config directory exists
-            config = {"settings": {"cache_dir": str(cache_dir)}}
-            with open(self.CONFIG_PATH, "w") as f:
-                json.dump(config, f, indent=4)
-        except OSError:
-            print("[Warning]: Failed to save cache config.")
-
     def log(self, level, message):
         message += " - " + str(self.doi)
         loglevel = logging.getLevelName(level)
@@ -651,12 +611,12 @@ class PanDataSet:
 
     def get_pickle_path(self):
         dirs = textwrap.wrap(str(self.id).zfill(8), 2)
-        dirpath = os.path.join(self.cache_dir, *dirs)
+        dirpath = Path(self.cachedir, *dirs)
         try:
-            os.makedirs(dirpath)
+            dirpath.mkdir(parents=True)
         except Exception as e:
             pass
-        return os.path.join(dirpath, str(self.id) + "_data.pik")
+        return Path(dirpath, str(self.id) + "_data.pik")
 
     def check_pickle(self):
         """
@@ -673,8 +633,8 @@ class PanDataSet:
         """
         ret = True
         pickle_location = self.get_pickle_path()
-        if os.path.exists(pickle_location):
-            pickle_time = os.path.getmtime(pickle_location)
+        if pickle_location.exists():
+            pickle_time = pickle_location.stat().st_mtime
             if int(time.time()) - int(pickle_time) >= (self.cache_expiry_days * 86400):
 
                 self.setMetadata()
@@ -695,8 +655,7 @@ class PanDataSet:
             return ret
 
     def drop_pickle(self):
-        if os.path.exists(self.get_pickle_path()):
-            os.remove(self.get_pickle_path())
+        self.get_pickle_path().unlink(missing_ok=True)
 
     def from_pickle(self):
         """
@@ -705,12 +664,11 @@ class PanDataSet:
         """
         ret = False
         pickle_path = self.get_pickle_path()
-        if os.path.exists(pickle_path):
+        if pickle_path.exists():
             try:
-                f = open(pickle_path, "rb")
-                tmp_dict = pickle.load(f)
+                with open(pickle_path, "rb") as f:
+                    tmp_dict = pickle.load(f)
                 tmp_dict["logging"] = []
-                f.close()
                 self.__dict__.update(tmp_dict)
                 # self.logging.append({'INFO':'Loading data and metadata from cache: '+str(pickle_path)})
                 self.log(logging.INFO, "Loading data and metadata from cache: " + str(pickle_path))
@@ -729,13 +687,12 @@ class PanDataSet:
 
         """
         if not self.data.empty:
-            f = open(self.get_pickle_path(), "wb")
             state = self.__dict__.copy()
             del state["terms_conn"]
-            pickle.dump(state, f, 2)
+            with open(self.get_pickle_path(), "wb") as f:
+                pickle.dump(state, f, 2)
             # self.logging.append({'INFO': 'Saved cache (pickle) file at: ' + str(self.get_pickle_path())})
             self.log(logging.INFO, "Saved cache (pickle) file at: " + str(self.get_pickle_path()))
-            f.close()
         else:
             self.log(logging.WARNING, "Skipped saving cache (pickle) since the dataset contains no data")
 
@@ -1059,9 +1016,7 @@ class PanDataSet:
         if self.include_data:
             try:
                 dataURL = "https://doi.pangaea.de/10.1594/PANGAEA." + str(self.id)
-                #TODO: use dynamic version
-                requestheader = {"Accept": "text/tab-separated-values",
-                                 "User-Agent": f"pangaeapy/1.0.22"}
+                requestheader = {"Accept": "text/tab-separated-values"}
                 if self.auth_token:
                     requestheader["Authorization"] = "Bearer " + str(self.auth_token)
                 dataResponse = requests.get(dataURL, headers=requestheader)
@@ -1583,8 +1538,7 @@ class PanDataSet:
     def download(self, indices: list = None, columns: list[str] = None):
         """Download binary data if available; otherwise, save dataframe as CSV.
 
-        Downloads can be very large. Consider explicitly defining the pangaeapy cache when calling PanDataSet or in
-        `~/.config/pangaeapy/config.json` to save the data outside your home directory, which is the default cache location.
+        Downloads can be very large. Consider explicitly defining the pangaeapy cache when calling PanDataSet.
 
         Parameters
         ----------
@@ -1611,7 +1565,7 @@ class PanDataSet:
         column_names = self.data.filter(regex=pattern).columns.tolist()
 
         if column_names:
-            self.log(logging.INFO, f"Downloading files to {self.cache_dir}")
+            self.log(logging.INFO, f"Downloading files to {self.cachedir}")
             self.columns = columns if columns else column_names
             self.data_index = indices if indices else []
 
@@ -1628,9 +1582,9 @@ class PanDataSet:
             return harvester.run_download()
         else:
             self.log(logging.INFO, "Info: No binary data available.")
-            self.log(logging.INFO, f"The dataset will be saved as a CSV file to {self.cache_dir}")
+            self.log(logging.INFO, f"The dataset will be saved as a CSV file to {self.cachedir}")
 
-            csv_path = os.path.join(self.cache_dir, f"{self.id}_data.csv")
+            csv_path = Path(self.cachedir, f"{self.id}_data.csv")
             self.data.to_csv(csv_path, index=False)
             print(f"Dataset saved to {csv_path}")
             return [csv_path]
@@ -1662,12 +1616,11 @@ class PanDataHarvester:
     """
 
     def __init__(self, dataset):
-
         self.id = dataset.id
         self.auth_token = dataset.auth_token
         self.data = dataset.data
-        self.cache_dir = dataset.cache_dir
-        os.makedirs(self.cache_dir, exist_ok=True)
+        self.cache_dir = dataset.cachedir
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.columns = dataset.columns  # list of column names
         self.data_index = dataset.data_index
         self.semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
@@ -1691,7 +1644,7 @@ class PanDataHarvester:
 
     async def _download_file(self, session, url, filename, max_retries=4):
         """Download a single file asynchronously, handling 503 errors."""
-        filepath = os.path.join(self.cache_dir, filename)
+        filepath = Path(self.cache_dir, filename)
 
         attempt = 0
         async with self.semaphore:
@@ -1699,7 +1652,7 @@ class PanDataHarvester:
                 try:
                     async with session.get(url) as response:
                         size = int(response.headers.get('content-length', 0))
-                        if os.path.exists(filepath) and (os.path.getsize(filepath) >= size):
+                        if filepath.exists() and (filepath.stat().st_size >= size):
                             print(f"File {filename} already exists, skipping.")
                             return filepath
 
@@ -1742,9 +1695,8 @@ class PanDataHarvester:
         dataset_id = self.id
 
         async with aiohttp.ClientSession() as session:
-            #TODO: use dynamic version
             session.headers.update({"Authorization": f"Bearer {self.auth_token}",
-                                    "User-Agent": "pangaeapy/1.0.22"})
+                                    "User-Agent": f"pangaeapy/{__version__}"})
             tasks = []
             for filename in binary_files:
                 if filename.startswith("https:"):
@@ -1803,12 +1755,11 @@ class PanDataHarvester:
         Requires a valid auth_token (also called Bearer Token), which can be found at https://www.pangaea.de/user/".
         """
         url = f"https://download.pangaea.de/dataset/{self.id}/allfiles.zip"
-        zip_path = Path(self.cache_dir) / "allfiles.zip"
+        zip_path = Path(self.cache_dir, "allfiles.zip")
         extract_dir = Path(self.cache_dir)
-        #TODO: use dynamic version
         url_headers = {
             "Authorization": f"Bearer {self.auth_token}",
-            "User-Agent": "pangaeapy/1.0.22"
+            "User-Agent": f"pangaeapy/{__version__}"
         }
         try:
             with requests.get(url, stream=True, headers=url_headers) as r:
@@ -1829,7 +1780,7 @@ class PanDataHarvester:
 
             # Extract and collect filenames
             with zipfile.ZipFile(zip_path, "r") as zip_file:
-                downloaded_files = [os.path.join(self.cache_dir, f) for f in zip_file.namelist()]
+                downloaded_files = [Path(self.cache_dir, f) for f in zip_file.namelist()]
                 zip_file.extractall(extract_dir)
 
             return downloaded_files
@@ -1843,9 +1794,8 @@ class PanDataHarvester:
         finally:
             if zip_path.exists():
                 try:
-                    os.remove(zip_path)
+                    zip_path.unlink()
                     return None
                 except Exception as e:
                     print(f"Failed to delete ZIP file: {e}")
                     return None
-
