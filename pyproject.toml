@@ -64,7 +64,7 @@ env_list = [
 [tool.tox.env_run_base]
 deps = [
   "pytest >= 8.0",
-  "pytest-mock >=3.14.1",
+  "pytest-mock >= 3.13.0",
 ]
 commands = [["pytest"]]
 

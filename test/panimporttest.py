@@ -8,4 +8,3 @@ ds = PanDataSet(dsid)
 #print(ds.getEventsAsFrame().columns)
 panimport_exporter = PanPanImportExporter(ds)
 print(panimport_exporter.create())
-

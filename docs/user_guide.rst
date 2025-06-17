@@ -26,11 +26,7 @@ Once you found the data set you need on `PANGAEA`_, you can use its ``id`` to op
     import pangaeapy as pan
     ds = pan.PanDataSet(900388, enable_cache=True)
 
-The ``enable_cache`` keyword tells *pangaeapy* to cache the data set locally, which for tabular data sets it will do using `pickle`_. The default cache location is ``~/.pangaeapy_cache/``. You can change the location of the cache by either directly providing it via a keyword argument or editing the ``config.json`` file in ``~/.config/pangaeapy/``.
-
-.. note::
-
-    The ``config.json`` file gets created the first time you call ``PanDataSet`` and *pangaeapy* will search for this file before using the default cache location. That way your cache location can persist between python sessions.
+The ``enable_cache`` keyword tells *pangaeapy* to cache the data set locally, which for tabular data sets it will do using `pickle`_. The default cache location is ``~/.pangaeapy_cache/``. You can change the location of the cache by directly providing it via a keyword argument.
 
 .. code-block:: python
 

@@ -19,4 +19,3 @@ def mock_config_paths(tmp_path_factory):
         mp.setattr("pangaeapy.pandataset.PanDataSet.CONFIG_DIR", str(temp_config_dir))
         mp.setattr("pangaeapy.pandataset.PanDataSet.CONFIG_PATH", str(temp_config_path))
         yield
-

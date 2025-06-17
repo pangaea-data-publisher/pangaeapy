@@ -6,7 +6,7 @@
 
 ![pangaea](https://pangaea.de/assets/v.0163d8ce3a8d13294b065fcbdc04aebc/layout-images/pangaea-logo.png)
 
-PANGAEA (https://www.pangaea.de) is one of the world's largest archives of this kind offering essential data services such as data curation, long-term data archiving and data publication. PANGAEA hosts about 400,000 datasets comprising around 17.5 billion individual measurements (Aug. 2020) and observations which have been collected during more than 240 international research projects. The system is open to any project, institution or individual scientist using, archiving or publishing research data.
+PANGAEA ([https://www.pangaea.de](https://www.pangaea.de)) is one of the world's largest archives of this kind offering essential data services such as data curation, long-term data archiving and data publication. PANGAEA hosts about 400,000 datasets comprising around 17.5 billion individual measurements (Aug. 2020) and observations which have been collected during more than 240 international research projects. The system is open to any project, institution or individual scientist using, archiving or publishing research data.
 
 Since the programming languages Python and R have become increasingly important for scientific data analysis in recent years, we have developed 'pangaeapy'  a new, custom Python module that considerably simplifies typical data science tasks.
 
@@ -14,7 +14,7 @@ Given a DOI, pangaeapy uses PANGAEA’s web services to automatically load PANGA
 
 ## Installation
 
-* Source code from [github](https://github.com/pangaea-data-publisher/pangaeapy)
+* Source code from [GitHub](https://github.com/pangaea-data-publisher/pangaeapy)
     * `pip install git+https://github.com/pangaea-data-publisher/pangaeapy.git`
 * Wheels for Python from [PyPI](https://pypi.org/project/pangaeapy/)
     * `pip install pangaeapy`
@@ -36,7 +36,7 @@ Please take a look at the example Jupyter Notebooks which you can find in the 'e
 
 ## Documentation
 
-https://pangaea-data-publisher.github.io/pangaeapy/
+[https://pangaea-data-publisher.github.io/pangaeapy/](https://pangaea-data-publisher.github.io/pangaeapy/)
 
 ## Running the tests
 
@@ -44,6 +44,6 @@ The tests ar located in the `test` directory. You can run them by executing
 `pytest` or `tox` in the root directory.
 
 ## Cite as
-Robert Huber, Egor Gordeev, Markus Stocker, Aarthi Balamurugan, & Uwe Schindler (2020). pangaeapy - a Python module to access and analyse PANGAEA data. Zenodo. http://doi.org/10.5281/zenodo.4013940.
+Robert Huber, Egor Gordeev, Markus Stocker, Aarthi Balamurugan, & Uwe Schindler (2020). pangaeapy - a Python module to access and analyse PANGAEA data. Zenodo. [http://doi.org/10.5281/zenodo.4013940](http://doi.org/10.5281/zenodo.4013940).
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4013940.svg)](https://doi.org/10.5281/zenodo.4013940.)
