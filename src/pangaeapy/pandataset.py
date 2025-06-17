@@ -1,19 +1,24 @@
+import asyncio
 import datetime
 import io
 import json
 import logging
-import os
+from pathlib import Path, PurePosixPath
 import pickle
 import re
 import sqlite3 as sl
 import textwrap
 import time
+from urllib.parse import unquote, urlparse
+import zipfile
 
+import aiohttp
 import lxml.etree as ET
 import numpy as np
 import pandas as pd
 import requests
 
+from pangaeapy import __version__
 from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
 from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
@@ -413,7 +418,7 @@ class PanDataSet:
         in case quality flags are avialable, this parameter defines a flag for which data should not be included in the data dataFrame.
         Possible values are listed here: https://wiki.pangaea.de/wiki/Quality_flag
     enable_cache : boolean
-        If set to True, PanDataSet objects are cached as pickle files either on the local home directory within a directory called 'pangaeapy_cache' or in cache_dir given by the user in order to avoid unnecessary downloads.
+        If set to True, PanDataSet objects are cached as pickle files either on the local home directory within a directory called '.pangaeapy_cache' or in cache_dir given by the user in order to avoid unnecessary downloads.
     include_data : boolean
         determines if data table is downloaded and added to the self.data dataframe. If you are interested in metadata only set this to False
     expand_terms : list or int
@@ -466,7 +471,7 @@ class PanDataSet:
     licence : PanLicence
         a licence object, usually creative commons
     auth_token : str
-        the PANGAEA auhentication token, you can find it at pangaea.de on your user page
+        the PANGAEA auhentication token, you can find it at https://www.pangaea.de/user/
     cache_expiry_days : int
         the duration a cached pickle/cache is accepted, after this pangaeapy will load it again and ignor ethe cache
     cache_dir: str
@@ -478,8 +483,8 @@ class PanDataSet:
     """
     def __init__(self, id=None, paramlist=None, deleteFlag='', enable_cache=False,
                  cache_dir=None, include_data=True, expand_terms=[],
-                 auth_token = None, cache_expiry_days=1):
-        self.module_dir = os.path.dirname(__file__)
+                 auth_token=None, cache_expiry_days=1):
+        self.module_dir = Path(__file__).parent
         self.id = None
         self.uri, self.doi = "",""  # the doi
         self.logging = []
@@ -492,12 +497,10 @@ class PanDataSet:
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
         # setting up the cache directory in the users home folder if no path is given
         if cache_dir is None:
-            homedir = os.path.expanduser("~")
-            self.cachedir = os.path.join(homedir, "pangaeapy_cache")
+            self.cachedir = Path(Path.home(), ".pangaeapy_cache")
         else:
-            self.cachedir = cache_dir
-        if not os.path.exists(self.cachedir):
-            os.makedirs(self.cachedir)
+            self.cachedir = Path(cache_dir)
+        self.cachedir.mkdir(parents=True, exist_ok=True)
         self.cache = enable_cache
         self.cache_expiry_days = cache_expiry_days
         self.isCollection = False
@@ -531,7 +534,7 @@ class PanDataSet:
         self.topotype = None
         self.authors = []
         self.terms_cache = {}  # temporary cache for terms
-        self.terms_conn = sl.connect(os.path.join(self.cachedir, "terms.db"))
+        self.terms_conn = sl.connect(Path(self.cachedir, "terms.db"))
         self.supplement_to = {}  # If this dataset is supllementary to another publication, give that publications title and URI here.
         self.relations = []  # list of relations as given in
         self.keywords = []  # list of keywords
@@ -567,13 +570,13 @@ class PanDataSet:
         self.quality_flags={'ok':'valid','?':'questionable','/':'not_valid','*':'unknown'}
         self.quality_flag_replace={'ok':0,'?':1,'/':2,'*':3}
         if self.id is not None:
-            gotData=False
+            gotData = False
 
             if self.cache:
                 # self.logging.append({'INFO':'Caching activated..trying to load data and metadata from cache'})
                 self.log(logging.INFO, "Caching activated..trying to load data and metadata from cache")
                 if self.check_pickle():
-                    gotData=self.from_pickle()
+                    gotData = self.from_pickle()
                 else:
                     self.drop_pickle()
                     gotData = False
@@ -608,12 +611,12 @@ class PanDataSet:
 
     def get_pickle_path(self):
         dirs = textwrap.wrap(str(self.id).zfill(8), 2)
-        dirpath = os.path.join(self.cachedir, *dirs)
+        dirpath = Path(self.cachedir, *dirs)
         try:
-            os.makedirs(dirpath)
+            dirpath.mkdir(parents=True)
         except Exception as e:
             pass
-        return os.path.join(dirpath, str(self.id) + "_data.pik")
+        return Path(dirpath, str(self.id) + "_data.pik")
 
     def check_pickle(self):
         """
@@ -630,8 +633,8 @@ class PanDataSet:
         """
         ret = True
         pickle_location = self.get_pickle_path()
-        if os.path.exists(pickle_location):
-            pickle_time = os.path.getmtime(pickle_location)
+        if pickle_location.exists():
+            pickle_time = pickle_location.stat().st_mtime
             if int(time.time()) - int(pickle_time) >= (self.cache_expiry_days * 86400):
 
                 self.setMetadata()
@@ -652,8 +655,7 @@ class PanDataSet:
             return ret
 
     def drop_pickle(self):
-        if os.path.exists(self.get_pickle_path()):
-            os.remove(self.get_pickle_path())
+        self.get_pickle_path().unlink(missing_ok=True)
 
     def from_pickle(self):
         """
@@ -662,12 +664,11 @@ class PanDataSet:
         """
         ret = False
         pickle_path = self.get_pickle_path()
-        if os.path.exists(pickle_path):
+        if pickle_path.exists():
             try:
-                f = open(pickle_path, "rb")
-                tmp_dict = pickle.load(f)
+                with open(pickle_path, "rb") as f:
+                    tmp_dict = pickle.load(f)
                 tmp_dict["logging"] = []
-                f.close()
                 self.__dict__.update(tmp_dict)
                 # self.logging.append({'INFO':'Loading data and metadata from cache: '+str(pickle_path)})
                 self.log(logging.INFO, "Loading data and metadata from cache: " + str(pickle_path))
@@ -686,13 +687,12 @@ class PanDataSet:
 
         """
         if not self.data.empty:
-            f = open(self.get_pickle_path(), "wb")
             state = self.__dict__.copy()
             del state["terms_conn"]
-            pickle.dump(state, f, 2)
+            with open(self.get_pickle_path(), "wb") as f:
+                pickle.dump(state, f, 2)
             # self.logging.append({'INFO': 'Saved cache (pickle) file at: ' + str(self.get_pickle_path())})
             self.log(logging.INFO, "Saved cache (pickle) file at: " + str(self.get_pickle_path()))
-            f.close()
         else:
             self.log(logging.WARNING, "Skipped saving cache (pickle) since the dataset contains no data")
 
@@ -991,11 +991,10 @@ class PanDataSet:
         This method populates the data DataFrame with data from a PANGAEA dataset.
         In addition to the data given in the tabular ASCII file delivered by PANGAEA.
 
-
         Parameters:
         -----------
         addEventColumns : boolean
-            In case Latitude, Longititude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets,
+            In case Latitude, Longitude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets,
             the setData could add these columns to the dataframe using the information given in the metadata for Event. Default is 'True'
 
         """
@@ -1535,3 +1534,268 @@ class PanDataSet:
         # print(dwca_exporter.logging)
         self.logging.extend(dwca_exporter.logging)
         return ret
+
+    def download(self, indices: list = None, columns: list[str] = None):
+        """Download binary data if available; otherwise, save dataframe as CSV.
+
+        Downloads can be very large. Consider explicitly defining the pangaeapy cache when calling PanDataSet.
+
+        Parameters
+        ----------
+        indices : list
+            Row indices of the data to download (e.g. [1, 2, 6]).
+        columns : list of strings
+            Column names of the data to download (e.g. ["Binary", "netCDF"]).
+
+        Returns
+        -------
+            List of downloaded or saved filenames
+        """
+
+        if self.data.empty:
+            raise ValueError(f"Dataset has no available data to download!\n"
+                             f"Check {self.doi} for more information on dataset.")
+
+        # possible names for binary column(s) in the data table of a data set
+        binary_columns = ["binary", "netcdf", "image", "video", "text", "url", "csv"]
+        # case-insensitive matching of any column starting with one of the possible binary column names
+        # (?!.*\() -> negative look ahead assertion to skip columns with "("
+        # such columns mostly contain additional information about the binary file (e.g. Binary (Size))
+        pattern = "(?i)^(" + "|".join(binary_columns) + r")(?!.*\()"
+        column_names = self.data.filter(regex=pattern).columns.tolist()
+
+        if column_names:
+            self.log(logging.INFO, f"Downloading files to {self.cachedir}")
+            self.columns = columns if columns else column_names
+            self.data_index = indices if indices else []
+
+            # double check input
+            if not all([x in column_names for x in self.columns]):
+                raise ValueError(f"Not all given columns ({self.columns}) are available!\n"
+                                 f"Please select one or all of {column_names}.")
+            # raise error if an index is larger than the available row numbers
+            if any([x >= self.data.shape[0] for x in self.data_index]):
+                raise ValueError(f"Index out of range!\n"
+                                 f"Possible index range: 0 - {self.data.shape[0]}.")
+
+            harvester = PanDataHarvester(self)
+            return harvester.run_download()
+        else:
+            self.log(logging.INFO, "Info: No binary data available.")
+            self.log(logging.INFO, f"The dataset will be saved as a CSV file to {self.cachedir}")
+
+            csv_path = Path(self.cachedir, f"{self.id}_data.csv")
+            self.data.to_csv(csv_path, index=False)
+            print(f"Dataset saved to {csv_path}")
+            return [csv_path]
+
+
+class PanDataHarvester:
+    """
+    Downloads binary data from the PANGAEA tape archive.
+
+    Parameters
+    ----------
+    dataset: PanDataSet
+        The dataset, which initiates the PanDataHarvester
+
+
+    This class bundles the download functionality of pangaeapy.
+    When initiated via PanDataSet.download(), the selected files are downloaded asynchronously.
+    They are stored in the local cache in their original file format and under their original name.
+    The Harvester will check if the file already exists before downloading.
+    To use the download functionality in a jupyter notebook include
+
+    ```python
+    import nest_asyncio
+    nest_asyncio.apply()
+    ```
+    at the beginning of the notebook.
+
+
+    """
+
+    def __init__(self, dataset):
+        self.id = dataset.id
+        self.auth_token = dataset.auth_token
+        self.data = dataset.data
+        self.cache_dir = dataset.cachedir
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.columns = dataset.columns  # list of column names
+        self.data_index = dataset.data_index
+        self.semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
+
+
+    def _list_available_data(self):
+        """List available binary data (filenames) in the dataset.
+
+        Returns
+        -------
+            List of filenames
+        """
+        if self.data_index:
+            available_data = (self.data
+                              .iloc[self.data_index][self.columns]  # select rows and columns
+                              .to_numpy().flatten().tolist())  # extract values and reduce dimensions
+        else:
+            # If no index is supplied return all rows
+            available_data = self.data[self.columns].to_numpy().flatten().tolist()
+        return available_data
+
+    async def _download_file(self, session, url, filename, max_retries=4):
+        """Download a single file asynchronously, handling 503 errors."""
+        filepath = Path(self.cache_dir, filename)
+
+        attempt = 0
+        async with self.semaphore:
+            while attempt < max_retries:
+                try:
+                    async with session.get(url) as response:
+                        size = int(response.headers.get('content-length', 0))
+                        if filepath.exists() and (filepath.stat().st_size >= size):
+                            print(f"File {filename} already exists, skipping.")
+                            return filepath
+
+                        if response.status == 429:
+                            wait_time = response.headers.get('retry-after', 0)
+                            wait_time = int(wait_time) if wait_time != 0 else 10
+                            print(f"Got response status 429 (Too many connections) while trying to download {filename}.\n"
+                                  f" Retrying in {wait_time} seconds.")
+                            await asyncio.sleep(wait_time)
+                            attempt += 1
+                            continue
+
+                        if response.status == 503:
+                            sleep = 30 * (attempt + 1)
+                            print(f"{filename} is being retrieved from tape. Retrying in {sleep} seconds...")
+                            await asyncio.sleep(sleep)  # Wait 2 minutes before retrying
+                            attempt += 1
+                            continue
+
+                        with open(filepath, "wb") as f:
+                            async for chunk in response.content.iter_any():
+                                f.write(chunk)
+
+                    print(f"Downloaded {filename} successfully!")
+                    return filepath
+
+                except aiohttp.ClientResponseError as e:
+                    attempt += 1
+                    if attempt == max_retries:
+                        raise e
+                    print(f"Error {e.status} encountered. Retrying ({attempt}/{max_retries})...")
+
+            print(f"Exceeded maximum number of retries ({max_retries}). Cancel download.")
+            return None
+
+
+    async def download_files(self):
+        """Download all binary files asynchronously."""
+        binary_files = self._list_available_data()
+        dataset_id = self.id
+
+        async with aiohttp.ClientSession() as session:
+            session.headers.update({"Authorization": f"Bearer {self.auth_token}",
+                                    "User-Agent": f"pangaeapy/{__version__}"})
+            tasks = []
+            for filename in binary_files:
+                if filename.startswith("https:"):
+                    url = filename
+                    parsed_url = urlparse(url)
+                    # extract filename from url and decode special characters
+                    filename = PurePosixPath(unquote(parsed_url.path)).name
+                else:
+                    url = f"https://download.pangaea.de/dataset/{dataset_id}/files/{filename}"
+
+                tasks.append(self._download_file(session, url, filename))
+
+            results = await asyncio.gather(*tasks)
+            downloaded_files = [result for result in results if result]
+
+        return downloaded_files
+
+
+    def run_download(self):
+        """Start asynchronous file download for single file downloads or download
+         the zip file and extract its contents if the whole data set is requested.
+         This requires a valid auth_token (also called Bearer Token).
+
+         Returns
+         -------
+            List of downloaded files
+         """
+        if (self.data_index == []) and (all(["URL" not in column for column in self.columns])):
+            # User wants the whole binary data set
+            # Download the data set via the ZIP link, which requires a valid auth_token
+            # Data sets with a URL binary column do not have a zip download available
+            downloaded_files = self.download_zip_file()
+        else:
+            try:
+                # Check if there's a running event loop
+                loop = asyncio.get_running_loop()
+                # If we reach here, a loop is running (e.g. in a jupyter notebook)
+                future = asyncio.ensure_future(self.download_files())
+                downloaded_files = loop.run_until_complete(future)
+            except RuntimeError as e:
+                # probably running download inside a jupyter notebook
+                if str(e) ==  "This event loop is already running":
+                    print("You are probably calling download() inside a jupyter notebook.\n"
+                          "Insert\nimport nest_asyncio\nnest_asyncio.apply()\n"
+                          "in a notebook cell before calling download().")
+                    raise
+
+                # No running event loop, create a new one
+                downloaded_files = asyncio.run(self.download_files())
+
+        return downloaded_files
+
+
+    def download_zip_file(self):
+        """Download a complete binary data set via the ZIP link.
+        Requires a valid auth_token (also called Bearer Token), which can be found at https://www.pangaea.de/user/".
+        """
+        url = f"https://download.pangaea.de/dataset/{self.id}/allfiles.zip"
+        zip_path = Path(self.cache_dir, "allfiles.zip")
+        extract_dir = Path(self.cache_dir)
+        url_headers = {
+            "Authorization": f"Bearer {self.auth_token}",
+            "User-Agent": f"pangaeapy/{__version__}"
+        }
+        try:
+            with requests.get(url, stream=True, headers=url_headers) as r:
+                if r.status_code == 401:
+                    print(
+                        "401 Client Error: Unauthorized access.\n"
+                        "Please provide a valid auth_token when opening the data set.\n"
+                        "You can find your auth_token (Bearer Token) on your PANGAEA user page at https://www.pangaea.de/user/"
+                    )
+                    return []
+                r.raise_for_status()
+
+                # Stream download to disk
+                with open(zip_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+
+            # Extract and collect filenames
+            with zipfile.ZipFile(zip_path, "r") as zip_file:
+                downloaded_files = [Path(self.cache_dir, f) for f in zip_file.namelist()]
+                zip_file.extractall(extract_dir)
+
+            return downloaded_files
+
+        except requests.exceptions.RequestException as e:
+            print(f"Download failed: {e}")
+            return []
+        except zipfile.BadZipFile as e:
+            print(f"Extraction failed: {e}")
+            return []
+        finally:
+            if zip_path.exists():
+                try:
+                    zip_path.unlink()
+                    return None
+                except Exception as e:
+                    print(f"Failed to delete ZIP file: {e}")
+                    return None

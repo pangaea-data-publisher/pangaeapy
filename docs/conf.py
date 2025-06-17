@@ -1,7 +1,10 @@
+import pangaeapy
+
 project = 'pangaeapy'
 copyright = '2021, Robert Huber'
 author = 'Robert Huber'
-release = '1.0.22'
+version = pangaeapy.__version__
+release = pangaeapy.__version__
 
 extensions = [
     'sphinx.ext.autodoc',
