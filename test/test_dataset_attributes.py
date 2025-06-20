@@ -9,13 +9,13 @@ from pangaeapy import PanDataSet
 
 def test_keywords():
     """Simple snapshot test of one example real-world dataset,
-    https://doi.pangaea.de/10.1594/PANGAEA.957810. Note that this test may fail
+    https://doi.org/10.1594/PANGAEA.957810. Note that this test may fail
     if at some point in the future, the keywords of this example set change on
     PANGAEA.
 
     """
 
-    ds = PanDataSet("https://doi.pangaea.de/10.1594/PANGAEA.957810", include_data=False)
+    ds = PanDataSet("https://doi.org/10.1594/PANGAEA.957810", include_data=False)
     assert hasattr(ds, "keywords")
     assert isinstance(ds.keywords, list)
 

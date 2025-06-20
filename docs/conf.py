@@ -1,10 +1,10 @@
-import pangaeapy
+from pangaeapy import __version__
 
 project = 'pangaeapy'
 copyright = '2025, Robert Huber'
 author = 'Robert Huber, Johannes Röttenbacher'
-version = pangaeapy.__version__
-release = pangaeapy.__version__
+version = __version__
+release = __version__
 
 extensions = [
     'sphinx.ext.autodoc',
