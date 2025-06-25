@@ -1795,7 +1795,5 @@ class PanDataHarvester:
             if zip_path.exists():
                 try:
                     zip_path.unlink()
-                    return None
                 except Exception as e:
                     print(f"Failed to delete ZIP file: {e}")
-                    return None
