@@ -38,8 +38,8 @@ def mock_pandataset(mocker, tmp_path, filenames):
     dataset.id = "123456"
     dataset.auth_token = None
     dataset.data = pd.DataFrame({"Binary": filenames})
-    dataset.cache_dir = tmp_path / ".pangeapy_cache"
-    # os.makedirs(dataset.cache_dir, exist_ok=True)
+    dataset.cachedir = tmp_path / "cache"
+    # os.makedirs(dataset.cachedir, exist_ok=True)
     dataset.columns = ["Binary"]
     dataset.data_index = []
     # dataset.semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
@@ -53,10 +53,16 @@ def test_default_cache_dir(mocker):
     mocker.patch.object(PanDataSet, "get_pickle_path")
 
     ds = PanDataSet(968912, enable_cache=True)
-    expected_default = Path(Path.home(), ".pangaeapy_cache")
-    assert ds.cache_dir == expected_default
+    expected_default = os.path.join(os.path.expanduser("~"), ".pangaeapy_cache")
+    assert ds.cachedir == expected_default
     # Ensure PanDataSet tried to create the directory
     mock_makedirs.assert_any_call(parents=True, exist_ok=True)
+
+
+def test_custom_cache_dir(tmp_path):
+    ds = PanDataSet(968912, enable_cache=True, cache_dir=tmp_path)
+    assert ds.cachedir == tmp_path
+    ds.terms_conn.close()  # explicitly close the sqlite database
 
 
 @pytest.mark.parametrize(
@@ -147,6 +153,6 @@ class TestPanDataHarvester:
         else:
             # Build expected filepaths
             expected_filepaths = [
-                ds.cache_dir / f"{fname}" for fname in filenames
+                os.path.join(ds.cachedir, fname) for fname in filenames
             ]
             assert result == expected_filepaths
