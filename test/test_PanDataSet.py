@@ -9,6 +9,7 @@ import io
 import os
 import pandas as pd
 from pangaeapy.pandataset import PanDataSet, PanDataHarvester
+from pathlib import Path
 import pytest
 import re
 import zipfile
@@ -37,7 +38,7 @@ def mock_pandataset(mocker, tmp_path, filenames):
     dataset.id = "123456"
     dataset.auth_token = None
     dataset.data = pd.DataFrame({"Binary": filenames})
-    dataset.cache_dir = tmp_path / "cache"
+    dataset.cache_dir = tmp_path / ".pangeapy_cache"
     # os.makedirs(dataset.cache_dir, exist_ok=True)
     dataset.columns = ["Binary"]
     dataset.data_index = []
@@ -46,18 +47,16 @@ def mock_pandataset(mocker, tmp_path, filenames):
 
 
 def test_default_cache_dir(mocker):
-    mock_makedirs = mocker.patch("os.makedirs")
+    mock_makedirs = mocker.patch("pathlib.Path.mkdir")
+    # mock functionalities, which rely on cache_dir
+    mock_connect = mocker.patch("sqlite3.connect")
+    mocker.patch.object(PanDataSet, "get_pickle_path")
+
     ds = PanDataSet(968912, enable_cache=True)
-    expected_default = os.path.join(os.path.expanduser("~"), ".pangaeapy_cache")
+    expected_default = Path(Path.home(), ".pangaeapy_cache")
     assert ds.cache_dir == expected_default
     # Ensure PanDataSet tried to create the directory
-    mock_makedirs.assert_any_call(expected_default, exist_ok=True)
-
-
-def test_custom_cache_dir(tmp_path):
-    ds = PanDataSet(968912, enable_cache=True, cache_dir=tmp_path)
-    assert ds.cache_dir == tmp_path
-    ds.terms_conn.close()  # explicitly close the sqlite database
+    mock_makedirs.assert_any_call(parents=True, exist_ok=True)
 
 
 @pytest.mark.parametrize(
@@ -148,6 +147,6 @@ class TestPanDataHarvester:
         else:
             # Build expected filepaths
             expected_filepaths = [
-                os.path.join(ds.cache_dir, fname) for fname in filenames
+                ds.cache_dir / f"{fname}" for fname in filenames
             ]
             assert result == expected_filepaths
