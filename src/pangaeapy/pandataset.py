@@ -426,7 +426,7 @@ class PanDataSet:
 
     Attributes
     ----------
-    id : str
+    id : int
         The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
     uri : str
         The PANGAEA DOI (alternative label)
@@ -705,7 +705,7 @@ class PanDataSet:
             The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
         """
         try:
-            self.id = int(re.fullmatch(
+            self.id = int(re.search(
                 r"(?:(?:(?:https?://)?(?:dx\.)?doi\.org/|doi:)?10\.1594/PANGAEA\.)?(\d+)",
                 str(id).strip(),
             ).group(1))
