@@ -60,7 +60,7 @@ def test_default_cache_dir(mocker):
 
 
 def test_custom_cache_dir(tmp_path):
-    ds = PanDataSet(968912, enable_cache=True, cache_dir=tmp_path)
+    ds = PanDataSet(968912, enable_cache=True, cachedir=tmp_path)
     assert ds.cachedir == tmp_path
     ds.terms_conn.close()  # explicitly close the sqlite database
 
@@ -76,7 +76,7 @@ def test_custom_cache_dir(tmp_path):
 )
 def test_download_kwargs(tmp_path, indices, columns, expected_exception):
     """Tests various combinations of download kwargs"""
-    ds = PanDataSet(944101, enable_cache=True, cache_dir=tmp_path)
+    ds = PanDataSet(944101, enable_cache=True, cachedir=tmp_path)
 
     if expected_exception:
         with pytest.raises(expected_exception):
