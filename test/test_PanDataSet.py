@@ -53,7 +53,7 @@ def test_default_cache_dir(mocker):
     mocker.patch.object(PanDataSet, "get_pickle_path")
 
     ds = PanDataSet(968912, enable_cache=True)
-    expected_default = os.path.join(os.path.expanduser("~"), ".pangaeapy_cache")
+    expected_default = Path(Path.home(), ".pangaeapy_cache")
     assert ds.cachedir == expected_default
     # Ensure PanDataSet tried to create the directory
     mock_makedirs.assert_any_call(parents=True, exist_ok=True)
@@ -153,6 +153,6 @@ class TestPanDataHarvester:
         else:
             # Build expected filepaths
             expected_filepaths = [
-                os.path.join(ds.cachedir, fname) for fname in filenames
+                ds.cachedir / f"{fname}" for fname in filenames
             ]
             assert result == expected_filepaths
