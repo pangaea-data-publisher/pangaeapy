@@ -497,10 +497,10 @@ class PanDataSet:
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
         # setting up the cache directory in the users home folder if no path is given
         if cache_dir is None:
-            self.cachedir = Path(Path.home(), ".pangaeapy_cache")
+            self.cache_dir = Path(Path.home(), ".pangaeapy_cache")
         else:
-            self.cachedir = Path(cache_dir)
-        self.cachedir.mkdir(parents=True, exist_ok=True)
+            self.cache_dir = Path(cache_dir)
+        self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.cache = enable_cache
         self.cache_expiry_days = cache_expiry_days
         self.isCollection = False
@@ -534,7 +534,7 @@ class PanDataSet:
         self.topotype = None
         self.authors = []
         self.terms_cache = {}  # temporary cache for terms
-        self.terms_conn = sl.connect(Path(self.cachedir, "terms.db"))
+        self.terms_conn = sl.connect(Path(self.cache_dir, "terms.db"))
         self.supplement_to = {}  # If this dataset is supllementary to another publication, give that publications title and URI here.
         self.relations = []  # list of relations as given in
         self.keywords = []  # list of keywords
@@ -611,7 +611,7 @@ class PanDataSet:
 
     def get_pickle_path(self):
         dirs = textwrap.wrap(str(self.id).zfill(8), 2)
-        dirpath = Path(self.cachedir, *dirs)
+        dirpath = Path(self.cache_dir, *dirs)
         try:
             dirpath.mkdir(parents=True)
         except Exception as e:
@@ -1565,7 +1565,7 @@ class PanDataSet:
         column_names = self.data.filter(regex=pattern).columns.tolist()
 
         if column_names:
-            self.log(logging.INFO, f"Downloading files to {self.cachedir}")
+            self.log(logging.INFO, f"Downloading files to {self.cache_dir}")
             self.columns = columns if columns else column_names
             self.data_index = indices if indices else []
 
@@ -1582,9 +1582,9 @@ class PanDataSet:
             return harvester.run_download()
         else:
             self.log(logging.INFO, "Info: No binary data available.")
-            self.log(logging.INFO, f"The dataset will be saved as a CSV file to {self.cachedir}")
+            self.log(logging.INFO, f"The dataset will be saved as a CSV file to {self.cache_dir}")
 
-            csv_path = Path(self.cachedir, f"{self.id}_data.csv")
+            csv_path = Path(self.cache_dir, f"{self.id}_data.csv")
             self.data.to_csv(csv_path, index=False)
             print(f"Dataset saved to {csv_path}")
             return [csv_path]
@@ -1619,7 +1619,7 @@ class PanDataHarvester:
         self.id = dataset.id
         self.auth_token = dataset.auth_token
         self.data = dataset.data
-        self.cache_dir = dataset.cachedir
+        self.cache_dir = dataset.cache_dir
         self.cache_dir.mkdir(parents=True, exist_ok=True)
         self.columns = dataset.columns  # list of column names
         self.data_index = dataset.data_index
