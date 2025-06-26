@@ -46,4 +46,4 @@ The tests ar located in the `test` directory. You can run them by executing
 ## Cite as
 Robert Huber, Egor Gordeev, Markus Stocker, Aarthi Balamurugan, & Uwe Schindler (2020). pangaeapy - a Python module to access and analyse PANGAEA data. Zenodo. [http://doi.org/10.5281/zenodo.4013940](http://doi.org/10.5281/zenodo.4013940).
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4013940.svg)](https://doi.org/10.5281/zenodo.4013940.)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4013940.svg)](https://doi.org/10.5281/zenodo.4013940)
