@@ -426,7 +426,7 @@ class PanDataSet:
 
     Attributes
     ----------
-    id : str
+    id : int
         The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
     uri : str
         The PANGAEA DOI (alternative label)
@@ -474,7 +474,7 @@ class PanDataSet:
         the PANGAEA auhentication token, you can find it at https://www.pangaea.de/user/
     cache_expiry_days : int
         the duration a cached pickle/cache is accepted, after this pangaeapy will load it again and ignor ethe cache
-    cache_dir: str
+    cachedir: str
         the full path to the cache directory, will be created if it doesn't exist
     keywords : list[str]
         A list of keyword names. Only actual keywords, technical and
@@ -482,7 +482,7 @@ class PanDataSet:
 
     """
     def __init__(self, id=None, paramlist=None, deleteFlag='', enable_cache=False,
-                 cache_dir=None, include_data=True, expand_terms=[],
+                 cachedir=None, include_data=True, expand_terms=[],
                  auth_token=None, cache_expiry_days=1):
         self.module_dir = Path(__file__).parent
         self.id = None
@@ -496,10 +496,10 @@ class PanDataSet:
         #moddir = os.path.dirname(os.path.abspath(__file__))
         #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
         # setting up the cache directory in the users home folder if no path is given
-        if cache_dir is None:
+        if cachedir is None:
             self.cachedir = Path(Path.home(), ".pangaeapy_cache")
         else:
-            self.cachedir = Path(cache_dir)
+            self.cachedir = Path(cachedir)
         self.cachedir.mkdir(parents=True, exist_ok=True)
         self.cache = enable_cache
         self.cache_expiry_days = cache_expiry_days
@@ -705,7 +705,7 @@ class PanDataSet:
             The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
         """
         try:
-            self.id = int(re.fullmatch(
+            self.id = int(re.search(
                 r"(?:(?:(?:https?://)?(?:dx\.)?doi\.org/|doi:)?10\.1594/PANGAEA\.)?(\d+)",
                 str(id).strip(),
             ).group(1))
@@ -1619,8 +1619,8 @@ class PanDataHarvester:
         self.id = dataset.id
         self.auth_token = dataset.auth_token
         self.data = dataset.data
-        self.cache_dir = dataset.cachedir
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.cachedir = dataset.cachedir
+        self.cachedir.mkdir(parents=True, exist_ok=True)
         self.columns = dataset.columns  # list of column names
         self.data_index = dataset.data_index
         self.semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
@@ -1644,7 +1644,7 @@ class PanDataHarvester:
 
     async def _download_file(self, session, url, filename, max_retries=4):
         """Download a single file asynchronously, handling 503 errors."""
-        filepath = Path(self.cache_dir, filename)
+        filepath = Path(self.cachedir, filename)
 
         attempt = 0
         async with self.semaphore:
@@ -1755,8 +1755,8 @@ class PanDataHarvester:
         Requires a valid auth_token (also called Bearer Token), which can be found at https://www.pangaea.de/user/".
         """
         url = f"https://download.pangaea.de/dataset/{self.id}/allfiles.zip"
-        zip_path = Path(self.cache_dir, "allfiles.zip")
-        extract_dir = Path(self.cache_dir)
+        zip_path = Path(self.cachedir, "allfiles.zip")
+        extract_dir = Path(self.cachedir)
         url_headers = {
             "Authorization": f"Bearer {self.auth_token}",
             "User-Agent": f"pangaeapy/{__version__}"
@@ -1780,7 +1780,7 @@ class PanDataHarvester:
 
             # Extract and collect filenames
             with zipfile.ZipFile(zip_path, "r") as zip_file:
-                downloaded_files = [Path(self.cache_dir, f) for f in zip_file.namelist()]
+                downloaded_files = [Path(self.cachedir, f) for f in zip_file.namelist()]
                 zip_file.extractall(extract_dir)
 
             return downloaded_files
@@ -1795,7 +1795,5 @@ class PanDataHarvester:
             if zip_path.exists():
                 try:
                     zip_path.unlink()
-                    return None
                 except Exception as e:
                     print(f"Failed to delete ZIP file: {e}")
-                    return None

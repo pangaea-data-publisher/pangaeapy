@@ -9,6 +9,7 @@ import io
 import os
 import pandas as pd
 from pangaeapy.pandataset import PanDataSet, PanDataHarvester
+from pathlib import Path
 import pytest
 import re
 import zipfile
@@ -46,16 +47,20 @@ def mock_pandataset(mocker, tmp_path, filenames):
 
 
 def test_default_cache_dir(mocker):
-    mock_makedirs = mocker.patch("os.makedirs")
+    mock_makedirs = mocker.patch("pathlib.Path.mkdir")
+    # mock functionalities, which rely on cache_dir
+    mock_connect = mocker.patch("sqlite3.connect")
+    mocker.patch.object(PanDataSet, "get_pickle_path")
+
     ds = PanDataSet(968912, enable_cache=True)
-    expected_default = os.path.join(os.path.expanduser("~"), ".pangaeapy_cache")
+    expected_default = Path(Path.home(), ".pangaeapy_cache")
     assert ds.cachedir == expected_default
     # Ensure PanDataSet tried to create the directory
-    mock_makedirs.assert_any_call(expected_default, exist_ok=True)
+    mock_makedirs.assert_any_call(parents=True, exist_ok=True)
 
 
 def test_custom_cache_dir(tmp_path):
-    ds = PanDataSet(968912, enable_cache=True, cache_dir=tmp_path)
+    ds = PanDataSet(968912, enable_cache=True, cachedir=tmp_path)
     assert ds.cachedir == tmp_path
     ds.terms_conn.close()  # explicitly close the sqlite database
 
@@ -71,7 +76,7 @@ def test_custom_cache_dir(tmp_path):
 )
 def test_download_kwargs(tmp_path, indices, columns, expected_exception):
     """Tests various combinations of download kwargs"""
-    ds = PanDataSet(944101, enable_cache=True, cache_dir=tmp_path)
+    ds = PanDataSet(944101, enable_cache=True, cachedir=tmp_path)
 
     if expected_exception:
         with pytest.raises(expected_exception):
@@ -148,6 +153,6 @@ class TestPanDataHarvester:
         else:
             # Build expected filepaths
             expected_filepaths = [
-                os.path.join(ds.cachedir, fname) for fname in filenames
+                ds.cachedir / f"{fname}" for fname in filenames
             ]
             assert result == expected_filepaths
