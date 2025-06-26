@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+from importlib.metadata import version as get_version, PackageNotFoundError
 import io
 import json
 import logging
@@ -18,11 +19,14 @@ import numpy as np
 import pandas as pd
 import requests
 
-from pangaeapy import __version__
 from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
 from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
 
+try:
+    current_version = get_version("pangaeapy")
+except PackageNotFoundError:
+    current_version = None
 logger = logging.getLogger(__name__)
 
 
@@ -1696,7 +1700,7 @@ class PanDataHarvester:
 
         async with aiohttp.ClientSession() as session:
             session.headers.update({"Authorization": f"Bearer {self.auth_token}",
-                                    "User-Agent": f"pangaeapy/{__version__}"})
+                                    "User-Agent": f"pangaeapy/{current_version}"})
             tasks = []
             for filename in binary_files:
                 if filename.startswith("https:"):
@@ -1759,7 +1763,7 @@ class PanDataHarvester:
         extract_dir = Path(self.cachedir)
         url_headers = {
             "Authorization": f"Bearer {self.auth_token}",
-            "User-Agent": f"pangaeapy/{__version__}"
+            "User-Agent": f"pangaeapy/{current_version}"
         }
         try:
             with requests.get(url, stream=True, headers=url_headers) as r:

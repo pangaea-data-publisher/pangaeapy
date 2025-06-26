@@ -1,10 +1,10 @@
-from pangaeapy import __version__
+from importlib.metadata import version as get_version
 
 project = 'pangaeapy'
 copyright = '2025, Robert Huber'
 author = 'Robert Huber, Johannes Röttenbacher'
-version = __version__
-release = __version__
+release = get_version("pangaeapy")
+version = ".".join(release.split(".")[:2])
 
 extensions = [
     'sphinx.ext.autodoc',
