@@ -6,7 +6,6 @@
 Test the PanDataSet class
 """
 import io
-import os
 import pandas as pd
 from pangaeapy.pandataset import PanDataSet, PanDataHarvester
 from pathlib import Path
@@ -46,9 +45,9 @@ def mock_pandataset(mocker, tmp_path, filenames):
     return dataset
 
 
-def test_default_cache_dir(mocker):
+def test_default_cachedir(mocker):
     mock_makedirs = mocker.patch("pathlib.Path.mkdir")
-    # mock functionalities, which rely on cache_dir
+    # mock functionalities, which rely on cachedir
     mock_connect = mocker.patch("sqlite3.connect")
     mocker.patch.object(PanDataSet, "get_pickle_path")
 
@@ -59,7 +58,7 @@ def test_default_cache_dir(mocker):
     mock_makedirs.assert_any_call(parents=True, exist_ok=True)
 
 
-def test_custom_cache_dir(tmp_path):
+def test_custom_cachedir(tmp_path):
     ds = PanDataSet(968912, enable_cache=True, cachedir=tmp_path)
     assert ds.cachedir == tmp_path
     ds.terms_conn.close()  # explicitly close the sqlite database
@@ -83,7 +82,7 @@ def test_download_kwargs(tmp_path, indices, columns, expected_exception):
             ds.download(indices=indices, columns=columns)
     else:
         filenames = ds.download(indices=indices, columns=columns)
-        assert all(os.path.isfile(f) for f in filenames), \
+        assert all(f.is_file() for f in filenames), \
             "All expected files should be created"
 
 
@@ -91,7 +90,7 @@ def test_download_url_handling():
     """Some data sets provide a full download URL in the URL field"""
     ds = PanDataSet(896710, enable_cache=True)
     filename = ds.download(indices=[0])
-    assert os.path.isfile(filename[0])
+    assert filename[0].is_file()
 
 
 class TestPanDataHarvester:
@@ -137,8 +136,8 @@ class TestPanDataHarvester:
         # patch the ZipFile class
         mocker.patch("zipfile.ZipFile", side_effect=FakeZipFile)
 
-        # Mock os.remove to avoid deleting real files
-        mocker.patch("os.remove")
+        # Mock remove to avoid deleting real files
+        mocker.patch("pathlib.Path.unlink")
 
         # initiate the harvester with the mock_pandataset
         harvester = PanDataHarvester(ds)

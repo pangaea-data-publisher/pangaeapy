@@ -65,7 +65,7 @@ env_list = [
 deps = [
   "pytest >= 8.0",
   "pytest-mock >= 3.13.0",
-  "requests-mock >=1.12.1",
+  "requests-mock >= 1.12.1",
 ]
 commands = [["pytest"]]
 

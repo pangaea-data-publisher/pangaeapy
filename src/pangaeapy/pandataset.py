@@ -418,7 +418,7 @@ class PanDataSet:
         in case quality flags are avialable, this parameter defines a flag for which data should not be included in the data dataFrame.
         Possible values are listed here: https://wiki.pangaea.de/wiki/Quality_flag
     enable_cache : boolean
-        If set to True, PanDataSet objects are cached as pickle files either on the local home directory within a directory called '.pangaeapy_cache' or in cache_dir given by the user in order to avoid unnecessary downloads.
+        If set to True, PanDataSet objects are cached as pickle files either on the local home directory within a directory called '.pangaeapy_cache' or in cachedir given by the user in order to avoid unnecessary downloads.
     include_data : boolean
         determines if data table is downloaded and added to the self.data dataframe. If you are interested in metadata only set this to False
     expand_terms : list or int
@@ -705,7 +705,7 @@ class PanDataSet:
             The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
         """
         try:
-            self.id = int(re.search(
+            self.id = int(re.fullmatch(
                 r"(?:(?:(?:https?://)?(?:dx\.)?doi\.org/|doi:)?10\.1594/PANGAEA\.)?(\d+)",
                 str(id).strip(),
             ).group(1))

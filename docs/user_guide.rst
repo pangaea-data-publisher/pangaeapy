@@ -31,7 +31,7 @@ The ``enable_cache`` keyword tells *pangaeapy* to cache the data set locally, wh
 .. code-block:: python
 
     ds = pan.PanDataSet(900388, enable_cache=True,
-                        cache_dir='/path/to/your/storage')
+                        cachedir='/path/to/your/storage')
 
 You can now access all the metadata provided with the data set on PANGAEA using the ``PanDataSet`` object such as ``title``, ``authors`` (which is a list of ``PanAuthor`` objects), ``doi`` and so forth.
 
