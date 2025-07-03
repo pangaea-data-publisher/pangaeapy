@@ -1610,10 +1610,11 @@ class PanDataHarvester:
     The Harvester will check if the file already exists before downloading.
     To use the download functionality in a jupyter notebook include
 
-    ```python
-    import nest_asyncio
-    nest_asyncio.apply()
-    ```
+    .. code-block:: python
+
+        import nest_asyncio
+        nest_asyncio.apply()
+
     at the beginning of the notebook.
 
 
@@ -1756,7 +1757,7 @@ class PanDataHarvester:
 
     def download_zip_file(self):
         """Download a complete binary data set via the ZIP link.
-        Requires a valid auth_token (also called Bearer Token), which can be found at https://www.pangaea.de/user/".
+        Requires a valid auth_token (also called Bearer Token), which can be found at https://www.pangaea.de/user/.
         """
         url = f"https://download.pangaea.de/dataset/{self.id}/allfiles.zip"
         zip_path = Path(self.cachedir, "allfiles.zip")
