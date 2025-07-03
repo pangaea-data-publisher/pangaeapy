@@ -64,6 +64,7 @@ To work with these files you need to download them and read them in with a speci
 .. code-block:: python
 
     ds = pan.PanDataSet(944070, enable_cache=True,
+                        cachedir='/path/to/your/storage',
                         auth_token='abcdfeghijklmnopqrstuvwxyz')
     filepaths = ds.download()
 
@@ -79,7 +80,8 @@ If you only need one or a couple of files from the data set you can also directl
 
 .. code-block:: python
 
-    ds = pan.PanDataSet(956151, enable_cache=True)
+    ds = pan.PanDataSet(956151, enable_cache=True,
+                        cachedir='/path/to/your/storage')
     filepaths = ds.download(indices=[0, 1, 2], columns=['Binary'])
 
 Some data sets also have multiple types of binary data such as a netCDF file and a quicklook image. For such cases you can provide a list of column names to include in your download via the ``columns`` keyword. You can find the column names available via the aforementioned "View data set as HTML" button on the landing page of the data set (e.g. https://doi.pangaea.de/10.1594/PANGAEA.956151).
