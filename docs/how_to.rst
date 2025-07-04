@@ -1,11 +1,11 @@
 How To
 ======
 
-We always assume you have imported `pangaeapy` as
+We always assume you have imported `PanDataSet` as
 
 .. code-block:: python
 
-    import pangaeapy as pan
+    from pangaeapy import PanDataSet
 
 Download a specific file from a binary data set
 -----------------------------------------------
@@ -14,7 +14,7 @@ Got to the landing page of the data set (e.g. https://doi.pangaea.de/10.1594/PAN
 
 .. code-block:: python
 
-    ds = pan.PanDataSet(956151, enable_cache=True, cachedir='/your/cache/path')
+    ds = PanDataSet(956151, enable_cache=True, cachedir='/your/cache/path')
     filenames = ds.download(indices=[3], columns=["Binary"])
 
 Download all files from a binary data set
@@ -24,9 +24,9 @@ Create a user account at `PANGAEA <https://www.pangaea.de/user/signup.php>`_ and
 
 .. code-block:: python
 
-    ds = pan.PanDataSet(956151, enable_cache=True,
-                        cachedir='/your/cache/path',
-                        auth_token='your_personal_bearer_token')
+    ds = PanDataSet(956151, enable_cache=True,
+                    cachedir='/your/cache/path',
+                    auth_token='your_personal_bearer_token')
     filenames = ds.download()
 
 .. note::
@@ -38,7 +38,5 @@ Set a custom cache directory
 
 .. code-block:: python
 
-    import pangaeapy as pan
-    ds = pan.PanDataSet(956151, enable_cache=True,
-                        cachedir='/path/to/your/storage')
-
+    ds = PanDataSet(956151, enable_cache=True,
+                    cachedir='/path/to/your/storage')

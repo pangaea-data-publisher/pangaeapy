@@ -19,20 +19,18 @@ Given a DOI, pangaeapy uses PANGAEA’s web services to automatically load PANGA
 * Wheels for Python from [PyPI](https://pypi.org/project/pangaeapy/)
     * `pip install pangaeapy`
 
-
-
 ## Usage
 
 ```python
-import pangaeapy as pan
+from pangaeapy import PanDataSet
 
-ds = pan.PanDataSet(787140)
+ds = PanDataSet(787140)
 print(ds.title)
 print(ds.data.head())
 ```
 
 ## Examples
-Please take a look at the example Jupyter Notebooks, which you can find in the 'examples' folder
+Please take a look at the example Jupyter Notebooks in the 'examples' folder.
 
 ## Documentation
 
