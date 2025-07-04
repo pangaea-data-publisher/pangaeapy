@@ -19,20 +19,18 @@ Given a DOI, pangaeapy uses PANGAEA’s web services to automatically load PANGA
 * Wheels for Python from [PyPI](https://pypi.org/project/pangaeapy/)
     * `pip install pangaeapy`
 
-
-
 ## Usage
 
 ```python
-import pangaeapy.pandataset as pd
+from pangaeapy import PanDataSet
 
-ds = pd.PanDataSet(787140)
+ds = PanDataSet(787140)
 print(ds.title)
 print(ds.data.head())
 ```
 
 ## Examples
-Please take a look at the example Jupyter Notebooks which you can find in the 'examples' folder
+Please take a look at the example Jupyter Notebooks in the 'examples' folder.
 
 ## Documentation
 
@@ -40,7 +38,7 @@ Please take a look at the example Jupyter Notebooks which you can find in the 'e
 
 ## Running the tests
 
-The tests ar located in the `test` directory. You can run them by executing
+The tests are located in the `test` directory. You can run them by executing
 `pytest` or `tox` in the root directory.
 
 ## Cite as
