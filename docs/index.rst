@@ -8,4 +8,5 @@ pangaeapy Documentation
    :hidden:
 
    user_guide
+   how_to
    api

@@ -995,8 +995,8 @@ class PanDataSet:
         This method populates the data DataFrame with data from a PANGAEA dataset.
         In addition to the data given in the tabular ASCII file delivered by PANGAEA.
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         addEventColumns : boolean
             In case Latitude, Longitude, Elevation, Date/Time and Event are not given in the ASCII matrix, which sometimes is possible in single Event datasets,
             the setData could add these columns to the dataframe using the information given in the metadata for Event. Default is 'True'
@@ -1477,11 +1477,11 @@ class PanDataSet:
         """
         This method creates a NetCDF file using PANGAEA data. It offers two different flavors: SeaDataNet NetCDF and an
         experimental internal format using NetCDF 4 groups.
-        Currently the method only supports simple types such as timeseries and profiles.
+        Currently, the method only supports simple types such as timeseries and profiles.
         The method created files are named as follows: [PANGAEA ID]_[type].cf
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         filelocation : str
             Indicates the location (directory) where the NetCDF file will be saved
         type : str
@@ -1505,8 +1505,8 @@ class PanDataSet:
         A package will be saved as directory
         The method created directories are named as follows: [PANGAEA ID]_frictionless
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         filelocation : str
             Indicates the location (directory) where the frictionless file will be saved
         save : Boolean
@@ -1524,8 +1524,8 @@ class PanDataSet:
         A package will be saved as directory
         The method created directories are named as follows: [PANGAEA ID]_dwca
 
-        Parameters:
-        -----------
+        Parameters
+        ----------
         filelocation : str
             Indicates the location (directory) where the DwC-A file will be saved
         save : Boolean
@@ -1610,10 +1610,11 @@ class PanDataHarvester:
     The Harvester will check if the file already exists before downloading.
     To use the download functionality in a jupyter notebook include
 
-    ```python
-    import nest_asyncio
-    nest_asyncio.apply()
-    ```
+    .. code-block:: python
+
+        import nest_asyncio
+        nest_asyncio.apply()
+
     at the beginning of the notebook.
 
 
@@ -1756,7 +1757,7 @@ class PanDataHarvester:
 
     def download_zip_file(self):
         """Download a complete binary data set via the ZIP link.
-        Requires a valid auth_token (also called Bearer Token), which can be found at https://www.pangaea.de/user/".
+        Requires a valid auth_token (also called Bearer Token), which can be found at https://www.pangaea.de/user/.
         """
         url = f"https://download.pangaea.de/dataset/{self.id}/allfiles.zip"
         zip_path = Path(self.cachedir, "allfiles.zip")
