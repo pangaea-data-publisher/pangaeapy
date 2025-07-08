@@ -34,10 +34,10 @@ dependencies = [
 ]
 
 [project.urls]
-homepage = "https://www.pangaea.de"
-source = "https://github.com/pangaea-data-publisher/pangaeapy"
-documentation = "https://pangaea-data-publisher.github.io/pangaeapy/"
-issues = "https://github.com/pangaea-data-publisher/pangaeapy/issues"
+Homepage = "https://www.pangaea.de"
+Source = "https://github.com/pangaea-data-publisher/pangaeapy"
+Documentation = "https://pangaea-data-publisher.github.io/pangaeapy/"
+Issues = "https://github.com/pangaea-data-publisher/pangaeapy/issues"
 
 [tool.setuptools_scm]
 
