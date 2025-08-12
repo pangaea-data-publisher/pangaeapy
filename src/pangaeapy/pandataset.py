@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-from importlib.metadata import version as get_version, PackageNotFoundError
 import io
 import json
 import logging
@@ -19,14 +18,11 @@ import numpy as np
 import pandas as pd
 import requests
 
+from pangaeapy._core import CURRENT_VERSION, get_request
 from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
 from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
 
-try:
-    current_version = get_version("pangaeapy")
-except PackageNotFoundError:
-    current_version = None
 logger = logging.getLogger(__name__)
 
 
@@ -841,7 +837,7 @@ class PanDataSet:
             print("getTermInfo ERROR I : ", e)
         if not termJSON:
             try:
-                termr = requests.get("https://ws.pangaea.de/es/pangaea-terms/term/" + str(termid))
+                termr = get_request(f"https://ws.pangaea.de/es/pangaea-terms/term/{termid}")
                 termJSON = termr.json()
                 term_name = termJSON["_source"]["name"]
                 inssql = "insert into terms (term_id, term_name, term_json) values (?,?,?)"
@@ -1019,23 +1015,11 @@ class PanDataSet:
             self.paramlist_index = None
         if self.include_data:
             try:
-                dataURL = "https://doi.pangaea.de/10.1594/PANGAEA." + str(self.id)
-                requestheader = {"Accept": "text/tab-separated-values"}
-                if self.auth_token:
-                    requestheader["Authorization"] = "Bearer " + str(self.auth_token)
-                dataResponse = requests.get(dataURL, headers=requestheader)
-                if dataResponse.status_code == 429:
-                    sleeptime = 1
-                    if dataResponse.headers.get("retry-after"):
-                        sleeptime = dataResponse.headers.get("retry-after")
-                    if int(sleeptime) < 1:
-                        sleeptime = 1
-                    self.log(logging.WARNING, "Received too many requests (for data) error (429)...waiting " + str(sleeptime) + "s")
-
-                    time.sleep(int(sleeptime))
-                    dataResponse = requests.get(dataURL, headers=requestheader)
-                    # self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
-                    self.log(logging.INFO, "After repeating (for data) request, got status code: " + str(dataResponse.status_code))
+                dataResponse = get_request(
+                    f"https://doi.pangaea.de/10.1594/PANGAEA.{self.id}",
+                    accepted_type="text/tab-separated-values",
+                    auth_token=self.auth_token,
+                )
 
                 panDataTxt = dataResponse.text
                 if int(dataResponse.status_code) == 200:
@@ -1169,11 +1153,11 @@ class PanDataSet:
             self.params[paramcolumn + qc_suffix] = PanParam(self.params[paramcolumn].id + 1000000000, self.params[paramcolumn].name + qc_suffix, self.params[paramcolumn].shortName + qc_suffix, source="pangaeapy", param_type=ptype)
 
     def _setCitation(self):
-        citationURL = "https://doi.pangaea.de/10.1594/PANGAEA." + str(self.id)
-        cheaders = {"Accept": "text/x-bibliography"}
-        if self.auth_token:
-            cheaders["Authorization"] = "Bearer " + str(self.auth_token)
-        r = requests.get(citationURL, headers=cheaders)
+        r = get_request(
+            f"https://doi.pangaea.de/10.1594/PANGAEA.{self.id}",
+            accepted_type="text/x-bibliography",
+            auth_token=self.auth_token,
+        )
         if r.status_code != 404:
             self.citation = r.text
         else:
@@ -1186,29 +1170,15 @@ class PanDataSet:
 
         """
         r = None
-        metaDataURL = "https://doi.pangaea.de/10.1594/PANGAEA." + str(self.id)
-        mheaders = {"Accept": "application/vnd.pangaea.metadata+xml"}
-        if self.auth_token:
-            mheaders["Authorization"] = "Bearer " + str(self.auth_token)
         try:
-            r = requests.get(metaDataURL, headers=mheaders)
+            r = get_request(
+            f"https://doi.pangaea.de/10.1594/PANGAEA.{self.id}",
+            accepted_type="application/vnd.pangaea.metadata+xml",
+            auth_token=self.auth_token,
+        )
         except Exception as e:
             self.log(logging.ERROR, "HTTP request error: " + str(e))
         if r is not None:
-            if r.status_code == 429:
-                # self.logging.append({'WARNING':'Received too many requests error (429)...'})
-                sleeptime = 1
-                if r.headers.get("retry-after"):
-                    sleeptime = r.headers.get("retry-after")
-                if int(sleeptime) < 1:
-                    sleeptime = 1
-                self.log(logging.WARNING, "Received too many (metadata) requests error (429)...waiting " + str(sleeptime) + "s")
-
-                time.sleep(int(sleeptime))
-                r = requests.get(metaDataURL, headers=mheaders)
-                # self.logging.append({'INFO':'After repeating request, got status code: '+str(r.status_code)})
-                self.log(logging.INFO, "After repeating (metadata) request, got status code: " + str(r.status_code))
-
             if r.status_code != 404:
                 try:
                     r.raise_for_status()
@@ -1701,7 +1671,7 @@ class PanDataHarvester:
 
         async with aiohttp.ClientSession() as session:
             session.headers.update({"Authorization": f"Bearer {self.auth_token}",
-                                    "User-Agent": f"pangaeapy/{current_version}"})
+                                    "User-Agent": f"pangaeapy/{CURRENT_VERSION}"})
             tasks = []
             for filename in binary_files:
                 if filename.startswith("https:"):
@@ -1764,7 +1734,7 @@ class PanDataHarvester:
         extract_dir = Path(self.cachedir)
         url_headers = {
             "Authorization": f"Bearer {self.auth_token}",
-            "User-Agent": f"pangaeapy/{current_version}"
+            "User-Agent": f"pangaeapy/{CURRENT_VERSION}"
         }
         try:
             with requests.get(url, stream=True, headers=url_headers) as r:
