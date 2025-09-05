@@ -690,7 +690,7 @@ class PanDataSet:
                 pickle_path.parent.mkdir(parents=True)
             except Exception as e:
                 pass
-            with open(self.get_pickle_path(), "wb") as f:
+            with open(pickle_path, "wb") as f:
                 pickle.dump(state, f, 2)
             # self.logging.append({'INFO': 'Saved cache (pickle) file at: ' + str(self.get_pickle_path())})
             self.log(logging.INFO, "Saved cache (pickle) file at: " + str(self.get_pickle_path()))
