@@ -612,10 +612,6 @@ class PanDataSet:
     def get_pickle_path(self):
         dirs = textwrap.wrap(str(self.id).zfill(8), 2)
         dirpath = Path(self.cachedir, *dirs)
-        try:
-            dirpath.mkdir(parents=True)
-        except Exception as e:
-            pass
         return Path(dirpath, str(self.id) + "_data.pik")
 
     def check_pickle(self):
@@ -689,6 +685,11 @@ class PanDataSet:
         if not self.data.empty:
             state = self.__dict__.copy()
             del state["terms_conn"]
+            pickle_path = self.get_pickle_path()
+            try:
+                pickle_path.parent.mkdir(parents=True)
+            except Exception as e:
+                pass
             with open(self.get_pickle_path(), "wb") as f:
                 pickle.dump(state, f, 2)
             # self.logging.append({'INFO': 'Saved cache (pickle) file at: ' + str(self.get_pickle_path())})
