@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from pangaeapy._core import CURRENT_VERSION, get_request
+from pangaeapy._core import CURRENT_VERSION, get_request, get_xml_content
 from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
 from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
@@ -489,6 +489,7 @@ class PanDataSet:
         self.uri, self.doi = "",""  # the doi
         self.logging = []
         self.logger = logger
+        self._xml_root = None
         ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
         self.setID(id)
         self.ns = {"md": "http://www.pangaea.de/MetaData"}
@@ -1165,6 +1166,40 @@ class PanDataSet:
             # self.logging.append({'WARNING':'Could not retrieve citation info from PANGAEA'})
             self.log(logging.WARNING, "Could not retrieve citation info from PANGAEA")
 
+    def find(self, path, key=None):
+        """Find a single XML node.
+
+        Parameters
+        ----------
+        path : str
+            XPath expression to search for
+        key : str
+            node attribute to fetch instead of its text
+
+        Returns
+        -------
+        str or None
+            node attribute or text
+        """
+        return get_xml_content(self._xml_root, path, namespaces=self.ns, key=key)
+
+    def findall(self, path, key=None):
+        """Find XML nodes.
+
+        Parameters
+        ----------
+        path : str
+            XPath expression to search for
+        key : str
+            node attribute to fetch instead of its text
+
+        Returns
+        -------
+        list of str or None
+            list of node attributes or texts
+        """
+        return get_xml_content(self._xml_root, path, namespaces=self.ns, key=key, multiple=True)
+
     def setMetadata(self):
         """
         The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
@@ -1186,6 +1221,7 @@ class PanDataSet:
                     xmlText = r.text
                     self.metaxml = xmlText
                     xml = ET.fromstring(xmlText.encode())
+                    self._xml_root = xml
                     # dataset_status = None
                     if xml.find('./md:technicalInfo/md:entry[@key="status"]', self.ns) is not None:
                         self.datastatus = xml.find('./md:technicalInfo/md:entry[@key="status"]', self.ns).get("value")

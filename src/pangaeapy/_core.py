@@ -24,3 +24,19 @@ def get_request(url, accepted_type=None, auth_token=None, timeout=10, num_retrie
         response = get_request(url, accepted_type, auth_token, timeout, num_retries-1)
         logger.info("After repeating request, got status code: %d", response.status_code)
     return response
+
+def get_xml_content(xml_root, path, namespaces=None, key=None, multiple=False):
+    try:
+        nodes = xml_root.findall(path, namespaces=namespaces)
+    except AttributeError:
+        nodes = []
+    if key is not None:
+        vals = [node.get(key) for node in nodes]
+    else:
+        vals = [node.text for node in nodes]
+    if not multiple:
+        try:
+            vals = vals[0]
+        except IndexError:
+            vals = None
+    return vals
