@@ -666,6 +666,7 @@ class PanDataSet:
                 with open(pickle_path, "rb") as f:
                     tmp_dict = pickle.load(f)
                 tmp_dict["logging"] = []
+                tmp_dict["_xml_root"] = ET.fromstring(tmp_dict["metaxml"].encode())
                 self.__dict__.update(tmp_dict)
                 # self.logging.append({'INFO':'Loading data and metadata from cache: '+str(pickle_path)})
                 self.log(logging.INFO, "Loading data and metadata from cache: " + str(pickle_path))
@@ -686,6 +687,7 @@ class PanDataSet:
         if not self.data.empty:
             state = self.__dict__.copy()
             del state["terms_conn"]
+            del state["_xml_root"]
             pickle_path = self.get_pickle_path()
             try:
                 pickle_path.parent.mkdir(parents=True)
