@@ -556,7 +556,6 @@ class PanDataSet:
         if not isinstance(expand_terms, list):
             expand_terms = []
         self.expand_terms = expand_terms
-        self.lastupdate = None
         self.metaxml = None
         self.auth_token = auth_token
 
@@ -1205,6 +1204,10 @@ class PanDataSet:
         return self.find('./md:technicalInfo/md:entry[@key="status"]', key="value")
 
     @property
+    def lastupdate(self):
+        return self.date if (val := self.find('./md:technicalInfo/md:entry[@key="lastModified"]', key="value")) is None else val
+
+    @property
     def loginstatus(self):
         return "unrestricted" if (val := self.find('./md:technicalInfo/md:entry[@key="loginOption"]', key="value")) is None else val
 
@@ -1238,9 +1241,6 @@ class PanDataSet:
                             else:
                                 # self.logging.append({'WARNING': 'Data set is protected'})
                                 self.log(logging.WARNING, "Data set is protected")
-                        if xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns) is not None:
-                            self.lastupdate = xml.find('./md:technicalInfo/md:entry[@key="lastModified"]', self.ns).get("value")
-
                         if xml.find('./md:technicalInfo/md:entry[@key="collectionType"]', self.ns) is not None:
                             self.log(logging.WARNING, "Data set is of type collection, please select one of its child datasets")
                             self.isCollection = True
@@ -1272,8 +1272,6 @@ class PanDataSet:
                             self.year = xml.find("./md:citation/md:year", self.ns).text
                         if xml.find("./md:citation/md:dateTime", self.ns) is not None:
                             self.date = xml.find("./md:citation/md:dateTime", self.ns).text
-                        if self.lastupdate is None:
-                            self.lastupdate = self.date
                         self.doi = self.uri = xml.find("./md:citation/md:URI", self.ns).text
                         # extent
                         if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns) is not None:
