@@ -523,7 +523,6 @@ class PanDataSet:
         self.moratorium = None
         self.curationlevel = None
         self.processinglevel = None
-        self.datastatus = None
         self.registrystatus = None
         self.citation = None
         self.year = None
@@ -1202,6 +1201,10 @@ class PanDataSet:
         return get_xml_content(self._xml_root, path, namespaces=self.ns, key=key, multiple=True)
 
     @property
+    def datastatus(self):
+        return self.find('./md:technicalInfo/md:entry[@key="status"]', key="value")
+
+    @property
     def loginstatus(self):
         return "unrestricted" if (val := self.find('./md:technicalInfo/md:entry[@key="loginOption"]', key="value")) is None else val
 
@@ -1227,9 +1230,6 @@ class PanDataSet:
                     self.metaxml = xmlText
                     xml = ET.fromstring(xmlText.encode())
                     self._xml_root = xml
-                    # dataset_status = None
-                    if xml.find('./md:technicalInfo/md:entry[@key="status"]', self.ns) is not None:
-                        self.datastatus = xml.find('./md:technicalInfo/md:entry[@key="status"]', self.ns).get("value")
                     if self.datastatus not in ["deleted", None]:
                         if self.loginstatus != "unrestricted":
                             if self.auth_token:
