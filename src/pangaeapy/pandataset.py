@@ -521,7 +521,6 @@ class PanDataSet:
         self.moratorium = None
         self.curationlevel = None
         self.processinglevel = None
-        self.registrystatus = None
         self.citation = None
         self.year = None
         self.date = None
@@ -1214,6 +1213,10 @@ class PanDataSet:
         return "unrestricted" if (val := self.find('./md:technicalInfo/md:entry[@key="loginOption"]', key="value")) is None else val
 
     @property
+    def registrystatus(self):
+        return self.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]', key="value")
+
+    @property
     def title(self):
         return self.find("./md:citation/md:title")
 
@@ -1256,7 +1259,6 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-                        self.registrystatus = xml.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]', self.ns).get("value")
                         if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]', self.ns) is not None:
                             self.moratorium = xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]', self.ns).get("value")
                         if xml.find("./md:status/md:curationLevel/md:name", self.ns) is not None:
