@@ -547,7 +547,6 @@ class PanDataSet:
             print("DB INIT ERROR: " + str(e))
         # replacing error list
 
-        self.loginstatus = "unrestricted"
         self.allowNetCDF = True
         self.eventInMatrix = False
         self.deleteFlag = deleteFlag
@@ -1202,6 +1201,10 @@ class PanDataSet:
         """
         return get_xml_content(self._xml_root, path, namespaces=self.ns, key=key, multiple=True)
 
+    @property
+    def loginstatus(self):
+        return "unrestricted" if (val := self.find('./md:technicalInfo/md:entry[@key="loginOption"]', key="value")) is None else val
+
     def setMetadata(self):
         """
         The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
@@ -1228,7 +1231,6 @@ class PanDataSet:
                     if xml.find('./md:technicalInfo/md:entry[@key="status"]', self.ns) is not None:
                         self.datastatus = xml.find('./md:technicalInfo/md:entry[@key="status"]', self.ns).get("value")
                     if self.datastatus not in ["deleted", None]:
-                        self.loginstatus = xml.find('./md:technicalInfo/md:entry[@key="loginOption"]', self.ns).get("value")
                         if self.loginstatus != "unrestricted":
                             if self.auth_token:
                                 # self.logging.append({'INFO': 'Trying to load protected dataset using the given auth token'})
