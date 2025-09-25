@@ -517,7 +517,6 @@ class PanDataSet:
         self._geocodes = {1599: "Date_Time", 1600: "Latitude", 1601: "Longitude", 1619: "Depth water"}
         self.data = pd.DataFrame()
         self.qcdata = pd.DataFrame()
-        self.title = None
         self.abstract = None
         self.comment = None
         self.moratorium = None
@@ -1211,6 +1210,10 @@ class PanDataSet:
     def loginstatus(self):
         return "unrestricted" if (val := self.find('./md:technicalInfo/md:entry[@key="loginOption"]', key="value")) is None else val
 
+    @property
+    def title(self):
+        return self.find("./md:citation/md:title")
+
     def setMetadata(self):
         """
         The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
@@ -1250,15 +1253,6 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-
-                        """hierarchyLevel=xml.find('./md:technicalInfo/md:entry[@key="hierarchyLevel"]',self.ns)
-                        if hierarchyLevel!=None:
-                            if hierarchyLevel.get('value')=='parent':
-                                #self.logging.append({'WARNING':'Data set is of type parent, please select one of its child datasets'})
-                                self.log(logging.WARNING, 'Data set is of type collection, please select one of its child datasets')
-                                self.isCollection=True
-                                self._setCollectionMembers()"""
-                        self.title = xml.find("./md:citation/md:title", self.ns).text
                         if xml.find("./md:abstract", self.ns) is not None:
                             self.abstract = xml.find("./md:abstract", self.ns).text
                         self.registrystatus = xml.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]', self.ns).get("value")
