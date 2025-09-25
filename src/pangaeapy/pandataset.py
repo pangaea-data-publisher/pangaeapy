@@ -517,7 +517,6 @@ class PanDataSet:
         self._geocodes = {1599: "Date_Time", 1600: "Latitude", 1601: "Longitude", 1619: "Depth water"}
         self.data = pd.DataFrame()
         self.qcdata = pd.DataFrame()
-        self.abstract = None
         self.comment = None
         self.moratorium = None
         self.curationlevel = None
@@ -1199,6 +1198,10 @@ class PanDataSet:
         return get_xml_content(self._xml_root, path, namespaces=self.ns, key=key, multiple=True)
 
     @property
+    def abstract(self):
+        return self.find("./md:abstract")
+
+    @property
     def datastatus(self):
         return self.find('./md:technicalInfo/md:entry[@key="status"]', key="value")
 
@@ -1253,8 +1256,6 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-                        if xml.find("./md:abstract", self.ns) is not None:
-                            self.abstract = xml.find("./md:abstract", self.ns).text
                         self.registrystatus = xml.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]', self.ns).get("value")
                         if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]', self.ns) is not None:
                             self.moratorium = xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]', self.ns).get("value")
