@@ -518,7 +518,6 @@ class PanDataSet:
         self.data = pd.DataFrame()
         self.qcdata = pd.DataFrame()
         self.comment = None
-        self.curationlevel = None
         self.processinglevel = None
         self.citation = None
         self.year = None
@@ -1200,6 +1199,10 @@ class PanDataSet:
         return self.find("./md:abstract")
 
     @property
+    def curationlevel(self):
+        return self.find("./md:status/md:curationLevel/md:name")
+
+    @property
     def datastatus(self):
         return self.find('./md:technicalInfo/md:entry[@key="status"]', key="value")
 
@@ -1262,8 +1265,6 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-                        if xml.find("./md:status/md:curationLevel/md:name", self.ns) is not None:
-                            self.curationlevel = xml.find("./md:status/md:curationLevel/md:name", self.ns).text
                         if xml.find("./md:status/md:processingLevel/md:name", self.ns) is not None:
                             self.processinglevel = xml.find("./md:status/md:processingLevel/md:name", self.ns).text
                         if xml.find("./md:citation/md:year", self.ns) is not None:
