@@ -518,7 +518,6 @@ class PanDataSet:
         self.qcdata = pd.DataFrame()
         self.comment = None
         self.citation = None
-        self.geometryextent = {}
 
         self.topotype = None
         self.authors = []
@@ -1209,6 +1208,18 @@ class PanDataSet:
         return "" if (val := self.find("./md:citation/md:URI")) is None else val
 
     @property
+    def geometryextent(self):
+        extent = {
+            "westBoundLongitude": self.find("./md:extent/md:geographic/md:westBoundLongitude"),
+            "eastBoundLongitude": self.find("./md:extent/md:geographic/md:eastBoundLongitude"),
+            "southBoundLatitude": self.find("./md:extent/md:geographic/md:southBoundLatitude"),
+            "northBoundLatitude": self.find("./md:extent/md:geographic/md:northBoundLatitude"),
+            "meanLongitude": self.find("./md:extent/md:geographic/md:meanLongitude"),
+            "meanLatitude": self.find("./md:extent/md:geographic/md:meanLatitude"),
+        }
+        return {key: val for key, val in extent.items() if val is not None}
+
+    @property
     def lastupdate(self):
         return self.date if (val := self.find('./md:technicalInfo/md:entry[@key="lastModified"]', key="value")) is None else val
 
@@ -1287,20 +1298,6 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-                        # extent
-                        if xml.find("./md:extent/md:geographic/md:westBoundLongitude", self.ns) is not None:
-                            self.geometryextent["westBoundLongitude"] = xml.find("./md:extent/md:geographic/md:westBoundLongitude", self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:eastBoundLongitude", self.ns) is not None:
-                            self.geometryextent["eastBoundLongitude"] = xml.find("./md:extent/md:geographic/md:eastBoundLongitude", self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:southBoundLatitude", self.ns) is not None:
-                            self.geometryextent["southBoundLatitude"] = xml.find("./md:extent/md:geographic/md:southBoundLatitude", self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns) is not None:
-                            self.geometryextent["northBoundLatitude"] = xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:meanLongitude", self.ns) is not None:
-                            self.geometryextent["meanLongitude"] = xml.find("./md:extent/md:geographic/md:meanLongitude", self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:meanLatitude", self.ns) is not None:
-                            self.geometryextent["meanLatitude"] = xml.find("./md:extent/md:geographic/md:meanLatitude", self.ns).text
-
                         topotypeEl = xml.find("./md:extent/md:topoType", self.ns)
                         if topotypeEl is not None:
                             self.topotype = topotypeEl.text
