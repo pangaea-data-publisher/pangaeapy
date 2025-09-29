@@ -523,7 +523,6 @@ class PanDataSet:
         self.terms_conn = sl.connect(Path(self.cachedir, "terms.db"))
         self.supplement_to = {}  # If this dataset is supllementary to another publication, give that publications title and URI here.
         self.relations = []  # list of relations as given in
-        self.keywords = []  # list of keywords
         try:
             sql = "create table if not exists terms (term_id integer PRIMARY KEY, term_name text, term_json text, entry_date datetime default current_timestamp)"
             self.terms_conn.execute(sql)
@@ -1222,6 +1221,10 @@ class PanDataSet:
         return {key: val for key, val in extent.items() if val is not None}
 
     @property
+    def keywords(self):
+        return self.findall("./md:keywords/md:keyword")
+
+    @property
     def lastupdate(self):
         return self.date if (val := self.find('./md:technicalInfo/md:entry[@key="lastModified"]', key="value")) is None else val
 
@@ -1376,10 +1379,6 @@ class PanDataSet:
                             if suppl.find("md:URI", self.ns) is not None:
                                 suppURI = suppl.find("md:URI", self.ns).text
                             self.supplement_to = {"id": suppid, "title": supptitle, "uri": suppURI, "year": suppyear}
-                        for keyword in xml.findall("./md:keywords/md:keyword", self.ns):
-                            # Only iterate over actual `md:keyword`; ignore, e.g., `md:techKeyword`.
-                            self.keywords.append(keyword.text)
-
                         panXMLMatrixColumn = xml.findall("./md:matrixColumn", self.ns)
                         self._setParameters(panXMLMatrixColumn)
                         panXMLEvents=xml.findall("./md:event", self.ns)
