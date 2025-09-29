@@ -486,7 +486,7 @@ class PanDataSet:
                  auth_token=None, cache_expiry_days=1):
         self.module_dir = Path(__file__).parent
         self.id = None
-        self.uri, self.doi = "",""  # the doi
+        self.uri = ""  # the doi
         self.logging = []
         self.logger = logger
         self._xml_root = None
@@ -1208,6 +1208,10 @@ class PanDataSet:
         return self.find("./md:citation/md:dateTime")
 
     @property
+    def doi(self):
+        return "" if (val := self.find("./md:citation/md:URI")) is None else val
+
+    @property
     def lastupdate(self):
         return self.date if (val := self.find('./md:technicalInfo/md:entry[@key="lastModified"]', key="value")) is None else val
 
@@ -1274,7 +1278,7 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-                        self.doi = self.uri = xml.find("./md:citation/md:URI", self.ns).text
+                        self.uri = xml.find("./md:citation/md:URI", self.ns).text
                         # extent
                         if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns) is not None:
                             self.mintimeextent = xml.find("./md:extent/md:temporal/md:minDateTime", self.ns).text
