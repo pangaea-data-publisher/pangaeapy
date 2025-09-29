@@ -519,7 +519,6 @@ class PanDataSet:
         self.qcdata = pd.DataFrame()
         self.comment = None
         self.citation = None
-        self.year = None
         self.date = None
         self.mintimeextent = None
         self.maxtimeextent = None
@@ -1229,6 +1228,10 @@ class PanDataSet:
     def title(self):
         return self.find("./md:citation/md:title")
 
+    @property
+    def year(self):
+        return self.find("./md:citation/md:year")
+
     def setMetadata(self):
         """
         The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
@@ -1268,8 +1271,6 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-                        if xml.find("./md:citation/md:year", self.ns) is not None:
-                            self.year = xml.find("./md:citation/md:year", self.ns).text
                         if xml.find("./md:citation/md:dateTime", self.ns) is not None:
                             self.date = xml.find("./md:citation/md:dateTime", self.ns).text
                         self.doi = self.uri = xml.find("./md:citation/md:URI", self.ns).text
