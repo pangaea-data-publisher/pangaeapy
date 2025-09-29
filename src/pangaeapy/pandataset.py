@@ -518,7 +518,6 @@ class PanDataSet:
         self.data = pd.DataFrame()
         self.qcdata = pd.DataFrame()
         self.comment = None
-        self.processinglevel = None
         self.citation = None
         self.year = None
         self.date = None
@@ -1219,6 +1218,10 @@ class PanDataSet:
         return self.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]', key="value")
 
     @property
+    def processinglevel(self):
+        return self.find("./md:status/md:processingLevel/md:name")
+
+    @property
     def registrystatus(self):
         return self.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]', key="value")
 
@@ -1265,8 +1268,6 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-                        if xml.find("./md:status/md:processingLevel/md:name", self.ns) is not None:
-                            self.processinglevel = xml.find("./md:status/md:processingLevel/md:name", self.ns).text
                         if xml.find("./md:citation/md:year", self.ns) is not None:
                             self.year = xml.find("./md:citation/md:year", self.ns).text
                         if xml.find("./md:citation/md:dateTime", self.ns) is not None:
