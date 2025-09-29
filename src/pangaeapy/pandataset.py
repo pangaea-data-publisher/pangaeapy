@@ -486,7 +486,6 @@ class PanDataSet:
                  auth_token=None, cache_expiry_days=1):
         self.module_dir = Path(__file__).parent
         self.id = None
-        self.uri = ""  # the doi
         self.logging = []
         self.logger = logger
         self._xml_root = None
@@ -1236,6 +1235,10 @@ class PanDataSet:
         return self.find("./md:citation/md:title")
 
     @property
+    def uri(self):
+        return self.doi
+
+    @property
     def year(self):
         return self.find("./md:citation/md:year")
 
@@ -1278,7 +1281,6 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-                        self.uri = xml.find("./md:citation/md:URI", self.ns).text
                         # extent
                         if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns) is not None:
                             self.mintimeextent = xml.find("./md:extent/md:temporal/md:minDateTime", self.ns).text
