@@ -518,7 +518,6 @@ class PanDataSet:
         self.data = pd.DataFrame()
         self.qcdata = pd.DataFrame()
         self.comment = None
-        self.moratorium = None
         self.curationlevel = None
         self.processinglevel = None
         self.citation = None
@@ -1213,6 +1212,10 @@ class PanDataSet:
         return "unrestricted" if (val := self.find('./md:technicalInfo/md:entry[@key="loginOption"]', key="value")) is None else val
 
     @property
+    def moratorium(self):
+        return self.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]', key="value")
+
+    @property
     def registrystatus(self):
         return self.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]', key="value")
 
@@ -1259,8 +1262,6 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-                        if xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]', self.ns) is not None:
-                            self.moratorium = xml.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]', self.ns).get("value")
                         if xml.find("./md:status/md:curationLevel/md:name", self.ns) is not None:
                             self.curationlevel = xml.find("./md:status/md:curationLevel/md:name", self.ns).text
                         if xml.find("./md:status/md:processingLevel/md:name", self.ns) is not None:
