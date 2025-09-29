@@ -1296,8 +1296,6 @@ class PanDataSet:
                             self.geometryextent["southBoundLatitude"] = xml.find("./md:extent/md:geographic/md:southBoundLatitude", self.ns).text
                         if xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns) is not None:
                             self.geometryextent["northBoundLatitude"] = xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns).text
-                        if xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns) is not None:
-                            self.geometryextent["northBoundLatitude"] = xml.find("./md:extent/md:geographic/md:northBoundLatitude", self.ns).text
                         if xml.find("./md:extent/md:geographic/md:meanLongitude", self.ns) is not None:
                             self.geometryextent["meanLongitude"] = xml.find("./md:extent/md:geographic/md:meanLongitude", self.ns).text
                         if xml.find("./md:extent/md:geographic/md:meanLatitude", self.ns) is not None:
