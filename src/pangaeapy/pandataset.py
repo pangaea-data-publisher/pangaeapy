@@ -519,7 +519,6 @@ class PanDataSet:
         self.qcdata = pd.DataFrame()
         self.comment = None
         self.citation = None
-        self.date = None
         self.mintimeextent = None
         self.maxtimeextent = None
         self.geometryextent = {}
@@ -1205,6 +1204,10 @@ class PanDataSet:
         return self.find('./md:technicalInfo/md:entry[@key="status"]', key="value")
 
     @property
+    def date(self):
+        return self.find("./md:citation/md:dateTime")
+
+    @property
     def lastupdate(self):
         return self.date if (val := self.find('./md:technicalInfo/md:entry[@key="lastModified"]', key="value")) is None else val
 
@@ -1271,8 +1274,6 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-                        if xml.find("./md:citation/md:dateTime", self.ns) is not None:
-                            self.date = xml.find("./md:citation/md:dateTime", self.ns).text
                         self.doi = self.uri = xml.find("./md:citation/md:URI", self.ns).text
                         # extent
                         if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns) is not None:
