@@ -519,7 +519,6 @@ class PanDataSet:
         self.comment = None
         self.citation = None
 
-        self.topotype = None
         self.authors = []
         self.terms_cache = {}  # temporary cache for terms
         self.terms_conn = sl.connect(Path(self.cachedir, "terms.db"))
@@ -1252,6 +1251,10 @@ class PanDataSet:
         return self.find("./md:citation/md:title")
 
     @property
+    def topotype(self):
+        return self.find("./md:extent/md:topoType")
+
+    @property
     def uri(self):
         return self.doi
 
@@ -1298,11 +1301,6 @@ class PanDataSet:
                                     './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
                                 ).get("value").split(",")
                             ]
-                        topotypeEl = xml.find("./md:extent/md:topoType", self.ns)
-                        if topotypeEl is not None:
-                            self.topotype = topotypeEl.text
-                        else:
-                            self.topotype = None
                         for author in xml.findall("./md:citation/md:author", self.ns):
                             lastname = None
                             firstname = None
