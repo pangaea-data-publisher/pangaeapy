@@ -518,7 +518,6 @@ class PanDataSet:
         self.qcdata = pd.DataFrame()
         self.comment = None
         self.citation = None
-        self.mintimeextent = None
         self.maxtimeextent = None
         self.geometryextent = {}
 
@@ -1219,6 +1218,10 @@ class PanDataSet:
         return "unrestricted" if (val := self.find('./md:technicalInfo/md:entry[@key="loginOption"]', key="value")) is None else val
 
     @property
+    def mintimeextent(self):
+        return self.find("./md:extent/md:temporal/md:minDateTime")
+
+    @property
     def moratorium(self):
         return self.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]', key="value")
 
@@ -1282,8 +1285,6 @@ class PanDataSet:
                                 ).get("value").split(",")
                             ]
                         # extent
-                        if xml.find("./md:extent/md:temporal/md:minDateTime", self.ns) is not None:
-                            self.mintimeextent = xml.find("./md:extent/md:temporal/md:minDateTime", self.ns).text
                         if xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns) is not None:
                             self.maxtimeextent = xml.find("./md:extent/md:temporal/md:maxDateTime", self.ns).text
                         if xml.find("./md:extent/md:geographic/md:westBoundLongitude", self.ns) is not None:
