@@ -516,7 +516,6 @@ class PanDataSet:
         self._geocodes = {1599: "Date_Time", 1600: "Latitude", 1601: "Longitude", 1619: "Depth water"}
         self.data = pd.DataFrame()
         self.qcdata = pd.DataFrame()
-        self.comment = None
         self.citation = None
 
         self.authors = []
@@ -1191,6 +1190,10 @@ class PanDataSet:
         return self.find("./md:abstract")
 
     @property
+    def comment(self):
+        return self.find("./md:comment")
+
+    @property
     def curationlevel(self):
         return self.find("./md:status/md:curationLevel/md:name")
 
@@ -1350,8 +1353,6 @@ class PanDataSet:
                             if license.find("md:URI", self.ns) is not None:
                                 URI = license.find("md:URI", self.ns).text
                             self.licence = PanLicence(label, name, URI)
-                        if xml.find("./md:comment", self.ns) is not None:
-                            self.comment = xml.find("./md:comment", self.ns).text
                         for reference in xml.findall("./md:reference", self.ns):
                             refURI = None
                             reftitle = None
