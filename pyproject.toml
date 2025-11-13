@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 64.0", "setuptools-scm >= 8.0"]
+requires = ["setuptools >= 80.0", "setuptools-scm[simple] >= 8.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,10 +10,11 @@ authors = [
 ]
 description = "Download and analyse (meta-)data of PANGAEA datasets"
 readme = "README.md"
+license = "GPL-3.0-only"
+license-files = ["LICEN[CS]E*"]
 classifiers = [
   "Development Status :: 5 - Production/Stable",
   "Intended Audience :: Science/Research",
-  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
   "Operating System :: OS Independent",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3 :: Only",
@@ -39,8 +40,6 @@ Homepage = "https://www.pangaea.de"
 Source = "https://github.com/pangaea-data-publisher/pangaeapy"
 Documentation = "https://pangaea-data-publisher.github.io/pangaeapy/"
 Issues = "https://github.com/pangaea-data-publisher/pangaeapy/issues"
-
-[tool.setuptools_scm]
 
 [tool.tox]
 requires = ["tox >= 4.19"]
