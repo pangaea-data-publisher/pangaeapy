@@ -20,9 +20,12 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                      'recordedBy', 'eventDate', 'scientificName', 'phylum','kingdom', 'geodeticDatum', 'decimalLatitude',
                      'decimalLongitude', 'organismQuantity', 'organismQuantityType']
         #http://vocab.nerc.ac.uk/collection/S11/current/
-        self.taxon_lifestages = ['adult','juvenile','larvae','eggs','nauplii','copepodites']
+        self.taxon_lifestages = ['adult','juvenile','larvae','larva','eggs','egg','nauplii','nauplius','copepodites','copepodite',
+                                 'zygotes','zygote','seedling','seedlings']
         #http://vocab.nerc.ac.uk/collection/S10/current/
         self.taxon_sex = ['male','female','hermaphrodite']
+        self.taxon_establish = ['native','captive','cultivated','released','failing','casual','reproducing','established',
+                'colonising','invasive', 'colonial']
         self.taxon_attributes = self.taxon_lifestages + self.taxon_sex
         self.taxon_attributes.append('total')
         self.chronostrat_params = [21496, 21497, 21498, 20544, 21197]
@@ -96,7 +99,6 @@ class PanDarwinCoreAchiveExporter(PanExporter):
 
                     # add: #/m3 etc, %/m3 etc
                     is_valid_unit,  dimension = self.check_unit(param.unit)
-
                     test_taxon = taxon_candidate
 
                     if taxon_candidate.endswith(' sp.'):
@@ -104,7 +106,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                     if taxon_candidate.endswith(' spp.'):
                         test_taxon  = taxon_candidate.replace(' spp.','').strip()
 
-                    if test_taxon .lower() == str(term.get('name')).lower() and is_valid_unit:
+                    if test_taxon.lower() == str(term.get('name')).lower() and is_valid_unit:
                         if term.get('classification'):
                             if 'Biological Classification' in term.get('classification'):
                                 phylum = ''
@@ -185,12 +187,14 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                 geocolumns.append('index')
                 taxonframe = taxonframe.melt(id_vars=geocolumns, value_vars=list(taxoncolumns.keys()), var_name='Colname',
                                              value_name='organismQuantity')
-
                 #exclude negative quantity values
                 try:
                     taxonframe = taxonframe[taxonframe['organismQuantity']>0]
                 except:
                     pass
+                if taxonframe.empty:
+                    self.logging.append({'ERROR': 'Empty data frame therefore skipping DwC-A ASCII table generation'})
+                    return False
                 #preserve the od occurence ids
                 taxonframe['index'] = taxonframe['index']+1
                 taxonframe['id'] = taxonframe['index'].astype(str) + '_' + taxonframe['Colname'].apply(
@@ -310,6 +314,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         ret = False
         hasTaxoncolumns = False
         hasCoordinates = False
+        hasTaxonData = False
         if self.pandataset.id:
             if 'Latitude' in self.pandataset.data.columns and 'Longitude' in self.pandataset.data.columns:
                 hasCoordinates = True
@@ -317,6 +322,9 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                 self.logging.append({'WARNING': 'Missing Coordinates, DwC-A verification failed'})
             try:
                 datacolumns = self.get_taxon_columns()
+                data = self.get_dwca_data(datacolumns)
+                if data:
+                    hasTaxonData = True
                 if len(datacolumns) > 0:
                     hasTaxoncolumns = True
                 else:
@@ -325,7 +333,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             except Exception as e:
                 self.logging.append({'ERROR':'DwC-A verification failed: '+str(e)})
 
-        return hasTaxoncolumns and hasCoordinates
+        return hasTaxoncolumns and hasCoordinates and hasTaxonData
 
     def create(self):
         in_memory_zip = False
