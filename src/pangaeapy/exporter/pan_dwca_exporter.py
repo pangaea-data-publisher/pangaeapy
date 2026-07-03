@@ -39,7 +39,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         self.known_synonyms = {'Coccolithophoridae':'Coccolithophorida'}
 
     def check_unit(self, unitexpr):
-        unitre = '^([#%])(?:\/((?:[0-9]+\s)?(?:[kdcm]?m{1,2}\*{2}[23]|m?l|k?g)))?(?:\/(d|m|y|a|ka|day|week|month|year){1})?$'
+        unitre = r'^([#%])(?:\/((?:[0-9]+\s)?(?:[kdcm]?m{1,2}\*{2}[23]|m?l|k?g)))?(?:\/(d|m|y|a|ka|day|week|month|year){1})?$'
         dimension = ''
         istaxonrelated = False
         if unitexpr:
@@ -77,7 +77,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
 
     def get_taxon_columns(self):
         taxoncolumns = OrderedDict()
-        taxon_attr_regex = r'(.*?)((?:,\s?)'+str('|(?:,\s?)'.join(self.taxon_attributes))+')$'
+        taxon_attr_regex = r'(.*?)((?:,\s?)'+str(r'|(?:,\s?)'.join(self.taxon_attributes))+')$'
         for pkey, param in self.pandataset.params.items():
             # full match of taxon name with parameter only
             # TODO: extend to some adjectives e.g. juvenile, adult etc..
@@ -202,7 +202,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                 taxonframe['occurrenceID'] = taxonframe['id']
                 taxonframe['modified'] = self.pandataset.lastupdate
                 taxonframe['institutionCode'] = 'Pangaea'
-                doimatch = re.search('(10\.1594/PANGAEA\.[0-9]+)', self.pandataset.doi)
+                doimatch = re.search(r'(10\.1594/PANGAEA\.[0-9]+)', self.pandataset.doi)
                 taxonframe['CollectionCode'] = 'doi:' + str(doimatch[1])
                 taxonframe['datasetID'] = self.pandataset.doi
                 taxonframe['basisOfRecord'] = basisofrecord
