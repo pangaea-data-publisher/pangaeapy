@@ -509,7 +509,7 @@ class PanDataSet:
         self.defaultparams = ["Latitude", "Longitude", "Event", "Elevation", "Date/Time"]
         self.paramlist = paramlist
         self.paramlist_index = []
-        self.events = []
+        self.events = {}
         self.projects = []
         self.licence = None
         # allowed geocodes for netcdf generation which are used as xarray dimensions not needed in the moment
@@ -795,7 +795,7 @@ class PanDataSet:
             else:
                 eventCampaign = None
 
-            self.events.append(PanEvent(eventLabel,
+            self.events[eventLabel] = PanEvent(eventLabel,
                                         eventLatitude,
                                         eventLongitude,
                                         eventLatitude2,
@@ -808,7 +808,7 @@ class PanDataSet:
                                         eventCampaign,
                                         eventID,
                                         eventMethod
-                                        ))
+                                        )
 
 
     def _getExtendedTermInfo(self, termid):
@@ -966,7 +966,7 @@ class PanDataSet:
         """
         df = pd.DataFrame()
         try:
-            df = pd.DataFrame([ev.__dict__ for ev in self.events])
+            df = pd.DataFrame([ev.__dict__ for ev in self.events.values()])
             df["campaign"] = df["campaign"].apply(lambda x: x.name)
         except:
             pass
@@ -1017,30 +1017,49 @@ class PanDataSet:
 
                         # if addEventColumns==True and self.topotype!="not specified":
                         if addEventColumns:
-                            if len(self.events) == 1:
+                            if len(self.events.items()) == 1:
                                 if "Event" not in self.data.columns:
                                     self.data["Event"] = self.events[0].label
                                     self.params["Event"] = PanParam(0, "Event", "Event", "string", "data", None)
-                            if len(self.events) >= 1:
+                            if len(self.events.items()) >= 1:
                                 addEvLat = addEvLon = addEvEle = addEvDat = False
                                 if "Event" in self.data.columns:
+                                    newcols = {}
                                     if "Latitude" not in self.data.columns:
                                         addEvLat = True
-                                        self.data["Latitude"] = np.nan
-                                        self.params["Latitude"] = PanParam(1600, "Latitude", "Latitude", "numeric", "event", "deg")
+                                        newcols["Latitude"] = np.nan
+                                        self.params["Latitude"] = PanParam(
+                                            1600, "Latitude", "Latitude", "numeric", "event", "deg"
+                                        )
+
                                     if "Longitude" not in self.data.columns:
                                         addEvLon = True
-                                        self.data["Longitude"] = np.nan
-                                        self.params["Longitude"] = PanParam(1601, "Longitude", "Longitude", "numeric", "event", "deg")
+                                        newcols["Longitude"] = np.nan
+                                        self.params["Longitude"] = PanParam(
+                                            1601, "Longitude", "Longitude", "numeric", "event", "deg"
+                                        )
+
                                     if "Elevation" not in self.data.columns:
                                         addEvEle = True
-                                        self.data["Elevation"] = np.nan
-                                        self.params["Elevation"] = PanParam(8128, "Elevation", "Elevation", "numeric", "event", "m")
+                                        newcols["Elevation"] = np.nan
+                                        self.params["Elevation"] = PanParam(
+                                            8128, "Elevation", "Elevation", "numeric", "event", "m"
+                                        )
+
                                     if "Date/Time" not in self.data.columns:
                                         addEvDat = True
-                                        self.data["Date/Time"] = "NaN"
-                                        self.params["Date/Time"] = PanParam(1599, "Date/Time", "Date/Time", "datetime", "event", "")
-                                    for iev, pevent in enumerate(self.events):
+                                        newcols["Date/Time"] = np.nan
+                                        self.params["Date/Time"] = PanParam(
+                                            1599, "Date/Time", "Date/Time", "datetime", "event", ""
+                                        )
+
+                                    if newcols:
+                                        self.data = pd.concat(
+                                            [self.data, pd.DataFrame(newcols, index=self.data.index)],
+                                            axis=1
+                                        )
+
+                                    for iev, pevent in enumerate(self.events.items()):
                                         if pevent.latitude is not None and addEvLat:
                                             self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Latitude"].isnull()), ["Latitude"]] = self.events[iev].latitude
                                         if pevent.longitude is not None and addEvLon:
@@ -1436,7 +1455,7 @@ class PanDataSet:
             if pt == 1 and pz == 1:
                 geotype = "point"
             elif pt >= 1:
-                if pz == 1 or len(self.events) == 1:
+                if pz == 1 or len(self.events.items()) == 1:
                     geotype = "timeSeries"
                 else:
                     geotype = "timeSeriesStack"
