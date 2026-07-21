@@ -377,6 +377,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         if self.pandataset.id:
             if 'Latitude' in self.pandataset.data.columns and 'Longitude' in self.pandataset.data.columns:
                 hasCoordinates = True
+                self.logging.append({'INFO': 'Found Coordinates during DwC-A verification'})
             else:
                 self.logging.append({'WARNING': 'Missing Coordinates, DwC-A verification failed'})
             try:
@@ -384,10 +385,19 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                 data = self.get_dwca_data(datacolumns)
                 if data:
                     hasTaxonData = True
+                    self.logging.append({'INFO': 'Found Taxon Data Values during DwC-A verification'})
+
                 if len(datacolumns) > 0:
                     hasTaxoncolumns = True
+                    self.logging.append({'INFO': 'Found Taxon Columns during DwC-A verification'})
+
                 else:
                     self.logging.append({'WARNING': 'Missing Taxon Column(s), DwC-A verification failed'})
+
+                if (self.pandataset.data[datacolumns.keys()]== 0).all().all():
+                    hasTaxonData = False
+                    self.logging.append({'WARNING': 'All Taxon Data Values equal Zero!, DwC-A verification failed'})
+
 
             except Exception as e:
                 self.logging.append({'ERROR':'DwC-A verification failed: '+str(e)})
