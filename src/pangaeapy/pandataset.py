@@ -1019,7 +1019,7 @@ class PanDataSet:
                         if addEventColumns:
                             if len(self.events.items()) == 1:
                                 if "Event" not in self.data.columns:
-                                    self.data["Event"] = self.events[0].label
+                                    self.data["Event"] = list(self.events.values())[0].label
                                     self.params["Event"] = PanParam(0, "Event", "Event", "string", "data", None)
                             if len(self.events.items()) >= 1:
                                 addEvLat = addEvLon = addEvEle = addEvDat = False
@@ -1048,7 +1048,7 @@ class PanDataSet:
 
                                     if "Date/Time" not in self.data.columns:
                                         addEvDat = True
-                                        newcols["Date/Time"] = np.nan
+                                        newcols["Date/Time"] = pd.NaT
                                         self.params["Date/Time"] = PanParam(
                                             1599, "Date/Time", "Date/Time", "datetime", "event", ""
                                         )
@@ -1067,7 +1067,7 @@ class PanDataSet:
                                         if pevent.elevation is not None and addEvEle:
                                             self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Elevation"].isnull()), ["Elevation"]] = self.events[iev].elevation
                                         if pevent.datetime is not None and addEvDat:
-                                            self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Date/Time"] == "NaN"), ["Date/Time"]] = str(self.events[iev].datetime)
+                                            self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Date/Time"].isna()), ["Date/Time"]] = self.events[iev].datetime
                         # -- delete values with given QC flags
                         if self.deleteFlag != "":
                             if self.deleteFlag == "?" or self.deleteFlag == "*":
@@ -1088,6 +1088,8 @@ class PanDataSet:
 
                         # --- Adjust Column Data Types
                         for col in self.data:
+                            if col == "Date/Time":
+                                continue
                             try:
                                 self.data[col] = pd.to_numeric(self.data[col])
                             except (ValueError, TypeError):
@@ -1287,7 +1289,18 @@ class PanDataSet:
     def year(self):
         return self.find("./md:citation/md:year")
 
+    def getMetadataFormats(self):
+        # returns a dict of mime types representing alternate metadata formats the dataset is also describedby
+        formats = []
+        linksetjson, linksetfilename = self.getMetadata('application/linkset+json')
+        linksetdict = json.loads(linksetjson)
+        if linksetdict.get('linkset'):
+            for describedby in linksetdict['linkset'][0].get('describedby', []):
+                formats.append(describedby.get("type"))
+        return formats
+
     def getMetadata(self, accept="application/vnd.pangaea.metadata+xml"):
+        # retrieves the dataset's metadata (or content in general) of given accept type
         id = self.id
         try:
             r = get_request(
@@ -1672,7 +1685,7 @@ class PanDataHarvester:
         self.data = dataset.data
         self.cachedir = dataset.cachedir
         self.cachedir.mkdir(parents=True, exist_ok=True)
-        self.columns = dataset.columns  # list of column names
+        self.columns = self.data.columns  # list of column names
         self.data_index = dataset.data_index
         self.semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
 
