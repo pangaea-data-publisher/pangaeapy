@@ -5,24 +5,29 @@ from collections import OrderedDict
 
 import lxml.etree
 import lxml.etree as et
+import numpy as np
 from pangaeapy.exporter.pan_exporter import PanExporter
 from zipfile import ZipFile
 from io import BytesIO
+import pandas as pd
 
-class PanDarwinCoreAchiveExporter(PanExporter):
+class PanDarwinCoreArchiveExporter(PanExporter):
 
     def __init__(self, *args, **kwargs):
-        super(PanDarwinCoreAchiveExporter, self).__init__(*args, **kwargs)
+        super(PanDarwinCoreArchiveExporter, self).__init__(*args, **kwargs)
 
         self.dwcnames = {'Event': 'EventID', 'Latitude': 'decimalLatitude', 'Longitude': 'decimalLongitude',
                     'Date/Time': 'eventDate','Depth water': 'minimumDepthInMeters', 'Elevation':'minimumElevationInMeters'}
-        self.dwcfields = ['id', 'occurrenceID','modified', 'institutionCode', 'CollectionCode', 'datasetID', 'basisOfRecord', 'catalogNumber',
-                     'recordedBy', 'eventDate', 'scientificName', 'phylum','kingdom', 'geodeticDatum', 'decimalLatitude',
-                     'decimalLongitude', 'organismQuantity', 'organismQuantityType']
+        self.dwcfields = ['id', 'occurrenceID', 'occurrenceStatus', 'modified', 'institutionCode', 'CollectionCode', 'datasetID', 'basisOfRecord', 'catalogNumber',
+                     'recordedBy', 'eventDate', 'scientificName', 'taxonID','phylum','kingdom', 'geodeticDatum', 'decimalLatitude',
+                     'decimalLongitude', 'organismQuantity', 'organismQuantityType', 'samplingProtocol']
         #http://vocab.nerc.ac.uk/collection/S11/current/
-        self.taxon_lifestages = ['adult','juvenile','larvae','eggs','nauplii','copepodites']
+        self.taxon_lifestages = ['adult','juvenile','larvae','larva','eggs','egg','nauplii','nauplius','copepodites','copepodite',
+                                 'zygotes','zygote','seedling','seedlings']
         #http://vocab.nerc.ac.uk/collection/S10/current/
         self.taxon_sex = ['male','female','hermaphrodite']
+        self.taxon_establish = ['native','captive','cultivated','released','failing','casual','reproducing','established',
+                'colonising','invasive', 'colonial']
         self.taxon_attributes = self.taxon_lifestages + self.taxon_sex
         self.taxon_attributes.append('total')
         self.chronostrat_params = [21496, 21497, 21498, 20544, 21197]
@@ -34,8 +39,11 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         self.taxonomic_ontologies = [1,2]
         self.taxonomic_coverage = []
         self.known_synonyms = {'Coccolithophoridae':'Coccolithophorida'}
+        self.param_statistics = {'taxon_columns': [], 'other_columns':[]}
+        events = self.pandataset.events
 
-    def check_unit(self, unitexpr):
+
+    def check_unit(self, unitexpr, paramname):
         unitre = r'^([#%])(?:\/((?:[0-9]+\s)?(?:[kdcm]?m{1,2}\*{2}[23]|m?l|k?g)))?(?:\/(d|m|y|a|ka|day|week|month|year){1})?$'
         dimension = ''
         istaxonrelated = False
@@ -44,7 +52,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                 try:
                     umatch = re.search(unitre, unitexpr)
                     if umatch:
-                        uparts = filter(None, list(umatch.groups()))
+                        #uparts = filter(None, list(umatch.groups()))
                         if umatch[1] is not None:
                             istaxonrelated = True
                             if umatch[1] == '#':
@@ -68,23 +76,37 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                 except Exception as e:
                     self.logging.append({'WARNING': 'Unit check failed: '+str(e)})
         else:
-            dimension = 'relative abundance'
+            # empty unit
+            dimension = 'unknow or missing unit'
+            if self.pandataset.data[paramname].nunique() == 2:
+                unique_vals = set(self.pandataset.data[paramname].unique().tolist())
+                if unique_vals in ({0, 1},{'0', '1'}, {'y', 'n'},{'Y', 'N'}):
+                    dimension ='presence or absence'
+                    self.logging.append({'INFO': 'Assuming presence or absence given (no unit, only two unique values) : ' + str(paramname)})
+            #self.logging.append({'WARNING': 'No Unit given for : ' + str(paramname)})
             istaxonrelated =True
         return istaxonrelated, dimension
 
     def get_taxon_columns(self):
         taxoncolumns = OrderedDict()
-        taxon_attr_regex = r'(.*?)((?:,\s?)'+str(r'|(?:,\s?)'.join(self.taxon_attributes))+')$'
+        taxon_attr_regex = r'(.*?)((?:,\s?)'+str(r'|(?:,\s?)'.join(self.taxon_attributes))+r')$'
+        nontaxoncolumns = []
         for pkey, param in self.pandataset.params.items():
+            method = None
+            try:
+                if param.method:
+                    method = param.method.name
+            except Exception as e:
+                print('Taxon_Columns Method inclusion error ', e)
             # full match of taxon name with parameter only
             # TODO: extend to some adjectives e.g. juvenile, adult etc..
             try:
+                if not param.terms:
+                    nontaxoncolumns.append(pkey)
                 for term in param.terms:
-                    semantic_uri = ''
                     name_parts = re.split(r',\s?',param.name)
                     taxon_candidate = str(param.name)
                     semantic_uri = term.get('semantic_uri')
-
                     taxon_attribute = None
                     if len(name_parts) == 2:
                         if name_parts[1] in self.taxon_attributes:
@@ -93,10 +115,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                     if taxon_candidate in self.known_synonyms:
                         taxon_candidate = self.known_synonyms.get(taxon_candidate)
 
-
                     # add: #/m3 etc, %/m3 etc
-                    is_valid_unit,  dimension = self.check_unit(param.unit)
-
                     test_taxon = taxon_candidate
 
                     if taxon_candidate.endswith(' sp.'):
@@ -104,9 +123,11 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                     if taxon_candidate.endswith(' spp.'):
                         test_taxon  = taxon_candidate.replace(' spp.','').strip()
 
-                    if test_taxon .lower() == str(term.get('name')).lower() and is_valid_unit:
+                    if test_taxon.lower() == str(term.get('name')).lower():
                         if term.get('classification'):
                             if 'Biological Classification' in term.get('classification'):
+                                is_valid_unit, dimension = self.check_unit(param.unit, pkey)
+
                                 phylum = ''
                                 for classtax in term.get('classification'):
                                     #phyla list from worms
@@ -119,23 +140,37 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                                 if phylum not in self.taxonomic_coverage:
                                     self.taxonomic_coverage.append(phylum)
 
-                                taxoncolumns[pkey] = {'taxon': taxon_candidate, 'series': param.dataseries, 'author': param.PI,
-                                                      'kingdom': kingdom, 'phylum': phylum, 'colno': param.colno, 'unit': param.unit,'dimension': dimension}
-                                if taxon_attribute:
-                                    if taxon_attribute in self.taxon_sex:
-                                        taxoncolumns[pkey]['sex'] = taxon_attribute
-                                        if 'sex' not in self.dwcfields:
-                                            self.dwcfields.append('sex')
-                                    if taxon_attribute in self.taxon_lifestages:
-                                        taxoncolumns[pkey]['lifestage'] = taxon_attribute
-                                        if 'lifeStage' not in self.dwcfields:
-                                            self.dwcfields.append('lifeStage')
+                                if is_valid_unit:
+                                    taxoncolumns[pkey] = {'taxon': taxon_candidate, 'series': param.dataseries, 'author': param.PI,
+                                                          'kingdom': kingdom, 'phylum': phylum, 'colno': param.colno, 'unit': param.unit,
+                                                          'dimension': dimension, 'id':semantic_uri, 'method': param.method}
+                                    if taxon_attribute:
+                                        if taxon_attribute in self.taxon_sex:
+                                            taxoncolumns[pkey]['sex'] = taxon_attribute
+                                            if 'sex' not in self.dwcfields:
+                                                self.dwcfields.append('sex')
+                                        if taxon_attribute in self.taxon_lifestages:
+                                            taxoncolumns[pkey]['lifestage'] = taxon_attribute
+                                            if 'lifeStage' not in self.dwcfields:
+                                                self.dwcfields.append('lifeStage')
+                                else:
+                                    nontaxoncolumns.append(pkey)
+                                    self.logging.append({'INFO': 'Invalid unit therefore taxon like parameter: ' + str(pkey) +' is ignored'})
+                            else:
+                                nontaxoncolumns.append(pkey)
+                                self.logging.append({'INFO': 'Parameter: ' + str(pkey) + ' is not tagged as taxon (Biological Classification)'})
+                        else:
+                            nontaxoncolumns.append(pkey)
+                    else:
+                        nontaxoncolumns.append(pkey)
                     break
 
             except Exception as e:
-                self.logging.append({'WARNING': 'Failed to identify taxonomic information in parameter: '+str(pkey)})
+                self.logging.append({'WARNING': 'Failed to identify taxonomic information in parameter: '+str(pkey)+', Error: '+str(e)+str(type(e).__name__)})
         if len(taxoncolumns) <= 0:
             self.logging.append({'WARNING': 'Could not identify taxonomic information in this dataset'})
+        self.param_statistics['taxon_columns'] = taxoncolumns.keys()
+        self.param_statistics['other_columns'] = nontaxoncolumns
         return taxoncolumns
 
     def get_context_info(self):
@@ -161,7 +196,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         dwcdata = None
         basisofrecord, geologicalcontextid = self.get_context_info()
         selectedcolumns = []
-        geocolumns = self.pandataset.defaultparams
+        geocolumns = list(self.pandataset.defaultparams)
         if 'Depth water' in self.pandataset.data.columns:
             self.dwcfields.append('minimumDepthInMeters')
             geocolumns.append('Depth water')
@@ -178,41 +213,67 @@ class PanDarwinCoreAchiveExporter(PanExporter):
 
         if len(taxoncolumns) > 0:
             try:
+                self.pandataset.data = self.pandataset.data.copy()
+                taxonframe = self.pandataset.data.reset_index().rename(columns={'index': 'row_id'})
+                geocolumns.append('row_id')
                 selectedcolumns.extend(geocolumns)
                 selectedcolumns.extend(taxoncolumns.keys())
-                taxonframe = self.pandataset.data[selectedcolumns]
-                taxonframe = taxonframe.reset_index()
-                geocolumns.append('index')
-                taxonframe = taxonframe.melt(id_vars=geocolumns, value_vars=list(taxoncolumns.keys()), var_name='Colname',
-                                             value_name='organismQuantity')
+                taxonframe = taxonframe[selectedcolumns]
 
+                try:
+                    taxonframe = taxonframe.melt(id_vars=geocolumns, value_vars=list(taxoncolumns.keys()), var_name='Colname',
+                                             value_name='organismQuantity')
+                except Exception as e:
+                    print('Melt error', e)
                 #exclude negative quantity values
                 try:
-                    taxonframe = taxonframe[taxonframe['organismQuantity']>0]
+                    taxonframe = taxonframe[taxonframe['organismQuantity']>=0]
                 except:
                     pass
+                if taxonframe.empty:
+                    self.logging.append({'ERROR': 'Empty data frame therefore skipping DwC-A ASCII table generation'})
+                    return False
                 #preserve the od occurence ids
-                taxonframe['index'] = taxonframe['index']+1
-                taxonframe['id'] = taxonframe['index'].astype(str) + '_' + taxonframe['Colname'].apply(
+
+                #temp data frame
+                tempframe = pd.DataFrame()
+                #meta
+                tempframe['row_id'] = taxonframe['row_id']+1
+                tempframe['occurrenceID'] = tempframe['row_id'].astype(str) + '_' + taxonframe['Colname'].apply(
                     lambda x: taxoncolumns.get(x).get('colno')).astype(str)
-                taxonframe['occurrenceID'] = taxonframe['id']
-                taxonframe['modified'] = self.pandataset.lastupdate
-                taxonframe['institutionCode'] = 'Pangaea'
+                tempframe['samplingProtocol'] = taxonframe.apply(
+                    lambda row:
+                    f'Used method: {self.pandataset.events[row["Event"]].method.name} '
+                    #f'during Event: {row["Event"]}; '
+                    f'in particular: {taxoncolumns.get(row["Colname"], {}).get("method").name}'
+                    if pd.notna(row.get('Event')) and row['Event'] in self.pandataset.events
+                    else None,
+                    axis=1
+                )
+                tempframe['occurrenceStatus'] = np.where(
+                    taxonframe['organismQuantity'] > 0,
+                    'present',
+                    'absent'
+                )
+                #meta[] = taxonframe['id']
+                tempframe['modified'] = self.pandataset.lastupdate
+                tempframe['institutionCode'] = 'Pangaea'
                 doimatch = re.search(r'(10\.1594/PANGAEA\.[0-9]+)', self.pandataset.doi)
-                taxonframe['CollectionCode'] = 'doi:' + str(doimatch[1])
-                taxonframe['datasetID'] = self.pandataset.doi
-                taxonframe['basisOfRecord'] = basisofrecord
-                taxonframe['catalogNumber'] = taxonframe['Colname'].apply(
-                    lambda x: taxoncolumns.get(x).get('series')).astype(str) + '_' + taxonframe['index'].astype(str)
-                taxonframe['recordedBy'] = taxonframe['Colname'].apply(lambda x: None if not taxoncolumns.get(x).get('author') else taxoncolumns.get(x).get('author').get('name'))
-                taxonframe['scientificName'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('taxon'))
-                taxonframe['geodeticDatum'] = 'WGS84'
-                taxonframe['phylum'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('phylum'))
-                taxonframe['kingdom'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('kingdom'))
+                tempframe['CollectionCode'] = 'doi:' + str(doimatch[1])
+                tempframe['datasetID'] = self.pandataset.doi
+                tempframe['basisOfRecord'] = basisofrecord
+                tempframe['catalogNumber'] = taxonframe['Colname'].apply(
+                    lambda x: taxoncolumns.get(x).get('series')).astype(str) + '_' + tempframe['row_id'].astype(str)
+                tempframe['recordedBy'] = taxonframe['Colname'].apply(lambda x: None if not taxoncolumns.get(x).get('author') else taxoncolumns.get(x).get('author').get('name'))
+                tempframe['scientificName'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('taxon'))
+                tempframe['geodeticDatum'] = 'WGS84'
+                tempframe['phylum'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('phylum'))
+                tempframe['kingdom'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('kingdom'))
                 #taxonframe['organismQuantityType'] = 'individuals (' + taxonframe['Colname'].apply(
                 #    lambda x: taxoncolumns.get(x).get('unit')).astype(str) + ')'
-                taxonframe['organismQuantityType'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('dimension'))
-
+                tempframe['organismQuantityType'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('dimension'))
+                tempframe['taxonID'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('id'))
+                taxonframe = pd.concat([taxonframe, tempframe], axis=1)
                 try:
                     if 'sex' in self.dwcfields:
                         taxonframe['sex'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('sex'))
@@ -220,15 +281,16 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                     if 'lifeStage' in self.dwcfields:
                         taxonframe['lifeStage'] = taxonframe['Colname'].apply(lambda x: taxoncolumns.get(x).get('lifestage'))
                 except Exception as e1:
-                    print(e1)
+                    print('Error in sex or lifestage ',e1)
                 replace_dwcnames = {ck: cv  for (ck, cv) in self.dwcnames.items() if ck in taxonframe.columns}
-
-                taxonframe.rename(columns=replace_dwcnames, inplace=True)
+                try:
+                    taxonframe.rename(columns=replace_dwcnames, inplace=True)
+                except Exception as e:
+                    print('RENAME Error', e)
                 if geologicalcontextid:
                     taxonframe['geologicalContextID'] = geologicalcontextid
                     self.dwcfields.append('geologicalContextID')
                 #elevation_direction = self.set_elevation_column()
-
                 self.dwcfields= [f for f in self.dwcfields if f in taxonframe.columns]
 
                 taxonframe = taxonframe[self.dwcfields]
@@ -243,6 +305,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
             except Exception as e2:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
                 fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                print('Error creating data frame',e2)
                 print(exc_type, fname, exc_tb.tb_lineno)
                 self.logging.append({'ERROR': 'Creation of data frame failed: '+str(e2)})
             return dwcdata
@@ -310,22 +373,36 @@ class PanDarwinCoreAchiveExporter(PanExporter):
         ret = False
         hasTaxoncolumns = False
         hasCoordinates = False
+        hasTaxonData = False
         if self.pandataset.id:
             if 'Latitude' in self.pandataset.data.columns and 'Longitude' in self.pandataset.data.columns:
                 hasCoordinates = True
+                self.logging.append({'INFO': 'Found Coordinates during DwC-A verification'})
             else:
                 self.logging.append({'WARNING': 'Missing Coordinates, DwC-A verification failed'})
             try:
                 datacolumns = self.get_taxon_columns()
+                data = self.get_dwca_data(datacolumns)
+                if data:
+                    hasTaxonData = True
+                    self.logging.append({'INFO': 'Found Taxon Data Values during DwC-A verification'})
+
                 if len(datacolumns) > 0:
                     hasTaxoncolumns = True
+                    self.logging.append({'INFO': 'Found Taxon Columns during DwC-A verification'})
+
                 else:
                     self.logging.append({'WARNING': 'Missing Taxon Column(s), DwC-A verification failed'})
+
+                if (self.pandataset.data[datacolumns.keys()]== 0).all().all():
+                    hasTaxonData = False
+                    self.logging.append({'WARNING': 'All Taxon Data Values equal Zero!, DwC-A verification failed'})
+
 
             except Exception as e:
                 self.logging.append({'ERROR':'DwC-A verification failed: '+str(e)})
 
-        return hasTaxoncolumns and hasCoordinates
+        return hasTaxoncolumns and hasCoordinates and hasTaxonData
 
     def create(self):
         in_memory_zip = False
@@ -340,7 +417,7 @@ class PanDarwinCoreAchiveExporter(PanExporter):
                     zip_file = ZipFile(in_memory_zip, 'w')
                     zip_file.writestr('meta.xml', meta)
                     zip_file.writestr('eml.xml', eml)
-                    zip_file.writestr(self.pandataset.id+'_data.tab', data)
+                    zip_file.writestr(str(self.pandataset.id)+'_data.tab', data)
                     zip_file.close()
                     in_memory_zip.seek(0)
                     self.file = in_memory_zip

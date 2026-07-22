@@ -19,7 +19,7 @@ import pandas as pd
 import requests
 
 from pangaeapy._core import CURRENT_VERSION, get_request, get_xml_content
-from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
+from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreArchiveExporter
 from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
 
@@ -509,7 +509,7 @@ class PanDataSet:
         self.defaultparams = ["Latitude", "Longitude", "Event", "Elevation", "Date/Time"]
         self.paramlist = paramlist
         self.paramlist_index = []
-        self.events = []
+        self.events = {}
         self.projects = []
         self.licence = None
         # allowed geocodes for netcdf generation which are used as xarray dimensions not needed in the moment
@@ -795,7 +795,7 @@ class PanDataSet:
             else:
                 eventCampaign = None
 
-            self.events.append(PanEvent(eventLabel,
+            self.events[eventLabel] = PanEvent(eventLabel,
                                         eventLatitude,
                                         eventLongitude,
                                         eventLatitude2,
@@ -808,7 +808,7 @@ class PanDataSet:
                                         eventCampaign,
                                         eventID,
                                         eventMethod
-                                        ))
+                                        )
 
 
     def _getExtendedTermInfo(self, termid):
@@ -966,7 +966,7 @@ class PanDataSet:
         """
         df = pd.DataFrame()
         try:
-            df = pd.DataFrame([ev.__dict__ for ev in self.events])
+            df = pd.DataFrame([ev.__dict__ for ev in self.events.values()])
             df["campaign"] = df["campaign"].apply(lambda x: x.name)
         except:
             pass
@@ -1017,30 +1017,49 @@ class PanDataSet:
 
                         # if addEventColumns==True and self.topotype!="not specified":
                         if addEventColumns:
-                            if len(self.events) == 1:
+                            if len(self.events.items()) == 1:
                                 if "Event" not in self.data.columns:
-                                    self.data["Event"] = self.events[0].label
+                                    self.data["Event"] = list(self.events.values())[0].label
                                     self.params["Event"] = PanParam(0, "Event", "Event", "string", "data", None)
-                            if len(self.events) >= 1:
+                            if len(self.events.items()) >= 1:
                                 addEvLat = addEvLon = addEvEle = addEvDat = False
                                 if "Event" in self.data.columns:
+                                    newcols = {}
                                     if "Latitude" not in self.data.columns:
                                         addEvLat = True
-                                        self.data["Latitude"] = np.nan
-                                        self.params["Latitude"] = PanParam(1600, "Latitude", "Latitude", "numeric", "event", "deg")
+                                        newcols["Latitude"] = np.nan
+                                        self.params["Latitude"] = PanParam(
+                                            1600, "Latitude", "Latitude", "numeric", "event", "deg"
+                                        )
+
                                     if "Longitude" not in self.data.columns:
                                         addEvLon = True
-                                        self.data["Longitude"] = np.nan
-                                        self.params["Longitude"] = PanParam(1601, "Longitude", "Longitude", "numeric", "event", "deg")
+                                        newcols["Longitude"] = np.nan
+                                        self.params["Longitude"] = PanParam(
+                                            1601, "Longitude", "Longitude", "numeric", "event", "deg"
+                                        )
+
                                     if "Elevation" not in self.data.columns:
                                         addEvEle = True
-                                        self.data["Elevation"] = np.nan
-                                        self.params["Elevation"] = PanParam(8128, "Elevation", "Elevation", "numeric", "event", "m")
+                                        newcols["Elevation"] = np.nan
+                                        self.params["Elevation"] = PanParam(
+                                            8128, "Elevation", "Elevation", "numeric", "event", "m"
+                                        )
+
                                     if "Date/Time" not in self.data.columns:
                                         addEvDat = True
-                                        self.data["Date/Time"] = "NaN"
-                                        self.params["Date/Time"] = PanParam(1599, "Date/Time", "Date/Time", "datetime", "event", "")
-                                    for iev, pevent in enumerate(self.events):
+                                        newcols["Date/Time"] = pd.NaT
+                                        self.params["Date/Time"] = PanParam(
+                                            1599, "Date/Time", "Date/Time", "datetime", "event", ""
+                                        )
+
+                                    if newcols:
+                                        self.data = pd.concat(
+                                            [self.data, pd.DataFrame(newcols, index=self.data.index)],
+                                            axis=1
+                                        )
+
+                                    for iev, pevent in self.events.items():
                                         if pevent.latitude is not None and addEvLat:
                                             self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Latitude"].isnull()), ["Latitude"]] = self.events[iev].latitude
                                         if pevent.longitude is not None and addEvLon:
@@ -1048,7 +1067,7 @@ class PanDataSet:
                                         if pevent.elevation is not None and addEvEle:
                                             self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Elevation"].isnull()), ["Elevation"]] = self.events[iev].elevation
                                         if pevent.datetime is not None and addEvDat:
-                                            self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Date/Time"] == "NaN"), ["Date/Time"]] = str(self.events[iev].datetime)
+                                            self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Date/Time"].isna()), ["Date/Time"]] = self.events[iev].datetime
                         # -- delete values with given QC flags
                         if self.deleteFlag != "":
                             if self.deleteFlag == "?" or self.deleteFlag == "*":
@@ -1069,6 +1088,8 @@ class PanDataSet:
 
                         # --- Adjust Column Data Types
                         for col in self.data:
+                            if col == "Date/Time":
+                                continue
                             try:
                                 self.data[col] = pd.to_numeric(self.data[col])
                             except (ValueError, TypeError):
@@ -1099,7 +1120,7 @@ class PanDataSet:
                     # self.logging.append({'WARNING': 'Data access failed, response code '+(str(dataResponse.status_code))})
                     self.log(logging.WARNING, "Data access failed, response code " + (str(dataResponse.status_code)))
             except Exception as e:
-                # self.logging.append({'ERROR':'Loading data failed, reason: '+str(e)})
+                 #self.logging.append({'ERROR':'Loading data failed, reason: '+str(e)})
                 self.log(logging.ERROR, "Loading data failed, reason: " + str(e))
 
     def setQCDataFrame(self):
@@ -1268,139 +1289,165 @@ class PanDataSet:
     def year(self):
         return self.find("./md:citation/md:year")
 
+    def getMetadataFormats(self):
+        # returns a dict of mime types representing alternate metadata formats the dataset is also describedby
+        formats = []
+        linksetjson, linksetfilename = self.getMetadata('application/linkset+json')
+        linksetdict = json.loads(linksetjson)
+        if linksetdict.get('linkset'):
+            for describedby in linksetdict['linkset'][0].get('describedby', []):
+                formats.append(describedby.get("type"))
+        return formats
+
+    def getMetadata(self, accept="application/vnd.pangaea.metadata+xml"):
+        # retrieves the dataset's metadata (or content in general) of given accept type
+        id = self.id
+        try:
+            r = get_request(
+                f"https://doi.pangaea.de/10.1594/PANGAEA.{id}",
+                accepted_type=accept,
+                auth_token=self.auth_token,
+            )
+
+            if r.status_code == 404:
+                self.log(logging.ERROR, f"Data set does not exist, 404: {id}")
+                return None
+
+            r.raise_for_status()
+
+            filename = None
+            cd = r.headers.get("Content-Disposition")
+            if cd:
+                m = re.search(r'filename="?([^"]+)"?', cd)
+                if m:
+                    filename = m.group(1)
+            return r.text, filename
+
+        except requests.exceptions.HTTPError as e:
+            self.log(logging.ERROR, f"Failed to retrieve metadata information: {e}")
+        except Exception as e:
+            self.log(logging.ERROR, f"HTTP request error: {e}")
+
+        return None
+
     def setMetadata(self):
         """
         The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
 
         """
-        r = None
-        try:
-            r = get_request(
-            f"https://doi.pangaea.de/10.1594/PANGAEA.{self.id}",
-            accepted_type="application/vnd.pangaea.metadata+xml",
-            auth_token=self.auth_token,
-        )
-        except Exception as e:
-            self.log(logging.ERROR, "HTTP request error: " + str(e))
-        if r is not None:
-            if r.status_code != 404:
-                try:
-                    r.raise_for_status()
-                    xmlText = r.text
-                    self.metaxml = xmlText
-                    xml = ET.fromstring(xmlText.encode())
-                    self._xml_root = xml
-                    if self.datastatus not in ["deleted", None]:
-                        if self.loginstatus != "unrestricted":
-                            if self.auth_token:
-                                # self.logging.append({'INFO': 'Trying to load protected dataset using the given auth token'})
-                                self.log(logging.INFO, "Trying to load protected dataset using the given auth token")
-                            else:
-                                # self.logging.append({'WARNING': 'Data set is protected'})
-                                self.log(logging.WARNING, "Data set is protected")
-                        if xml.find('./md:technicalInfo/md:entry[@key="collectionType"]', self.ns) is not None:
-                            self.log(logging.WARNING, "Data set is of type collection, please select one of its child datasets")
-                            self.isCollection = True
-                            self.collection_members = [
-                                f"doi:10.1594/PANGAEA.{el[1:]}"
-                                for el in xml.find(
-                                    './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
-                                ).get("value").split(",")
-                            ]
-                        for author in xml.findall("./md:citation/md:author", self.ns):
-                            lastname = None
-                            firstname = None
-                            orcid = None
-                            if author.find("md:lastName", self.ns) is not None:
-                                lastname = author.find("md:lastName", self.ns).text
-                            if author.find("md:firstName", self.ns) is not None:
-                                firstname = author.find("md:firstName", self.ns).text
-                            if author.find("md:orcid", self.ns) is not None:
-                                orcid = author.find("md:orcid", self.ns).text
-                            # if author.find("md:affiliation", self.ns)!=None:
-                            authoraffiliations = []
-                            for affiliations in author.findall("md:affiliation", self.ns):
-                                afm = re.search(r"\.inst([0-9]+)$", str(affiliations.get("id")))
-                                if afm:
-                                    authoraffiliations.append(afm[1])
-                            # print(authoraffiliations)
-                            authorid = author.get("id")
-                            if authorid:
-                                authorid = int(authorid.replace("dataset.author", ""))
-                            self.authors.append(PanAuthor(lastname, firstname, orcid, authorid, authoraffiliations))
-                        for project in xml.findall("./md:project", self.ns):
-                            label = None
-                            name = None
-                            URI = None
-                            awardURI = None
-                            if project.find("md:label", self.ns) is not None:
-                                label = project.find("md:label", self.ns).text
-                            if project.find("md:name", self.ns) is not None:
-                                name = project.find("md:name", self.ns).text
-                            if project.find("md:URI", self.ns) is not None:
-                                URI = project.find("md:URI", self.ns).text
-                            if project.find("md:award/md:URI", self.ns) is not None:
-                                awardURI = project.find("md:award/md:URI", self.ns).text
-                            if project.get("id"):
-                                projectid = str(project.get("id")).replace("project", "")
-                            self.projects.append(PanProject(label, name, URI, awardURI, int(projectid)))
-                        if xml.find("./md:license", self.ns) is not None:
-                            license = xml.find("./md:license", self.ns)
-                            label = None
-                            name = None
-                            URI = None
-                            if license.find("md:label", self.ns) is not None:
-                                label = license.find("md:label", self.ns).text
-                            if license.find("md:name", self.ns) is not None:
-                                name = license.find("md:name", self.ns).text
-                            if license.find("md:URI", self.ns) is not None:
-                                URI = license.find("md:URI", self.ns).text
-                            self.licence = PanLicence(label, name, URI)
-                        for reference in xml.findall("./md:reference", self.ns):
-                            refURI = None
-                            reftitle = None
-                            reftype = reference.get("relationType")
-                            refid = reference.get("id")
-                            if reference.find("md:URI", self.ns) is not None:
-                                refURI = reference.find("md:URI", self.ns).text
-                            if reference.find("md:title", self.ns) is not None:
-                                reftitle = reference.find("md:title", self.ns).text
-                            self.relations.append({"id": refid, "title": reftitle, "uri": refURI, "type": reftype})
-                        if xml.find("./md:citation/md:supplementTo", self.ns) is not None:
-                            suppl = xml.find("./md:citation/md:supplementTo", self.ns)
-                            suppURI = None
-                            supptitle = None
-                            suppyear = None
-                            suppid = suppl.get("id")
-                            if suppl.find("md:year", self.ns) is not None:
-                                suppyear = suppl.find("md:year", self.ns).text
-                            if suppl.find("md:title", self.ns) is not None:
-                                supptitle = suppl.find("md:title", self.ns).text
-                            if suppl.find("md:URI", self.ns) is not None:
-                                suppURI = suppl.find("md:URI", self.ns).text
-                            self.supplement_to = {"id": suppid, "title": supptitle, "uri": suppURI, "year": suppyear}
-                        panXMLMatrixColumn = xml.findall("./md:matrixColumn", self.ns)
-                        self._setParameters(panXMLMatrixColumn)
-                        panXMLEvents=xml.findall("./md:event", self.ns)
-                        self._setEvents(panXMLEvents)
-                        self._setCitation()
-                    else:
-                        # self.logging.append({'ERROR': 'Dataset is deleted or of unknown status: ' + str(self.datastatus)})
-                        self.log(logging.ERROR, "Dataset is deleted or of unknown status: " + str(self.datastatus))
-                except requests.exceptions.HTTPError as e:
-                    # self.logging.append({'ERROR': 'Failed to retrieve metadata information: '+str(e)})
-                    self.log(logging.ERROR, "Failed to retrieve metadata information: " + str(e))
-                except ET.ParseError as e:
-                    # self.logging.append({'ERROR': 'Failed to parse metadata information: '+str(e)})
-                    self.log(logging.ERROR, "Failed to parse metadata information: " + str(e))
-                    # print( str(xmlText))
+        metadata, metafilename = self.getMetadata()
 
-            else:
-                # self.logging.append({'ERROR': 'Data set does not exist, 404'})
-                self.log(logging.ERROR, "Data set does not exist, 404: " + str(self.id))
-                self.id = None
+        if metadata:
+            try:
+                xmlText = metadata
+                self.metaxml = xmlText
+                xml = ET.fromstring(xmlText.encode())
+                self._xml_root = xml
+                if self.datastatus not in ["deleted", None]:
+                    if self.loginstatus != "unrestricted":
+                        if self.auth_token:
+                            # self.logging.append({'INFO': 'Trying to load protected dataset using the given auth token'})
+                            self.log(logging.INFO, "Trying to load protected dataset using the given auth token")
+                        else:
+                            # self.logging.append({'WARNING': 'Data set is protected'})
+                            self.log(logging.WARNING, "Data set is protected")
+                    if xml.find('./md:technicalInfo/md:entry[@key="collectionType"]', self.ns) is not None:
+                        self.log(logging.WARNING, "Data set is of type collection, please select one of its child datasets")
+                        self.isCollection = True
+                        self.collection_members = [
+                            f"doi:10.1594/PANGAEA.{el[1:]}"
+                            for el in xml.find(
+                                './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
+                            ).get("value").split(",")
+                        ]
+                    for author in xml.findall("./md:citation/md:author", self.ns):
+                        lastname = None
+                        firstname = None
+                        orcid = None
+                        if author.find("md:lastName", self.ns) is not None:
+                            lastname = author.find("md:lastName", self.ns).text
+                        if author.find("md:firstName", self.ns) is not None:
+                            firstname = author.find("md:firstName", self.ns).text
+                        if author.find("md:orcid", self.ns) is not None:
+                            orcid = author.find("md:orcid", self.ns).text
+                        # if author.find("md:affiliation", self.ns)!=None:
+                        authoraffiliations = []
+                        for affiliations in author.findall("md:affiliation", self.ns):
+                            afm = re.search(r"\.inst([0-9]+)$", str(affiliations.get("id")))
+                            if afm:
+                                authoraffiliations.append(afm[1])
+                        # print(authoraffiliations)
+                        authorid = author.get("id")
+                        if authorid:
+                            authorid = int(authorid.replace("dataset.author", ""))
+                        self.authors.append(PanAuthor(lastname, firstname, orcid, authorid, authoraffiliations))
+                    for project in xml.findall("./md:project", self.ns):
+                        label = None
+                        name = None
+                        URI = None
+                        awardURI = None
+                        if project.find("md:label", self.ns) is not None:
+                            label = project.find("md:label", self.ns).text
+                        if project.find("md:name", self.ns) is not None:
+                            name = project.find("md:name", self.ns).text
+                        if project.find("md:URI", self.ns) is not None:
+                            URI = project.find("md:URI", self.ns).text
+                        if project.find("md:award/md:URI", self.ns) is not None:
+                            awardURI = project.find("md:award/md:URI", self.ns).text
+                        if project.get("id"):
+                            projectid = str(project.get("id")).replace("project", "")
+                        self.projects.append(PanProject(label, name, URI, awardURI, int(projectid)))
+                    if xml.find("./md:license", self.ns) is not None:
+                        license = xml.find("./md:license", self.ns)
+                        label = None
+                        name = None
+                        URI = None
+                        if license.find("md:label", self.ns) is not None:
+                            label = license.find("md:label", self.ns).text
+                        if license.find("md:name", self.ns) is not None:
+                            name = license.find("md:name", self.ns).text
+                        if license.find("md:URI", self.ns) is not None:
+                            URI = license.find("md:URI", self.ns).text
+                        self.licence = PanLicence(label, name, URI)
+                    for reference in xml.findall("./md:reference", self.ns):
+                        refURI = None
+                        reftitle = None
+                        reftype = reference.get("relationType")
+                        refid = reference.get("id")
+                        if reference.find("md:URI", self.ns) is not None:
+                            refURI = reference.find("md:URI", self.ns).text
+                        if reference.find("md:title", self.ns) is not None:
+                            reftitle = reference.find("md:title", self.ns).text
+                        self.relations.append({"id": refid, "title": reftitle, "uri": refURI, "type": reftype})
+                    if xml.find("./md:citation/md:supplementTo", self.ns) is not None:
+                        suppl = xml.find("./md:citation/md:supplementTo", self.ns)
+                        suppURI = None
+                        supptitle = None
+                        suppyear = None
+                        suppid = suppl.get("id")
+                        if suppl.find("md:year", self.ns) is not None:
+                            suppyear = suppl.find("md:year", self.ns).text
+                        if suppl.find("md:title", self.ns) is not None:
+                            supptitle = suppl.find("md:title", self.ns).text
+                        if suppl.find("md:URI", self.ns) is not None:
+                            suppURI = suppl.find("md:URI", self.ns).text
+                        self.supplement_to = {"id": suppid, "title": supptitle, "uri": suppURI, "year": suppyear}
+                    panXMLMatrixColumn = xml.findall("./md:matrixColumn", self.ns)
+                    self._setParameters(panXMLMatrixColumn)
+                    panXMLEvents=xml.findall("./md:event", self.ns)
+                    self._setEvents(panXMLEvents)
+                    self._setCitation()
+                else:
+                    # self.logging.append({'ERROR': 'Dataset is deleted or of unknown status: ' + str(self.datastatus)})
+                    self.log(logging.ERROR, "Dataset is deleted or of unknown status: " + str(self.datastatus))
+            except ET.ParseError as e:
+                # self.logging.append({'ERROR': 'Failed to parse metadata information: '+str(e)})
+                self.log(logging.ERROR, "Failed to parse metadata information: " + str(e))
+                # print( str(xmlText))
+
         else:
-            self.log(logging.ERROR, "No HTTP response object received for: " + str(self.id))
+            self.id = None
+            self.log(logging.ERROR, "No metadata object received for: " + str(self.id))
 
     def getGeometry(self):
         """
@@ -1436,7 +1483,7 @@ class PanDataSet:
             if pt == 1 and pz == 1:
                 geotype = "point"
             elif pt >= 1:
-                if pz == 1 or len(self.events) == 1:
+                if pz == 1 or len(self.events.items()) == 1:
                     geotype = "timeSeries"
                 else:
                     geotype = "timeSeriesStack"
@@ -1543,7 +1590,7 @@ class PanDataSet:
         save : Boolean
             If the file shall be saved on disk (filelocation or home directory/pan_export by default)
         """
-        dwca_exporter = PanDarwinCoreAchiveExporter(self)
+        dwca_exporter = PanDarwinCoreArchiveExporter(self)
         ret = dwca_exporter.create()
         if save:
             dwca_exporter.save()
