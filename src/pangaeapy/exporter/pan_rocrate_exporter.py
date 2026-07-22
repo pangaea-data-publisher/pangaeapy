@@ -4,7 +4,6 @@ from zipfile import ZipFile
 
 import requests
 from pangaeapy.exporter.pan_exporter import PanExporter
-from src.pangaeapy.pandataset import PanDataHarvester
 
 import jmespath
 import json
@@ -47,8 +46,7 @@ class PanRoCrateExporter(PanExporter):
     def __init__(self, *args, **kwargs):
         super(PanRoCrateExporter, self).__init__(*args, **kwargs)
         self.formats = self.pandataset.getMetadataFormats()
-        dh = PanDataHarvester(self.pandataset)
-        print(dh._list_available_data())
+        print(self.pandataset.data.to_numpy().flatten().tolist())
 
     def verify(self):
         return True
