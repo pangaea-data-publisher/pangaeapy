@@ -417,7 +417,7 @@ class PanDarwinCoreArchiveExporter(PanExporter):
                     zip_file = ZipFile(in_memory_zip, 'w')
                     zip_file.writestr('meta.xml', meta)
                     zip_file.writestr('eml.xml', eml)
-                    zip_file.writestr(self.pandataset.id+'_data.tab', data)
+                    zip_file.writestr(str(self.pandataset.id)+'_data.tab', data)
                     zip_file.close()
                     in_memory_zip.seek(0)
                     self.file = in_memory_zip
