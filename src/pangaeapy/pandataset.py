@@ -19,7 +19,7 @@ import pandas as pd
 import requests
 
 from pangaeapy._core import CURRENT_VERSION, get_request, get_xml_content
-from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreAchiveExporter
+from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreArchiveExporter
 from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
 from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
 
@@ -1590,7 +1590,7 @@ class PanDataSet:
         save : Boolean
             If the file shall be saved on disk (filelocation or home directory/pan_export by default)
         """
-        dwca_exporter = PanDarwinCoreAchiveExporter(self)
+        dwca_exporter = PanDarwinCoreArchiveExporter(self)
         ret = dwca_exporter.create()
         if save:
             dwca_exporter.save()

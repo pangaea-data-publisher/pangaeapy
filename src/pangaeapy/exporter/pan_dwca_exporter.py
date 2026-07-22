@@ -11,10 +11,10 @@ from zipfile import ZipFile
 from io import BytesIO
 import pandas as pd
 
-class PanDarwinCoreAchiveExporter(PanExporter):
+class PanDarwinCoreArchiveExporter(PanExporter):
 
     def __init__(self, *args, **kwargs):
-        super(PanDarwinCoreAchiveExporter, self).__init__(*args, **kwargs)
+        super(PanDarwinCoreArchiveExporter, self).__init__(*args, **kwargs)
 
         self.dwcnames = {'Event': 'EventID', 'Latitude': 'decimalLatitude', 'Longitude': 'decimalLongitude',
                     'Date/Time': 'eventDate','Depth water': 'minimumDepthInMeters', 'Elevation':'minimumElevationInMeters'}
