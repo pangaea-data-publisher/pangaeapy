@@ -1,7 +1,7 @@
 from importlib.metadata import version as get_version
 
 project = 'pangaeapy'
-copyright = '2025, Robert Huber'
+copyright = '2026, Robert Huber'
 author = 'Robert Huber, Johannes Röttenbacher'
 release = get_version("pangaeapy")
 version = ".".join(release.split(".")[:2])
