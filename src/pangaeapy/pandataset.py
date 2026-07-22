@@ -1685,7 +1685,7 @@ class PanDataHarvester:
         self.data = dataset.data
         self.cachedir = dataset.cachedir
         self.cachedir.mkdir(parents=True, exist_ok=True)
-        self.columns = self.data.columns  # list of column names
+        self.columns = dataset.columns  # list of column names
         self.data_index = dataset.data_index
         self.semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
 
