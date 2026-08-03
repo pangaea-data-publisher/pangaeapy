@@ -1667,15 +1667,6 @@ class PanDataHarvester:
     When initiated via PanDataSet.download(), the selected files are downloaded asynchronously.
     They are stored in the local cache in their original file format and under their original name.
     The Harvester will check if the file already exists before downloading.
-    To use the download functionality in a jupyter notebook include
-
-    .. code-block:: python
-
-        import nest_asyncio
-        nest_asyncio.apply()
-
-    at the beginning of the notebook.
-
 
     """
 
@@ -1755,6 +1746,7 @@ class PanDataHarvester:
 
     async def download_files(self):
         """Download all binary files asynchronously."""
+        self.semaphore = asyncio.Semaphore(5)
         binary_files = self._list_available_data()
         dataset_id = self.id
 
@@ -1794,23 +1786,9 @@ class PanDataHarvester:
             # Data sets with a URL binary column do not have a zip download available
             downloaded_files = self.download_zip_file()
         else:
-            try:
-                # Check if there's a running event loop
-                loop = asyncio.get_running_loop()
-                # If we reach here, a loop is running (e.g. in a jupyter notebook)
-                future = asyncio.ensure_future(self.download_files())
-                downloaded_files = loop.run_until_complete(future)
-            except RuntimeError as e:
-                # probably running download inside a jupyter notebook
-                if str(e) ==  "This event loop is already running":
-                    print("You are probably calling download() inside a jupyter notebook.\n"
-                          "Insert\nimport nest_asyncio\nnest_asyncio.apply()\n"
-                          "in a notebook cell before calling download().")
-                    raise
-
-                # No running event loop, create a new one
-                downloaded_files = asyncio.run(self.download_files())
-
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                downloaded_files = pool.submit(asyncio.run, self.download_files()).result()
         return downloaded_files
 
 
