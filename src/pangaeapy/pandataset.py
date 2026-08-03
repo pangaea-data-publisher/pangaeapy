@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import datetime
 import io
 import json
@@ -1786,8 +1787,7 @@ class PanDataHarvester:
             # Data sets with a URL binary column do not have a zip download available
             downloaded_files = self.download_zip_file()
         else:
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+            with ThreadPoolExecutor(max_workers=1) as pool:
                 downloaded_files = pool.submit(asyncio.run, self.download_files()).result()
         return downloaded_files
 
