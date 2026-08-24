@@ -1752,7 +1752,6 @@ class PanDataHarvester:
 
     async def download_files(self):
         """Download all binary files asynchronously."""
-        self.semaphore = asyncio.Semaphore(5)
         binary_files = self._list_available_data()
         dataset_id = self.id
 
