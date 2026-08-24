@@ -1599,7 +1599,7 @@ class PanDataSet:
         self.logging.extend(dwca_exporter.logging)
         return ret
 
-    def download(self, indices: list = None, columns: list[str] = None):
+    def download(self, indices: list = None, columns: list[str] = None, timeout: int = 600):
         """Download binary data if available; otherwise, save dataframe as CSV.
 
         Downloads can be very large. Consider explicitly defining the pangaeapy cache when calling PanDataSet.
@@ -1610,6 +1610,9 @@ class PanDataSet:
             Row indices of the data to download (e.g. [1, 2, 6]).
         columns : list of strings
             Column names of the data to download (e.g. ["Binary", "netCDF"]).
+        timeout : int, optional
+            Timeout in seconds for HTTP requests during download. Default is 600 seconds (10 minutes).
+            For very large downloads that may take longer to complete, this can be increased.
 
         Returns
         -------
@@ -1632,6 +1635,7 @@ class PanDataSet:
             self.log(logging.INFO, f"Downloading files to {self.cachedir}")
             self.columns = columns if columns else column_names
             self.data_index = indices if indices else []
+            self.timeout = timeout
 
             # double check input
             if not all([x in column_names for x in self.columns]):
@@ -1661,7 +1665,7 @@ class PanDataHarvester:
     Parameters
     ----------
     dataset: PanDataSet
-        The dataset, which initiates the PanDataHarvester
+        The dataset, which initiates the PanDataHarvester.
 
 
     This class bundles the download functionality of pangaeapy.
@@ -1680,6 +1684,7 @@ class PanDataHarvester:
         self.columns = dataset.columns  # list of column names
         self.data_index = dataset.data_index
         self.semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
+        self.timeout = aiohttp.ClientTimeout(total=dataset.timeout)  # set connection timeout
 
 
     def _list_available_data(self):
@@ -1751,7 +1756,7 @@ class PanDataHarvester:
         binary_files = self._list_available_data()
         dataset_id = self.id
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=self.timeout) as session:
             session.headers.update({"Authorization": f"Bearer {self.auth_token}",
                                     "User-Agent": f"pangaeapy/{CURRENT_VERSION}"})
             tasks = []
