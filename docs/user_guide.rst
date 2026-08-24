@@ -94,6 +94,26 @@ Some data sets also have multiple types of binary data such as a netCDF file and
 
     When requesting single files *pangaeapy* limits the download to five simultaneous requests. So providing more than five indices increases the download time.
 
+Timeout for large downloads
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For large binary downloads, you may need to adjust the timeout parameter.
+The default timeout is 600 seconds (10 minutes), which should be sufficient for most use cases.
+However, for very large files or when files need to be retrieved from tape archive, you may need to increase this timeout:
+
+.. code-block:: python
+
+    # Download with 30-minute timeout for large files
+    ds = PanDataSet(944070, enable_cache=True,
+                    cachedir='/path/to/your/storage',
+                    auth_token='abcdfeghijklmnopqrstuvwxyz')
+    filepaths = ds.download(timeout=1800)  # 1800 seconds = 30 minutes
+
+    # Download with 1-hour timeout for very large datasets
+    filepaths = ds.download(timeout=3600)  # 3600 seconds = 1 hour
+
+
+
 .. _PANGAEA: https://www.pangaea.de/
 .. _PANGAEA user profile: https://www.pangaea.de/user/
 .. _netCDF: https://de.wikipedia.org/wiki/NetCDF
