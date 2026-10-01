@@ -10,6 +10,8 @@ from pangaeapy.exporter.pan_exporter import PanExporter
 from zipfile import ZipFile
 from io import BytesIO
 import pandas as pd
+from pandas.api.types import is_string_dtype
+
 
 class PanDarwinCoreArchiveExporter(PanExporter):
 
@@ -41,6 +43,13 @@ class PanDarwinCoreArchiveExporter(PanExporter):
         self.known_synonyms = {'Coccolithophoridae':'Coccolithophorida'}
         self.param_statistics = {'taxon_columns': [], 'other_columns':[]}
         events = self.pandataset.events
+
+        self.KNOWN_SCALES = {
+            'Plus Scale' : {'present': ['+','++','+++','++++'], 'absent':['o','0']},
+            'Braun-Blanquet Scale' : {'present':['r','+','1','2','3','4', '5'], 'absent':['0','o']},
+            'DAFOR Scale' : {'present':['D','A','F','O','R'], 'absent':[]},
+            'ACFOR Scale' : {'present':['A','C','F','O','R'], 'absent':[]}
+        }
 
 
     def check_unit(self, unitexpr, paramname):
@@ -77,15 +86,52 @@ class PanDarwinCoreArchiveExporter(PanExporter):
                     self.logging.append({'WARNING': 'Unit check failed: '+str(e)})
         else:
             # empty unit
-            dimension = 'unknow or missing unit'
-            if self.pandataset.data[paramname].nunique() == 2:
-                unique_vals = set(self.pandataset.data[paramname].unique().tolist())
-                if unique_vals in ({0, 1},{'0', '1'}, {'y', 'n'},{'Y', 'N'}):
-                    dimension ='presence or absence'
-                    self.logging.append({'INFO': 'Assuming presence or absence given (no unit, only two unique values) : ' + str(paramname)})
-            #self.logging.append({'WARNING': 'No Unit given for : ' + str(paramname)})
+            dimension = 'unknown or missing unit'
+            col = self.pandataset.data[paramname]
+            col_dtype = col.dtype
+            nunique = col.nunique()
+            if is_string_dtype(col) or nunique == 2:
+                unique_vals = set(col.dropna().unique().tolist())
+
+                scale = self.identify_scale(unique_vals)
+
+                if scale:
+                    dimension = scale
+                    self.logging.append({
+                        'INFO':
+                            'Identified scale "' + str(scale) +
+                            '" for: ' + str(paramname)
+                    })
+                else:
+                    dimension = 'qualitative'
             istaxonrelated =True
+
         return istaxonrelated, dimension
+
+    def identify_scale(self, values):
+        values = set(
+            str(value).strip()
+            for value in values
+            if pd.notna(value)
+        )
+
+        if not values:
+            return None
+
+        if len(values) == 2 and all(value in {'0', '1', 'y', 'n', 'Y', 'N'} for value in values):
+            return 'Binary Scale'
+
+        for scale_name, scale_definition in self.KNOWN_SCALES.items():
+            known_values = set(
+                scale_definition['present'] + scale_definition['absent']
+            )
+
+            if values.issubset(known_values):
+                return scale_name
+
+        return None
+
+
 
     def get_taxon_columns(self):
         taxoncolumns = OrderedDict()
@@ -241,19 +287,38 @@ class PanDarwinCoreArchiveExporter(PanExporter):
                 tempframe['row_id'] = taxonframe['row_id']+1
                 tempframe['occurrenceID'] = tempframe['row_id'].astype(str) + '_' + taxonframe['Colname'].apply(
                     lambda x: taxoncolumns.get(x).get('colno')).astype(str)
-                tempframe['samplingProtocol'] = taxonframe.apply(
-                    lambda row:
-                    f'Used method: {self.pandataset.events[row["Event"]].method.name} '
-                    #f'during Event: {row["Event"]}; '
-                    f'in particular: {taxoncolumns.get(row["Colname"], {}).get("method").name}'
-                    if pd.notna(row.get('Event')) and row['Event'] in self.pandataset.events
-                    else None,
-                    axis=1
-                )
-                tempframe['occurrenceStatus'] = np.where(
-                    taxonframe['organismQuantity'] > 0,
-                    'present',
-                    'absent'
+
+                try:
+                    tempframe['samplingProtocol'] = taxonframe.apply(
+                        lambda row:
+                        f'Used method: {self.pandataset.events[row["Event"]].method.name} '
+                        f'in particular: {taxoncolumns.get(row["Colname"], {}).get("method").name}'
+                        if (
+                                pd.notna(row.get('Event'))
+                                and row['Event'] in self.pandataset.events
+                        )
+                        else None,
+                        axis=1
+                    )
+                except AttributeError:
+                    self.logging.append({'WARNING': 'No Sampling Protocol could be identified'})
+                    # Sampling protocol cannot be constructed because method metadata is missing
+                    pass
+
+                def get_occurrence_status(value):
+                    if pd.isna(value):
+                        return 'absent'
+                    if isinstance(value, str):
+                        value = value.strip()
+                        if not value:
+                            return 'absent'
+                        # Any non-empty string is qualitative/present
+                        return 'absent' if value in ['0', 'o', 'n', 'N'] else 'present'
+
+                    # Numeric quantity
+                    return 'present' if value > 0 else 'absent'
+                tempframe['occurrenceStatus'] = taxonframe['organismQuantity'].apply(
+                    get_occurrence_status
                 )
                 #meta[] = taxonframe['id']
                 tempframe['modified'] = self.pandataset.lastupdate
