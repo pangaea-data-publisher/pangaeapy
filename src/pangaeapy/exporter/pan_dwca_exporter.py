@@ -97,11 +97,11 @@ class PanDarwinCoreArchiveExporter(PanExporter):
 
                 if scale:
                     dimension = scale
-                    self.logging.append({
-                        'INFO':
-                            'Identified scale "' + str(scale) +
-                            '" for: ' + str(paramname)
-                    })
+                    if not self.param_statistics.get('detected_scales'):
+                        self.param_statistics['detected_scales'] = [scale]
+                    elif scale not in self.param_statistics['detected_scales']:
+                        self.param_statistics['detected_scales'].append(scale)
+
                 else:
                     dimension = 'qualitative'
             istaxonrelated =True
@@ -137,6 +137,7 @@ class PanDarwinCoreArchiveExporter(PanExporter):
         taxoncolumns = OrderedDict()
         taxon_attr_regex = r'(.*?)((?:,\s?)'+str(r'|(?:,\s?)'.join(self.taxon_attributes))+r')$'
         nontaxoncolumns = []
+        eventcolumns = []
         for pkey, param in self.pandataset.params.items():
             method = None
             try:
@@ -147,8 +148,11 @@ class PanDarwinCoreArchiveExporter(PanExporter):
             # full match of taxon name with parameter only
             # TODO: extend to some adjectives e.g. juvenile, adult etc..
             try:
-                if not param.terms:
+                if param.source == 'event':
+                    eventcolumns.append(pkey)
+                if not param.terms and param.source =='data':
                     nontaxoncolumns.append(pkey)
+                    self.logging.append({'INFO': 'Parameter: ' + str(pkey) + ' is not semantically annotated'})
                 for term in param.terms:
                     name_parts = re.split(r',\s?',param.name)
                     taxon_candidate = str(param.name)
@@ -217,6 +221,7 @@ class PanDarwinCoreArchiveExporter(PanExporter):
             self.logging.append({'WARNING': 'Could not identify taxonomic information in this dataset'})
         self.param_statistics['taxon_columns'] = taxoncolumns.keys()
         self.param_statistics['other_columns'] = nontaxoncolumns
+        self.param_statistics['event_columns'] = eventcolumns
         return taxoncolumns
 
     def get_context_info(self):
@@ -440,6 +445,9 @@ class PanDarwinCoreArchiveExporter(PanExporter):
         hasCoordinates = False
         hasTaxonData = False
         if self.pandataset.id:
+
+            self.logging.append({'INFO': 'Total columns (parameters) detected: ' + str(len(self.pandataset.data.columns))})
+
             if 'Latitude' in self.pandataset.data.columns and 'Longitude' in self.pandataset.data.columns:
                 hasCoordinates = True
                 self.logging.append({'INFO': 'Found Coordinates during DwC-A verification'})
@@ -448,24 +456,37 @@ class PanDarwinCoreArchiveExporter(PanExporter):
             try:
                 datacolumns = self.get_taxon_columns()
                 data = self.get_dwca_data(datacolumns)
+                if self.param_statistics.get('event_columns'):
+                    self.logging.append({'INFO': 'Found ' + str(
+                        len(self.param_statistics['event_columns'])) + ' Event Columns detected: ' + str(
+                        self.param_statistics['event_columns'])})
                 if data:
                     hasTaxonData = True
                     self.logging.append({'INFO': 'Found Taxon Data Values during DwC-A verification'})
 
                 if len(datacolumns) > 0:
                     hasTaxoncolumns = True
-                    self.logging.append({'INFO': 'Found Taxon Columns during DwC-A verification'})
+                    #self.param_statistics['other_columns']
+                    self.logging.append({'INFO': 'Found '+str(len(self.param_statistics['taxon_columns']))+' Taxon Columns during DwC-A verification: '+ str( self.param_statistics['taxon_columns'])})
 
                 else:
                     self.logging.append({'WARNING': 'Missing Taxon Column(s), DwC-A verification failed'})
+
+                if len(self.param_statistics['other_columns']) >0:
+                    self.logging.append({'INFO': 'Found ' + str(
+                        len(self.param_statistics['other_columns'])) + ' Other Columns during DwC-A verification: ' + str(
+                        self.param_statistics['other_columns'])})
+
+                if self.param_statistics.get('detected_scales'):
+                    self.logging.append(
+                        {'INFO': 'Found  Abundance Scales during DwC-A verification' + str(self.param_statistics['detected_scales'])})
 
                 if (self.pandataset.data[datacolumns.keys()]== 0).all().all():
                     hasTaxonData = False
                     self.logging.append({'WARNING': 'All Taxon Data Values equal Zero!, DwC-A verification failed'})
 
-
             except Exception as e:
-                self.logging.append({'ERROR':'DwC-A verification failed: '+str(e)})
+                    self.logging.append({'ERROR':'DwC-A verification failed: '+str(e)})
 
         return hasTaxoncolumns and hasCoordinates and hasTaxonData
 
