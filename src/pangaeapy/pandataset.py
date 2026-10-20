@@ -192,6 +192,8 @@ class PanEvent:
         The location of the event
     campaign : PanCampaign
         The campaign during which the event was performed
+    optionalLabel : str
+        Another label the event is known by, e.g. its station on the campaign (md:optionalLabel)
     """
     def __init__(self,
                  label,
@@ -206,8 +208,10 @@ class PanEvent:
                  location=None,
                  campaign=None,
                  id = None,
-                 method = None):
+                 method = None,
+                 optionalLabel = None):
         self.label = label
+        self.optionalLabel = optionalLabel
         self.id = id
         if latitude is not None:
             self.latitude = float(latitude)
@@ -284,8 +288,11 @@ class PanCampaign:
         The BSH ID for the campaign
     expeditionprogram: str
         URL of the campaign report
+    optionalLabel : str
+        Another label the campaign is known by, e.g. ANT-XXXIII/4 for PS113 (md:optionalLabel;
+        md:optionalName in older records)
     """
-    def __init__(self, name=None, URI=None, start=None, end=None, startlocation=None, endlocation=None, BSHID=None, expeditionprogram=None):
+    def __init__(self, name=None, URI=None, start=None, end=None, startlocation=None, endlocation=None, BSHID=None, expeditionprogram=None, optionalLabel=None):
         self.name = name
         self.URI = URI
         self.start = start
@@ -294,6 +301,7 @@ class PanCampaign:
         self.endlocation = endlocation
         self.BSHID = BSHID
         self.expeditionprogram = expeditionprogram
+        self.optionalLabel = optionalLabel
 
 class PanParam:
     """PANGAEA Parameter
@@ -743,6 +751,7 @@ class PanDataSet:
                 eventLatitude2= event.find("md:latitude2",self.ns).text
             if event.find("md:label",self.ns) is not None:
                 eventLabel= event.find("md:label",self.ns).text
+            eventOptionalLabel = get_xml_content(event, "md:optionalLabel", self.ns)
             if event.find("md:location/md:name",self.ns) is not None:
                 eventLocation= event.find("md:location/md:name",self.ns).text
             if event.find("md:method/md:name",self.ns) is not None:
@@ -808,7 +817,20 @@ class PanDataSet:
                     expeditionprogram = campaign.find('md:attribute[@name="Expedition Program"]', self.ns).text
                 else:
                     expeditionprogram = None
-                eventCampaign = PanCampaign(campaign_name, campaign_URI, campaign_start, campaign_end, startlocation, endlocation, BSHID, expeditionprogram)
+                # md:optionalName is the deprecated form of md:optionalLabel
+                campaign_optional_label = (
+                    get_xml_content(campaign, "md:optionalLabel", self.ns) or
+                    get_xml_content(campaign, "md:optionalName", self.ns)
+                )
+                eventCampaign = PanCampaign(
+                    campaign_name,
+                    campaign_URI,
+                    campaign_start, campaign_end,
+                    startlocation, endlocation,
+                    BSHID,
+                    expeditionprogram,
+                    optionalLabel=campaign_optional_label,
+                )
             else:
                 eventCampaign = None
 
@@ -824,7 +846,8 @@ class PanDataSet:
                                         eventLocation,
                                         eventCampaign,
                                         eventID,
-                                        eventMethod
+                                        eventMethod,
+                                        optionalLabel=eventOptionalLabel
                                         )
 
 
