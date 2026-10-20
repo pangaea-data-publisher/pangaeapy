@@ -266,17 +266,20 @@ class PanCampaign:
     The campaign during which the event took place, e.g. a ship cruise or observatory deployment
 
     name : str
-        The name of the campaign
+        The name of the campaign (md:label; md:name in older records)
     URI : str
         The campaign URI
     start : str
-        The start date of the campaign
+        The start date of the campaign (md:dateTime, e.g. 2018-05-08T00:00:00; md:start, e.g.
+        2018-05-08, in older records)
     end : str
-        The end date of the campaign
+        The end date of the campaign (md:dateTime2; md:end in older records)
     startlocation : str
-        The start location of the campaign
+        The start location of the campaign, e.g. a port (md:location; the attribute
+        "Start location" in older records)
     endlocation : str
-        The end location of the campaign
+        The end location of the campaign (md:location2; the attribute "End location" in older
+        records)
     BSHID : str
         The BSH ID for the campaign
     expeditionprogram: str
@@ -774,18 +777,31 @@ class PanDataSet:
                 eventBasis = None
             if event.find("md:campaign", self.ns) is not None:
                 campaign = event.find("md:campaign", self.ns)
-                if campaign.find("md:name", self.ns) is not None:
-                    campaign_name = campaign.find("md:name", self.ns).text
+                # md:label, md:dateTime(2) and md:location(2) are the current elements;
+                # md:name, md:start, md:end and the attributes "Start location" and "End location"
+                #   are deprecated, and only read for records without the current ones
+                campaign_name = (
+                    get_xml_content(campaign, "md:label", self.ns) or
+                    get_xml_content(campaign, "md:name", self.ns)
+                )
                 if campaign.find("md:URI", self.ns) is not None:
                     campaign_URI = campaign.find("md:URI", self.ns).text
-                if campaign.find("md:start", self.ns) is not None:
-                    campaign_start = campaign.find("md:start", self.ns).text
-                if campaign.find("md:end", self.ns) is not None:
-                    campaign_end = campaign.find("md:end", self.ns).text
-                if campaign.find('md:attribute[@name="Start location"]', self.ns) is not None:
-                    startlocation = campaign.find('md:attribute[@name="Start location"]', self.ns).text
-                if campaign.find('md:attribute[@name="End location"]', self.ns) is not None:
-                    endlocation = campaign.find('md:attribute[@name="End location"]', self.ns).text
+                campaign_start = (
+                    get_xml_content(campaign, "md:dateTime", self.ns) or
+                    get_xml_content(campaign, "md:start", self.ns)
+                )
+                campaign_end = (
+                    get_xml_content(campaign, "md:dateTime2", self.ns) or
+                    get_xml_content(campaign, "md:end", self.ns)
+                )
+                startlocation = (
+                    get_xml_content(campaign, "md:location/md:name", self.ns) or
+                    get_xml_content(campaign, 'md:attribute[@name="Start location"]', self.ns)
+                )
+                endlocation = (
+                    get_xml_content(campaign, "md:location2/md:name", self.ns) or
+                    get_xml_content(campaign, 'md:attribute[@name="End location"]', self.ns)
+                )
                 if campaign.find('md:attribute[@name="BSH ID"]', self.ns) is not None:
                     BSHID = campaign.find('md:attribute[@name="BSH ID"]', self.ns).text
                 if campaign.find('md:attribute[@name="Expedition Program"]', self.ns) is not None:
