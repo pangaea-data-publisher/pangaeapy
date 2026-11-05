@@ -1,4 +1,5 @@
 import asyncio
+from concurrent.futures import ThreadPoolExecutor
 import datetime
 import io
 import json
@@ -191,6 +192,8 @@ class PanEvent:
         The location of the event
     campaign : PanCampaign
         The campaign during which the event was performed
+    optionalLabel : str
+        Another label the event is known by, e.g. its station on the campaign (md:optionalLabel)
     """
     def __init__(self,
                  label,
@@ -205,8 +208,10 @@ class PanEvent:
                  location=None,
                  campaign=None,
                  id = None,
-                 method = None):
+                 method = None,
+                 optionalLabel = None):
         self.label = label
+        self.optionalLabel = optionalLabel
         self.id = id
         if latitude is not None:
             self.latitude = float(latitude)
@@ -265,23 +270,29 @@ class PanCampaign:
     The campaign during which the event took place, e.g. a ship cruise or observatory deployment
 
     name : str
-        The name of the campaign
+        The name of the campaign (md:label; md:name in older records)
     URI : str
         The campaign URI
     start : str
-        The start date of the campaign
+        The start date of the campaign (md:dateTime, e.g. 2018-05-08T00:00:00; md:start, e.g.
+        2018-05-08, in older records)
     end : str
-        The end date of the campaign
+        The end date of the campaign (md:dateTime2; md:end in older records)
     startlocation : str
-        The start location of the campaign
+        The start location of the campaign, e.g. a port (md:location; the attribute
+        "Start location" in older records)
     endlocation : str
-        The end location of the campaign
+        The end location of the campaign (md:location2; the attribute "End location" in older
+        records)
     BSHID : str
         The BSH ID for the campaign
     expeditionprogram: str
         URL of the campaign report
+    optionalLabel : str
+        Another label the campaign is known by, e.g. ANT-XXXIII/4 for PS113 (md:optionalLabel;
+        md:optionalName in older records)
     """
-    def __init__(self, name=None, URI=None, start=None, end=None, startlocation=None, endlocation=None, BSHID=None, expeditionprogram=None):
+    def __init__(self, name=None, URI=None, start=None, end=None, startlocation=None, endlocation=None, BSHID=None, expeditionprogram=None, optionalLabel=None):
         self.name = name
         self.URI = URI
         self.start = start
@@ -290,6 +301,7 @@ class PanCampaign:
         self.endlocation = endlocation
         self.BSHID = BSHID
         self.expeditionprogram = expeditionprogram
+        self.optionalLabel = optionalLabel
 
 class PanParam:
     """PANGAEA Parameter
@@ -739,6 +751,7 @@ class PanDataSet:
                 eventLatitude2= event.find("md:latitude2",self.ns).text
             if event.find("md:label",self.ns) is not None:
                 eventLabel= event.find("md:label",self.ns).text
+            eventOptionalLabel = get_xml_content(event, "md:optionalLabel", self.ns)
             if event.find("md:location/md:name",self.ns) is not None:
                 eventLocation= event.find("md:location/md:name",self.ns).text
             if event.find("md:method/md:name",self.ns) is not None:
@@ -773,25 +786,51 @@ class PanDataSet:
                 eventBasis = None
             if event.find("md:campaign", self.ns) is not None:
                 campaign = event.find("md:campaign", self.ns)
-                if campaign.find("md:name", self.ns) is not None:
-                    campaign_name = campaign.find("md:name", self.ns).text
+                # md:label, md:dateTime(2) and md:location(2) are the current elements;
+                # md:name, md:start, md:end and the attributes "Start location" and "End location"
+                #   are deprecated, and only read for records without the current ones
+                campaign_name = (
+                    get_xml_content(campaign, "md:label", self.ns) or
+                    get_xml_content(campaign, "md:name", self.ns)
+                )
                 if campaign.find("md:URI", self.ns) is not None:
                     campaign_URI = campaign.find("md:URI", self.ns).text
-                if campaign.find("md:start", self.ns) is not None:
-                    campaign_start = campaign.find("md:start", self.ns).text
-                if campaign.find("md:end", self.ns) is not None:
-                    campaign_end = campaign.find("md:end", self.ns).text
-                if campaign.find('md:attribute[@name="Start location"]', self.ns) is not None:
-                    startlocation = campaign.find('md:attribute[@name="Start location"]', self.ns).text
-                if campaign.find('md:attribute[@name="End location"]', self.ns) is not None:
-                    endlocation = campaign.find('md:attribute[@name="End location"]', self.ns).text
+                campaign_start = (
+                    get_xml_content(campaign, "md:dateTime", self.ns) or
+                    get_xml_content(campaign, "md:start", self.ns)
+                )
+                campaign_end = (
+                    get_xml_content(campaign, "md:dateTime2", self.ns) or
+                    get_xml_content(campaign, "md:end", self.ns)
+                )
+                startlocation = (
+                    get_xml_content(campaign, "md:location/md:name", self.ns) or
+                    get_xml_content(campaign, 'md:attribute[@name="Start location"]', self.ns)
+                )
+                endlocation = (
+                    get_xml_content(campaign, "md:location2/md:name", self.ns) or
+                    get_xml_content(campaign, 'md:attribute[@name="End location"]', self.ns)
+                )
                 if campaign.find('md:attribute[@name="BSH ID"]', self.ns) is not None:
                     BSHID = campaign.find('md:attribute[@name="BSH ID"]', self.ns).text
                 if campaign.find('md:attribute[@name="Expedition Program"]', self.ns) is not None:
                     expeditionprogram = campaign.find('md:attribute[@name="Expedition Program"]', self.ns).text
                 else:
                     expeditionprogram = None
-                eventCampaign = PanCampaign(campaign_name, campaign_URI, campaign_start, campaign_end, startlocation, endlocation, BSHID, expeditionprogram)
+                # md:optionalName is the deprecated form of md:optionalLabel
+                campaign_optional_label = (
+                    get_xml_content(campaign, "md:optionalLabel", self.ns) or
+                    get_xml_content(campaign, "md:optionalName", self.ns)
+                )
+                eventCampaign = PanCampaign(
+                    campaign_name,
+                    campaign_URI,
+                    campaign_start, campaign_end,
+                    startlocation, endlocation,
+                    BSHID,
+                    expeditionprogram,
+                    optionalLabel=campaign_optional_label,
+                )
             else:
                 eventCampaign = None
 
@@ -807,7 +846,8 @@ class PanDataSet:
                                         eventLocation,
                                         eventCampaign,
                                         eventID,
-                                        eventMethod
+                                        eventMethod,
+                                        optionalLabel=eventOptionalLabel
                                         )
 
 
@@ -1598,7 +1638,7 @@ class PanDataSet:
         self.logging.extend(dwca_exporter.logging)
         return ret
 
-    def download(self, indices: list = None, columns: list[str] = None):
+    def download(self, indices: list = None, columns: list[str] = None, timeout: int = 600):
         """Download binary data if available; otherwise, save dataframe as CSV.
 
         Downloads can be very large. Consider explicitly defining the pangaeapy cache when calling PanDataSet.
@@ -1609,6 +1649,9 @@ class PanDataSet:
             Row indices of the data to download (e.g. [1, 2, 6]).
         columns : list of strings
             Column names of the data to download (e.g. ["Binary", "netCDF"]).
+        timeout : int, optional
+            Timeout in seconds for HTTP requests during download. Default is 600 seconds (10 minutes).
+            For very large downloads that may take longer to complete, this can be increased.
 
         Returns
         -------
@@ -1631,6 +1674,7 @@ class PanDataSet:
             self.log(logging.INFO, f"Downloading files to {self.cachedir}")
             self.columns = columns if columns else column_names
             self.data_index = indices if indices else []
+            self.timeout = timeout
 
             # double check input
             if not all([x in column_names for x in self.columns]):
@@ -1660,22 +1704,13 @@ class PanDataHarvester:
     Parameters
     ----------
     dataset: PanDataSet
-        The dataset, which initiates the PanDataHarvester
+        The dataset, which initiates the PanDataHarvester.
 
 
     This class bundles the download functionality of pangaeapy.
     When initiated via PanDataSet.download(), the selected files are downloaded asynchronously.
     They are stored in the local cache in their original file format and under their original name.
     The Harvester will check if the file already exists before downloading.
-    To use the download functionality in a jupyter notebook include
-
-    .. code-block:: python
-
-        import nest_asyncio
-        nest_asyncio.apply()
-
-    at the beginning of the notebook.
-
 
     """
 
@@ -1688,6 +1723,7 @@ class PanDataHarvester:
         self.columns = dataset.columns  # list of column names
         self.data_index = dataset.data_index
         self.semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
+        self.timeout = aiohttp.ClientTimeout(total=dataset.timeout)  # set connection timeout
 
 
     def _list_available_data(self):
@@ -1758,7 +1794,7 @@ class PanDataHarvester:
         binary_files = self._list_available_data()
         dataset_id = self.id
 
-        async with aiohttp.ClientSession() as session:
+        async with aiohttp.ClientSession(timeout=self.timeout) as session:
             session.headers.update({"Authorization": f"Bearer {self.auth_token}",
                                     "User-Agent": f"pangaeapy/{CURRENT_VERSION}"})
             tasks = []
@@ -1794,23 +1830,8 @@ class PanDataHarvester:
             # Data sets with a URL binary column do not have a zip download available
             downloaded_files = self.download_zip_file()
         else:
-            try:
-                # Check if there's a running event loop
-                loop = asyncio.get_running_loop()
-                # If we reach here, a loop is running (e.g. in a jupyter notebook)
-                future = asyncio.ensure_future(self.download_files())
-                downloaded_files = loop.run_until_complete(future)
-            except RuntimeError as e:
-                # probably running download inside a jupyter notebook
-                if str(e) ==  "This event loop is already running":
-                    print("You are probably calling download() inside a jupyter notebook.\n"
-                          "Insert\nimport nest_asyncio\nnest_asyncio.apply()\n"
-                          "in a notebook cell before calling download().")
-                    raise
-
-                # No running event loop, create a new one
-                downloaded_files = asyncio.run(self.download_files())
-
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                downloaded_files = pool.submit(asyncio.run, self.download_files()).result()
         return downloaded_files
 
 

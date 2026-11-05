@@ -65,25 +65,30 @@ def test_custom_cachedir(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "indices, columns, expected_exception",
+    "indices, columns, timeout, expected_exception",
     [
-        ([0], ["Binary"], None),  # Valid case
-        ([100], ["Binary"], ValueError),  # Invalid index
-        ([0], ["Not working"], ValueError),  # Invalid column
+        ([0], ["Binary"], 600, None),  # Valid case with default timeout
+        ([100], ["Binary"], 600, ValueError),  # Invalid index
+        ([0], ["Not working"], 600, ValueError),  # Invalid column
+        ([0], ["Binary"], 1800, None),  # Valid case with custom timeout
     ],
-    ids=["valid_input", "invalid_index", "invalid_column"]
+    ids=["valid_default_timeout", "invalid_index", "invalid_column", "valid_custom_timeout"]
 )
-def test_download_kwargs(tmp_path, indices, columns, expected_exception):
-    """Tests various combinations of download kwargs"""
+def test_download_kwargs(tmp_path, indices, columns, timeout, expected_exception):
+    """Tests various combinations of download kwargs including timeout parameter"""
     ds = PanDataSet(944101, enable_cache=True, cachedir=tmp_path)
 
     if expected_exception:
         with pytest.raises(expected_exception):
-            ds.download(indices=indices, columns=columns)
+            ds.download(indices=indices, columns=columns, timeout=timeout)
     else:
-        filenames = ds.download(indices=indices, columns=columns)
+        filenames = ds.download(indices=indices, columns=columns, timeout=timeout)
         assert all(f.is_file() for f in filenames), \
             "All expected files should be created"
+        # assert that all given arguments are stored to the PanDataSet object
+        assert ds.columns == columns
+        assert ds.data_index == indices
+        assert ds.timeout == timeout
 
 
 def test_download_url_handling():

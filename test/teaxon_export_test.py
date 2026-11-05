@@ -1,6 +1,6 @@
-from src.pangaeapy.pandataset import PanDataSet
-from src.pangaeapy.exporter import PanDarwinCoreArchiveExporter
-from src.pangaeapy.exporter.pan_rocrate_exporter import PanRoCrateExporter
+from pangaeapy.pandataset import PanDataSet
+from pangaeapy.exporter import PanDarwinCoreArchiveExporter
+from pangaeapy.exporter.pan_rocrate_exporter import PanRoCrateExporter
 
 import json
 id = 861303

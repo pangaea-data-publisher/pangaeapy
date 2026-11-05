@@ -1,0 +1,937 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<md:MetaData xmlns:md="http://www.pangaea.de/MetaData" version="2026-08-17">
+  <md:citation id="dataset828672">
+    <md:author id="dataset.author36644">
+      <md:lastName>Sokoll</md:lastName>
+      <md:firstName>Sarah</md:firstName>
+      <md:eMail>ssokoll@mpi-bremen.de</md:eMail>
+      <md:orcid>0000-0001-9324-9523</md:orcid>
+    </md:author>
+    <md:author id="dataset.author34022">
+      <md:lastName>Holtappels</md:lastName>
+      <md:firstName>Moritz</md:firstName>
+      <md:eMail>moritz.holtappels@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/moritz-holtappels.html</md:URI>
+      <md:orcid>0000-0003-3682-1903</md:orcid>
+    </md:author>
+    <md:year>2012</md:year>
+    <md:title>Benthic anammox and dentrification rates measured in a slurry incubation experiments at four different stations in the Arabian Sea off Pakistan during the METEOR cruise M74/2 in 2007</md:title>
+    <md:type id="dataset.reftype10" includeInCitation="true">dataset</md:type>
+    <md:URI>https://doi.org/10.1594/PANGAEA.828672</md:URI>
+    <md:parentURI>https://doi.org/10.1594/PANGAEA.828668</md:parentURI>
+  </md:citation>
+  <md:abstract>Vertical distributions of benthic denitrification and anammox rates within the sediment were estimated from slurry incubation experiments. Rates were used to calculate the contribution of anammox and denitrification to the total N-loss. Briefly, MUC sediment cores were sliced in 2 cm intervals and the sediment was diluted and incubated with degassed bottom water in a gas tight bag. After pre-incubating the bags for 2 h, 15N-labeled substrates were injected into the bags and the slurries were thoroughly mixed. Incubations were performed in the dark at in situ temperatures. The N2 isotope ratio (28N2, 29N2, and 30N2) was determined by gas chromatography-isotopic ratio mass spectrometry (VG Optima, Micromass)  and calculated according to Kuypers et al. (2005) and Holtappels et al. (2011), respectively.Furthermore, total organic carbon and nitrogen concentrations were measured of core sediment layers corresponding to those used for rate measurements. Concentrations of organic carbon and nitrogen were determined by combustion/gas chromatography (Carlo Erba NA-1500 CNS analyzer) of dried sediment samples after acidification. The same sediment layer were also used to extract nucleic acids. The concentrations of the DNA in the samples were measured spectrophotometrically with a NanoDrop instrument (Thermo Fisher Scientific Inc.). The biomarker functional gene nirS, encoding the cd1-containing nitrite reductase, for both denitrifiers and marine anammox bacteria were quantified with real-time PCR, using the primers cd3aF/R3cd (5'-GTSAACGTSAAGGARACSGG-3' (Michotey et al., 2000)/5'-GASTTCGGRTGSGTCTTGA-3'; Throback et al., 2004) and Scnir372F/Scnir845R (5'-TGTAGCCAGCATTGTAGCGT-3'/5'-TCAAGCCAGACCCATTTGCT-3'; Lam et al., 2009).</md:abstract>
+  <md:reference dataciteRelType="References" group="210" id="ref63131" relationType="Related to" relationTypeId="12">
+    <md:author id="ref63131.author38912">
+      <md:lastName>Lam</md:lastName>
+      <md:firstName>Phyllis</md:firstName>
+      <md:orcid>0000-0003-2067-171X</md:orcid>
+    </md:author>
+    <md:author id="ref63131.author20299">
+      <md:lastName>Lavik</md:lastName>
+      <md:firstName>Gaute</md:firstName>
+      <md:eMail>glavik@mpi-bremen.de</md:eMail>
+    </md:author>
+    <md:author id="ref63131.author38408">
+      <md:lastName>Jensen</md:lastName>
+      <md:firstName>Marlene M</md:firstName>
+      <md:orcid>0000-0002-9711-763X</md:orcid>
+    </md:author>
+    <md:author id="ref63131.author47590">
+      <md:lastName>van de Vossenberg</md:lastName>
+      <md:firstName>Jack</md:firstName>
+      <md:orcid>0000-0003-4497-6155</md:orcid>
+    </md:author>
+    <md:author id="ref63131.author50328">
+      <md:lastName>Schmidt</md:lastName>
+      <md:firstName>Markus</md:firstName>
+    </md:author>
+    <md:author id="ref63131.author47591">
+      <md:lastName>Woebken</md:lastName>
+      <md:firstName>Dagmar</md:firstName>
+      <md:orcid>0000-0002-1314-9926</md:orcid>
+    </md:author>
+    <md:author id="ref63131.author29093">
+      <md:lastName>Gutièrrez</md:lastName>
+      <md:firstName>Dimitri</md:firstName>
+      <md:eMail>dgutierrez@imarpe.gob.pe</md:eMail>
+    </md:author>
+    <md:author id="ref63131.author30670">
+      <md:lastName>Amann</md:lastName>
+      <md:firstName>Rudolf I</md:firstName>
+      <md:orcid>0000-0002-0846-7372</md:orcid>
+    </md:author>
+    <md:author id="ref63131.author39992">
+      <md:lastName>Jetten</md:lastName>
+      <md:firstName>Mike S M</md:firstName>
+      <md:orcid>0000-0002-4691-7039</md:orcid>
+    </md:author>
+    <md:author id="ref63131.author25781">
+      <md:lastName>Kuypers</md:lastName>
+      <md:firstName>Marcel MM</md:firstName>
+      <md:eMail>mkuypers@mpi-bremen.de</md:eMail>
+    </md:author>
+    <md:year>2009</md:year>
+    <md:title>Revising the nitrogen cycle in the Peruvian oxygen minimum zone</md:title>
+    <md:type id="ref63131.reftype1">journal article</md:type>
+    <md:source id="ref63131.journal16730" relatedTermIds="34013" type="journal">Proceedings of the National Academy of Sciences</md:source>
+    <md:volume>106(12)</md:volume>
+    <md:URI>https://doi.org/10.1073/pnas.0812444106</md:URI>
+    <md:pages>4752-4757</md:pages>
+  </md:reference>
+  <md:reference dataciteRelType="References" group="210" id="ref63133" relationType="Related to" relationTypeId="12">
+    <md:author id="ref63133.author50840">
+      <md:lastName>Michotey</md:lastName>
+      <md:firstName>Valérie</md:firstName>
+    </md:author>
+    <md:author id="ref63133.author50841">
+      <md:lastName>Méjean</md:lastName>
+      <md:firstName>Vincent</md:firstName>
+      <md:orcid>0000-0001-6533-5846</md:orcid>
+    </md:author>
+    <md:author id="ref63133.author50842">
+      <md:lastName>Bonin</md:lastName>
+      <md:firstName>Patricia</md:firstName>
+    </md:author>
+    <md:year>2000</md:year>
+    <md:title>Comparison of Methods for Quantification of Cytochrome cd1-Denitrifying Bacteria in Environmental Marine Samples</md:title>
+    <md:type id="ref63133.reftype1">journal article</md:type>
+    <md:source id="ref63133.journal1291" relatedTermIds="33918,34009" type="journal">Applied and Environmental Microbiology</md:source>
+    <md:volume>66(4)</md:volume>
+    <md:URI>https://doi.org/10.1128/AEM.66.4.1564-1571.2000</md:URI>
+    <md:pages>1564-1571</md:pages>
+  </md:reference>
+  <md:reference dataciteRelType="References" group="210" id="ref63114" relationType="Related to" relationTypeId="12">
+    <md:author id="ref63114.author36644">
+      <md:lastName>Sokoll</md:lastName>
+      <md:firstName>Sarah</md:firstName>
+      <md:eMail>ssokoll@mpi-bremen.de</md:eMail>
+      <md:orcid>0000-0001-9324-9523</md:orcid>
+    </md:author>
+    <md:author id="ref63114.author34022">
+      <md:lastName>Holtappels</md:lastName>
+      <md:firstName>Moritz</md:firstName>
+      <md:eMail>moritz.holtappels@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/moritz-holtappels.html</md:URI>
+      <md:orcid>0000-0003-3682-1903</md:orcid>
+    </md:author>
+    <md:author id="ref63114.author38912">
+      <md:lastName>Lam</md:lastName>
+      <md:firstName>Phyllis</md:firstName>
+      <md:orcid>0000-0003-2067-171X</md:orcid>
+    </md:author>
+    <md:author id="ref63114.author36642">
+      <md:lastName>Collins</md:lastName>
+      <md:firstName>Gavin</md:firstName>
+    </md:author>
+    <md:author id="ref63114.author56">
+      <md:lastName>Schlüter</md:lastName>
+      <md:firstName>Michael</md:firstName>
+      <md:eMail>michael.schlueter@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/michael-schlueter.html</md:URI>
+    </md:author>
+    <md:author id="ref63114.author20299">
+      <md:lastName>Lavik</md:lastName>
+      <md:firstName>Gaute</md:firstName>
+      <md:eMail>glavik@mpi-bremen.de</md:eMail>
+    </md:author>
+    <md:author id="ref63114.author25781">
+      <md:lastName>Kuypers</md:lastName>
+      <md:firstName>Marcel MM</md:firstName>
+      <md:eMail>mkuypers@mpi-bremen.de</md:eMail>
+    </md:author>
+    <md:year>2012</md:year>
+    <md:title>Benthic nitrogen loss in the Arabian Sea off Pakistan</md:title>
+    <md:type id="ref63114.reftype1">journal article</md:type>
+    <md:source id="ref63114.journal16729" type="journal">Frontiers in Microbiology</md:source>
+    <md:volume>3</md:volume>
+    <md:URI>https://doi.org/10.3389/fmicb.2012.00395</md:URI>
+  </md:reference>
+  <md:reference dataciteRelType="References" group="210" id="ref63132" relationType="Related to" relationTypeId="12">
+    <md:author id="ref63132.author50838">
+      <md:lastName>Throbäck</md:lastName>
+      <md:firstName>I N</md:firstName>
+    </md:author>
+    <md:author id="ref63132.author50839">
+      <md:lastName>Enwall</md:lastName>
+      <md:firstName>K</md:firstName>
+    </md:author>
+    <md:author id="ref63132.author28498">
+      <md:lastName>Jarvis</md:lastName>
+      <md:firstName>Ian</md:firstName>
+      <md:orcid>0000-0003-3184-3097</md:orcid>
+    </md:author>
+    <md:author id="ref63132.author43270">
+      <md:lastName>Hallin</md:lastName>
+      <md:firstName>James S</md:firstName>
+    </md:author>
+    <md:year>2004</md:year>
+    <md:title>Reassessing PCR primers targeting nirS, nirK and nosZ genes for community surveys of denitrifying bacteria with DGGE</md:title>
+    <md:type id="ref63132.reftype1">journal article</md:type>
+    <md:source id="ref63132.journal5572" relatedTermIds="34009" type="journal">FEMS Microbiology Ecology</md:source>
+    <md:volume>49(3)</md:volume>
+    <md:URI>https://doi.org/10.1016/j.femsec.2004.04.011</md:URI>
+    <md:pages>401-417</md:pages>
+  </md:reference>
+  <md:extent>
+    <md:geographic>
+      <md:westBoundLongitude>62.99783</md:westBoundLongitude>
+      <md:eastBoundLongitude>63.26716</md:eastBoundLongitude>
+      <md:southBoundLatitude>24.76633</md:southBoundLatitude>
+      <md:northBoundLatitude>24.89516</md:northBoundLatitude>
+      <md:meanLongitude>63.072855000000004</md:meanLongitude>
+      <md:meanLatitude>24.853991249999996</md:meanLatitude>
+    </md:geographic>
+    <md:temporal>
+      <md:minDateTime>2007-10-13T17:20:00</md:minDateTime>
+      <md:maxDateTime>2007-10-24T14:41:00</md:maxDateTime>
+    </md:temporal>
+    <md:elevation geocodeId="geocode1" name="DEPTH, sediment/rock" unit="m">
+      <md:min>0.01</md:min>
+      <md:max>0.07</md:max>
+    </md:elevation>
+    <md:topoType id="topotype3">vertical profile</md:topoType>
+  </md:extent>
+  <md:project id="project4011" type="National DFG">
+    <md:label>MARUM</md:label>
+    <md:name>Center for Marine Environmental Sciences</md:name>
+    <md:URI>https://www.marum.de/en/</md:URI>
+    <md:institution id="project4011.inst277">
+      <md:name>MARUM - Center for Marine Environmental Sciences, University Bremen</md:name>
+      <md:optionalName>MARUM</md:optionalName>
+      <md:URI>http://www.marum.de/</md:URI>
+      <md:ROR>https://ror.org/04ers2y35</md:ROR>
+    </md:institution>
+  </md:project>
+  <md:event displayTypeName="Event" id="event2581939" typeName="Generic Event">
+    <md:label>GeoB12204-4</md:label>
+    <md:optionalLabel>M74/2_969-1</md:optionalLabel>
+    <md:latitude>24.88265</md:latitude>
+    <md:longitude>63.0266</md:longitude>
+    <md:elevation>-691.0</md:elevation>
+    <md:dateTime>2007-10-13T17:20:00</md:dateTime>
+    <md:latitude2>24.88265</md:latitude2>
+    <md:longitude2>63.0266</md:longitude2>
+    <md:dateTime2>2007-10-13T18:10:00</md:dateTime2>
+    <md:campaign displayTypeName="Campaign" id="event2581939.campaign3384055" legacyId="event2581939.campaign32949" typeName="Generic Campaign">
+      <md:label>M74/2</md:label>
+      <md:location id="event2581939.campaign3384055.loc1.term77870">
+        <md:name>Fujayrah Harbor, United Arab Emirates</md:name>
+      </md:location>
+      <md:dateTime>2007-10-07T00:00:00</md:dateTime>
+      <md:location2 id="event2581939.campaign3384055.loc2.term77870">
+        <md:name>Fujayrah Harbor, United Arab Emirates</md:name>
+      </md:location2>
+      <md:dateTime2>2007-10-28T00:00:00</md:dateTime2>
+      <md:basis id="event2581939.campaign3384055.basis2">
+        <md:name>Meteor (1986)</md:name>
+        <md:URI>https://en.wikipedia.org/wiki/RV_Meteor_(1986)</md:URI>
+        <md:callSign>DBBH</md:callSign>
+        <md:IMOnumber>8411279</md:IMOnumber>
+      </md:basis>
+      <md:responsible>Spieß, Volkhard</md:responsible>
+      <md:attribute attid="76863" name="Report">doi:10.2312/cr_m74</md:attribute>
+      <md:attribute attid="2055" name="BSH ID">20080085</md:attribute>
+      <md:attribute attid="51659" name="Expedition Program">hdl:10013/epic.44784.d026</md:attribute>
+      <md:attribute attid="51658" name="Weekly Reports">hdl:10013/epic.44803.d104</md:attribute>
+    </md:campaign>
+    <md:basis id="event2581939.basis2">
+      <md:name>Meteor (1986)</md:name>
+      <md:URI>https://en.wikipedia.org/wiki/RV_Meteor_(1986)</md:URI>
+      <md:callSign>DBBH</md:callSign>
+      <md:IMOnumber>8411279</md:IMOnumber>
+    </md:basis>
+    <md:method id="event2581939.method10668">
+      <md:name>MultiCorer</md:name>
+      <md:optionalName>MUC</md:optionalName>
+    </md:method>
+  </md:event>
+  <md:event displayTypeName="Event" id="event2581946" typeName="Generic Event">
+    <md:label>GeoB12208-2</md:label>
+    <md:optionalLabel>M74/2_976-2</md:optionalLabel>
+    <md:latitude>24.76666</md:latitude>
+    <md:longitude>62.99983</md:longitude>
+    <md:elevation>-1430.0</md:elevation>
+    <md:dateTime>2007-10-16T07:42:00</md:dateTime>
+    <md:latitude2>24.76633</md:latitude2>
+    <md:longitude2>62.99983</md:longitude2>
+    <md:dateTime2>2007-10-16T08:49:00</md:dateTime2>
+    <md:campaign displayTypeName="Campaign" id="event2581946.campaign3384055" legacyId="event2581946.campaign32949" typeName="Generic Campaign">
+      <md:label>M74/2</md:label>
+      <md:location id="event2581946.campaign3384055.loc1.term77870">
+        <md:name>Fujayrah Harbor, United Arab Emirates</md:name>
+      </md:location>
+      <md:dateTime>2007-10-07T00:00:00</md:dateTime>
+      <md:location2 id="event2581946.campaign3384055.loc2.term77870">
+        <md:name>Fujayrah Harbor, United Arab Emirates</md:name>
+      </md:location2>
+      <md:dateTime2>2007-10-28T00:00:00</md:dateTime2>
+      <md:basis id="event2581946.campaign3384055.basis2">
+        <md:name>Meteor (1986)</md:name>
+        <md:URI>https://en.wikipedia.org/wiki/RV_Meteor_(1986)</md:URI>
+        <md:callSign>DBBH</md:callSign>
+        <md:IMOnumber>8411279</md:IMOnumber>
+      </md:basis>
+      <md:responsible>Spieß, Volkhard</md:responsible>
+      <md:attribute attid="76863" name="Report">doi:10.2312/cr_m74</md:attribute>
+      <md:attribute attid="2055" name="BSH ID">20080085</md:attribute>
+      <md:attribute attid="51659" name="Expedition Program">hdl:10013/epic.44784.d026</md:attribute>
+      <md:attribute attid="51658" name="Weekly Reports">hdl:10013/epic.44803.d104</md:attribute>
+    </md:campaign>
+    <md:basis id="event2581946.basis2">
+      <md:name>Meteor (1986)</md:name>
+      <md:URI>https://en.wikipedia.org/wiki/RV_Meteor_(1986)</md:URI>
+      <md:callSign>DBBH</md:callSign>
+      <md:IMOnumber>8411279</md:IMOnumber>
+    </md:basis>
+    <md:method id="event2581946.method10668">
+      <md:name>MultiCorer</md:name>
+      <md:optionalName>MUC</md:optionalName>
+    </md:method>
+  </md:event>
+  <md:event displayTypeName="Event" id="event2581954" typeName="Generic Event">
+    <md:label>GeoB12210-3</md:label>
+    <md:optionalLabel>M74/2_979-3</md:optionalLabel>
+    <md:latitude>24.89516</md:latitude>
+    <md:longitude>63.26716</md:longitude>
+    <md:elevation>-363.0</md:elevation>
+    <md:dateTime>2007-10-22T07:20:00</md:dateTime>
+    <md:latitude2>24.89516</md:latitude2>
+    <md:longitude2>63.26716</md:longitude2>
+    <md:dateTime2>2007-10-22T07:43:00</md:dateTime2>
+    <md:campaign displayTypeName="Campaign" id="event2581954.campaign3384055" legacyId="event2581954.campaign32949" typeName="Generic Campaign">
+      <md:label>M74/2</md:label>
+      <md:location id="event2581954.campaign3384055.loc1.term77870">
+        <md:name>Fujayrah Harbor, United Arab Emirates</md:name>
+      </md:location>
+      <md:dateTime>2007-10-07T00:00:00</md:dateTime>
+      <md:location2 id="event2581954.campaign3384055.loc2.term77870">
+        <md:name>Fujayrah Harbor, United Arab Emirates</md:name>
+      </md:location2>
+      <md:dateTime2>2007-10-28T00:00:00</md:dateTime2>
+      <md:basis id="event2581954.campaign3384055.basis2">
+        <md:name>Meteor (1986)</md:name>
+        <md:URI>https://en.wikipedia.org/wiki/RV_Meteor_(1986)</md:URI>
+        <md:callSign>DBBH</md:callSign>
+        <md:IMOnumber>8411279</md:IMOnumber>
+      </md:basis>
+      <md:responsible>Spieß, Volkhard</md:responsible>
+      <md:attribute attid="76863" name="Report">doi:10.2312/cr_m74</md:attribute>
+      <md:attribute attid="2055" name="BSH ID">20080085</md:attribute>
+      <md:attribute attid="51659" name="Expedition Program">hdl:10013/epic.44784.d026</md:attribute>
+      <md:attribute attid="51658" name="Weekly Reports">hdl:10013/epic.44803.d104</md:attribute>
+    </md:campaign>
+    <md:basis id="event2581954.basis2">
+      <md:name>Meteor (1986)</md:name>
+      <md:URI>https://en.wikipedia.org/wiki/RV_Meteor_(1986)</md:URI>
+      <md:callSign>DBBH</md:callSign>
+      <md:IMOnumber>8411279</md:IMOnumber>
+    </md:basis>
+    <md:method id="event2581954.method10668">
+      <md:name>MultiCorer</md:name>
+      <md:optionalName>MUC</md:optionalName>
+    </md:method>
+  </md:event>
+  <md:event displayTypeName="Event" id="event2581967" typeName="Generic Event">
+    <md:label>GeoB12216-5</md:label>
+    <md:optionalLabel>M74/2_986-5</md:optionalLabel>
+    <md:latitude>24.87166</md:latitude>
+    <md:longitude>62.99783</md:longitude>
+    <md:elevation>-970.0</md:elevation>
+    <md:dateTime>2007-10-24T13:54:00</md:dateTime>
+    <md:latitude2>24.87166</md:latitude2>
+    <md:longitude2>62.99783</md:longitude2>
+    <md:dateTime2>2007-10-24T14:41:00</md:dateTime2>
+    <md:campaign displayTypeName="Campaign" id="event2581967.campaign3384055" legacyId="event2581967.campaign32949" typeName="Generic Campaign">
+      <md:label>M74/2</md:label>
+      <md:location id="event2581967.campaign3384055.loc1.term77870">
+        <md:name>Fujayrah Harbor, United Arab Emirates</md:name>
+      </md:location>
+      <md:dateTime>2007-10-07T00:00:00</md:dateTime>
+      <md:location2 id="event2581967.campaign3384055.loc2.term77870">
+        <md:name>Fujayrah Harbor, United Arab Emirates</md:name>
+      </md:location2>
+      <md:dateTime2>2007-10-28T00:00:00</md:dateTime2>
+      <md:basis id="event2581967.campaign3384055.basis2">
+        <md:name>Meteor (1986)</md:name>
+        <md:URI>https://en.wikipedia.org/wiki/RV_Meteor_(1986)</md:URI>
+        <md:callSign>DBBH</md:callSign>
+        <md:IMOnumber>8411279</md:IMOnumber>
+      </md:basis>
+      <md:responsible>Spieß, Volkhard</md:responsible>
+      <md:attribute attid="76863" name="Report">doi:10.2312/cr_m74</md:attribute>
+      <md:attribute attid="2055" name="BSH ID">20080085</md:attribute>
+      <md:attribute attid="51659" name="Expedition Program">hdl:10013/epic.44784.d026</md:attribute>
+      <md:attribute attid="51658" name="Weekly Reports">hdl:10013/epic.44803.d104</md:attribute>
+    </md:campaign>
+    <md:basis id="event2581967.basis2">
+      <md:name>Meteor (1986)</md:name>
+      <md:URI>https://en.wikipedia.org/wiki/RV_Meteor_(1986)</md:URI>
+      <md:callSign>DBBH</md:callSign>
+      <md:IMOnumber>8411279</md:IMOnumber>
+    </md:basis>
+    <md:method id="event2581967.method10668">
+      <md:name>MultiCorer</md:name>
+      <md:optionalName>MUC</md:optionalName>
+    </md:method>
+  </md:event>
+  <md:size unit="data points">228</md:size>
+  <md:license id="license101">
+    <md:label>CC-BY-3.0</md:label>
+    <md:name>Creative Commons Attribution 3.0 Unported</md:name>
+    <md:URI>https://creativecommons.org/licenses/by/3.0/</md:URI>
+  </md:license>
+  <md:matrixColumn behaviour="7" col="0" id="col0.ds1488571" source="event" type="string">
+    <md:parameter>
+      <md:name>Event label</md:name>
+      <md:shortName>Event</md:shortName>
+    </md:parameter>
+    <md:caption>Event</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn behaviour="2" col="1" format="###0.000000" id="col1.ds1488571" source="event" type="numeric">
+    <md:parameter id="col1.ds1488571.geocode1600">
+      <md:name>Latitude of event</md:name>
+      <md:shortName>Latitude</md:shortName>
+    </md:parameter>
+    <md:caption>Latitude</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn behaviour="3" col="2" format="###0.000000" id="col2.ds1488571" source="event" type="numeric">
+    <md:parameter id="col2.ds1488571.geocode1601">
+      <md:name>Longitude of event</md:name>
+      <md:shortName>Longitude</md:shortName>
+    </md:parameter>
+    <md:caption>Longitude</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn behaviour="1" col="3" format="###0" id="col3.ds1488571" source="event" type="numeric">
+    <md:parameter id="col3.ds1488571.geocode8128">
+      <md:name>Elevation of event</md:name>
+      <md:shortName>Elevation</md:shortName>
+      <md:unit>m</md:unit>
+    </md:parameter>
+    <md:caption>Elevation [m]</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn behaviour="1" col="4" format="#0.00" id="col4.ds1488570" source="geocode" type="numeric">
+    <md:parameter id="col4.ds1488570.geocode1">
+      <md:name>DEPTH, sediment/rock</md:name>
+      <md:shortName>Depth sed</md:shortName>
+      <md:unit>m</md:unit>
+      <md:term endOffset="5" fragment="1" id="col4.ds1488570.geocode1.term1073131" semanticURI="urn:obo:pato:term:0001595" startOffset="0" terminologyId="14" terminologyLabel="PATO">
+        <md:name>depth</md:name>
+        <md:URI>http://purl.obolibrary.org/obo/PATO_0001595</md:URI>
+      </md:term>
+      <md:term endOffset="15" fragment="2" id="col4.ds1488570.geocode1.term38263" startOffset="7" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>sediment</md:name>
+        <md:URI>http://purl.obolibrary.org/obo/ENVO_00002007</md:URI>
+      </md:term>
+      <md:term endOffset="20" fragment="3" id="col4.ds1488570.geocode1.term41056" startOffset="16" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>rock</md:name>
+      </md:term>
+      <md:term id="col4.ds1488570.geocode1.term43863" semanticURI="http://qudt.org/1.1/vocab/quantity#Length" terminologyId="13" terminologyLabel="PAN-Quantity">
+        <md:name>Length</md:name>
+        <md:optionalName>L</md:optionalName>
+        <md:URI>http://dbpedia.org/resource/Length</md:URI>
+      </md:term>
+    </md:parameter>
+    <md:caption>Depth sed [m]</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="5" format="#0.00" id="col5.ds12370676" source="data" type="numeric">
+    <md:parameter id="col5.ds12370676.param3">
+      <md:name>Depth, top/min</md:name>
+      <md:shortName>Depth top</md:shortName>
+      <md:unit>m</md:unit>
+      <md:term endOffset="5" fragment="1" id="col5.ds12370676.param3.term1073131" semanticURI="urn:obo:pato:term:0001595" startOffset="0" terminologyId="14" terminologyLabel="PATO">
+        <md:name>depth</md:name>
+        <md:URI>http://purl.obolibrary.org/obo/PATO_0001595</md:URI>
+      </md:term>
+      <md:term id="col5.ds12370676.param3.term43863" semanticURI="http://qudt.org/1.1/vocab/quantity#Length" terminologyId="13" terminologyLabel="PAN-Quantity">
+        <md:name>Length</md:name>
+        <md:optionalName>L</md:optionalName>
+        <md:URI>http://dbpedia.org/resource/Length</md:URI>
+      </md:term>
+    </md:parameter>
+    <md:PI id="col5.ds12370676.pi34022">
+      <md:lastName>Holtappels</md:lastName>
+      <md:firstName>Moritz</md:firstName>
+      <md:eMail>moritz.holtappels@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/moritz-holtappels.html</md:URI>
+      <md:orcid>0000-0003-3682-1903</md:orcid>
+    </md:PI>
+    <md:caption>Depth top [m]</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="6" format="#0.00" id="col6.ds12370677" source="data" type="numeric">
+    <md:parameter id="col6.ds12370677.param4">
+      <md:name>Depth, bottom/max</md:name>
+      <md:shortName>Depth bot</md:shortName>
+      <md:unit>m</md:unit>
+      <md:term endOffset="5" fragment="1" id="col6.ds12370677.param4.term1073131" semanticURI="urn:obo:pato:term:0001595" startOffset="0" terminologyId="14" terminologyLabel="PATO">
+        <md:name>depth</md:name>
+        <md:URI>http://purl.obolibrary.org/obo/PATO_0001595</md:URI>
+      </md:term>
+      <md:term endOffset="17" fragment="2" id="col6.ds12370677.param4.term38561" startOffset="14" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>maximal</md:name>
+        <md:optionalName>max</md:optionalName>
+      </md:term>
+      <md:term id="col6.ds12370677.param4.term43863" semanticURI="http://qudt.org/1.1/vocab/quantity#Length" terminologyId="13" terminologyLabel="PAN-Quantity">
+        <md:name>Length</md:name>
+        <md:optionalName>L</md:optionalName>
+        <md:URI>http://dbpedia.org/resource/Length</md:URI>
+      </md:term>
+    </md:parameter>
+    <md:PI id="col6.ds12370677.pi34022">
+      <md:lastName>Holtappels</md:lastName>
+      <md:firstName>Moritz</md:firstName>
+      <md:eMail>moritz.holtappels@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/moritz-holtappels.html</md:URI>
+      <md:orcid>0000-0003-3682-1903</md:orcid>
+    </md:PI>
+    <md:caption>Depth bot [m]</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="7" format="#0.00" id="col7.ds12370678" source="data" type="numeric">
+    <md:parameter id="col7.ds12370678.param67">
+      <md:name>Carbon, organic, total</md:name>
+      <md:shortName>TOC</md:shortName>
+      <md:unit>%</md:unit>
+      <md:term endOffset="6" fragment="1" id="col7.ds12370678.param67.term38477" semanticURI="http://purl.obolibrary.org/obo/CHEBI_27594" startOffset="0" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>carbon</md:name>
+        <md:optionalName>C</md:optionalName>
+        <md:URI>https://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:27594</md:URI>
+      </md:term>
+      <md:term endOffset="15" fragment="2" id="col7.ds12370678.param67.term44419" startOffset="8" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>organic</md:name>
+      </md:term>
+      <md:term endOffset="22" fragment="3" id="col7.ds12370678.param67.term38253" startOffset="17" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>total</md:name>
+        <md:URI>https://www.oxforddictionaries.com/definition/american_english/total</md:URI>
+      </md:term>
+      <md:term id="col7.ds12370678.param67.term43794" semanticURI="http://qudt.org/1.1/vocab/quantity#DimensionlessRatio" terminologyId="13" terminologyLabel="PAN-Quantity">
+        <md:name>Dimensionless Ratio</md:name>
+        <md:optionalName>ψ</md:optionalName>
+      </md:term>
+    </md:parameter>
+    <md:method id="col7.ds12370678.method4646">
+      <md:name>Element analyser, Carlo Erba NA1500 after acidification</md:name>
+      <md:URI>https://doi.org/10.1016/0304-4203(94)90005-1</md:URI>
+      <md:term id="col7.ds12370678.method4646.term2299843" semanticURI="SDN:L22::TOOL0470" terminologyId="21" terminologyLabel="NERC-L05-L22">
+        <md:name>Carlo Erba NA 1500 elemental analyser</md:name>
+        <md:URI>http://vocab.nerc.ac.uk/collection/L22/current/TOOL0470/</md:URI>
+      </md:term>
+      <md:term id="col7.ds12370678.method4646.term67625" terminologyId="3" terminologyLabel="PAN-M&amp;D">
+        <md:name>Chemical property sensors</md:name>
+      </md:term>
+    </md:method>
+    <md:PI id="col7.ds12370678.pi34022">
+      <md:lastName>Holtappels</md:lastName>
+      <md:firstName>Moritz</md:firstName>
+      <md:eMail>moritz.holtappels@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/moritz-holtappels.html</md:URI>
+      <md:orcid>0000-0003-3682-1903</md:orcid>
+    </md:PI>
+    <md:caption>TOC [%] (Element analyser, Carlo Erba ...)</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="8" format="#0.00" id="col8.ds12370679" source="data" type="numeric">
+    <md:parameter id="col8.ds12370679.param1548">
+      <md:name>Nitrogen, organic</md:name>
+      <md:shortName>N org</md:shortName>
+      <md:unit>%</md:unit>
+      <md:term endOffset="8" fragment="1" id="col8.ds12370679.param1548.term38548" semanticURI="http://purl.obolibrary.org/obo/CHEBI_25555" startOffset="0" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>nitrogen</md:name>
+        <md:optionalName>N</md:optionalName>
+        <md:URI>https://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:25555</md:URI>
+      </md:term>
+      <md:term endOffset="17" fragment="2" id="col8.ds12370679.param1548.term44419" startOffset="10" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>organic</md:name>
+      </md:term>
+      <md:term id="col8.ds12370679.param1548.term43794" semanticURI="http://qudt.org/1.1/vocab/quantity#DimensionlessRatio" terminologyId="13" terminologyLabel="PAN-Quantity">
+        <md:name>Dimensionless Ratio</md:name>
+        <md:optionalName>ψ</md:optionalName>
+      </md:term>
+    </md:parameter>
+    <md:method id="col8.ds12370679.method4646">
+      <md:name>Element analyser, Carlo Erba NA1500 after acidification</md:name>
+      <md:URI>https://doi.org/10.1016/0304-4203(94)90005-1</md:URI>
+      <md:term id="col8.ds12370679.method4646.term2299843" semanticURI="SDN:L22::TOOL0470" terminologyId="21" terminologyLabel="NERC-L05-L22">
+        <md:name>Carlo Erba NA 1500 elemental analyser</md:name>
+        <md:URI>http://vocab.nerc.ac.uk/collection/L22/current/TOOL0470/</md:URI>
+      </md:term>
+      <md:term id="col8.ds12370679.method4646.term67625" terminologyId="3" terminologyLabel="PAN-M&amp;D">
+        <md:name>Chemical property sensors</md:name>
+      </md:term>
+    </md:method>
+    <md:PI id="col8.ds12370679.pi34022">
+      <md:lastName>Holtappels</md:lastName>
+      <md:firstName>Moritz</md:firstName>
+      <md:eMail>moritz.holtappels@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/moritz-holtappels.html</md:URI>
+      <md:orcid>0000-0003-3682-1903</md:orcid>
+    </md:PI>
+    <md:caption>N org [%] (Element analyser, Carlo Erba ...)</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="9" format="#0.00" id="col9.ds12370680" source="data" type="numeric">
+    <md:parameter id="col9.ds12370680.param171883">
+      <md:name>Carbon/Nitrogen ratio</md:name>
+      <md:shortName>C/N</md:shortName>
+      <md:unit>mol/mol</md:unit>
+      <md:term endOffset="6" fragment="1" id="col9.ds12370680.param171883.term38477" semanticURI="http://purl.obolibrary.org/obo/CHEBI_27594" startOffset="0" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>carbon</md:name>
+        <md:optionalName>C</md:optionalName>
+        <md:URI>https://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:27594</md:URI>
+      </md:term>
+      <md:term endOffset="15" fragment="2" id="col9.ds12370680.param171883.term38548" semanticURI="http://purl.obolibrary.org/obo/CHEBI_25555" startOffset="7" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>nitrogen</md:name>
+        <md:optionalName>N</md:optionalName>
+        <md:URI>https://www.ebi.ac.uk/chebi/searchId.do?chebiId=CHEBI:25555</md:URI>
+      </md:term>
+      <md:term endOffset="21" fragment="3" id="col9.ds12370680.param171883.term2663825" semanticURI="urn:pangaea:obo:pato:syn:3_0001470" startOffset="16" terminologyId="14" terminologyLabel="PATO">
+        <md:name>ratio</md:name>
+      </md:term>
+    </md:parameter>
+    <md:PI id="col9.ds12370680.pi34022">
+      <md:lastName>Holtappels</md:lastName>
+      <md:firstName>Moritz</md:firstName>
+      <md:eMail>moritz.holtappels@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/moritz-holtappels.html</md:URI>
+      <md:orcid>0000-0003-3682-1903</md:orcid>
+    </md:PI>
+    <md:caption>C/N [mol/mol]</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="10" format="#0.00" id="col10.ds12370681" source="data" type="numeric">
+    <md:parameter id="col10.ds12370681.param134117">
+      <md:name>Deoxyribonucleic acid, per unit sediment mass</md:name>
+      <md:shortName>DNA/sed</md:shortName>
+      <md:unit>ng/mg</md:unit>
+      <md:term endOffset="21" fragment="1" id="col10.ds12370681.param134117.term1074317" semanticURI="http://purl.obolibrary.org/obo/CHEBI_16991" startOffset="0" terminologyId="16" terminologyLabel="ChEBI">
+        <md:name>deoxyribonucleic acid</md:name>
+        <md:URI>http://purl.obolibrary.org/obo/CHEBI_16991</md:URI>
+      </md:term>
+    </md:parameter>
+    <md:method id="col10.ds12370681.method8421">
+      <md:name>Spectrophotometer NanoDrop (Thermo Fisher Scientific Inc)</md:name>
+      <md:term id="col10.ds12370681.method8421.term68027" terminologyId="3" terminologyLabel="PAN-M&amp;D">
+        <md:name>Chromatographs &amp; spectrometers</md:name>
+      </md:term>
+      <md:term id="col10.ds12370681.method8421.term2299583" semanticURI="SDN:L05::LAB20" terminologyId="21" terminologyLabel="NERC-L05-L22">
+        <md:name>spectrophotometers</md:name>
+        <md:URI>http://vocab.nerc.ac.uk/collection/L05/current/LAB20/</md:URI>
+      </md:term>
+    </md:method>
+    <md:PI id="col10.ds12370681.pi36644">
+      <md:lastName>Sokoll</md:lastName>
+      <md:firstName>Sarah</md:firstName>
+      <md:eMail>ssokoll@mpi-bremen.de</md:eMail>
+      <md:orcid>0000-0001-9324-9523</md:orcid>
+    </md:PI>
+    <md:caption>DNA/sed [ng/mg] (Spectrophotometer NanoDrop (T...)</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="11" format="#0.00" id="col11.ds12370682" source="data" type="numeric">
+    <md:parameter id="col11.ds12370682.param21027">
+      <md:name>Standard deviation</md:name>
+      <md:shortName>Std dev</md:shortName>
+      <md:unit>±</md:unit>
+      <md:term endOffset="18" fragment="1" id="col11.ds12370682.param21027.term37764" startOffset="0" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>standard deviation</md:name>
+        <md:optionalName>std dev</md:optionalName>
+        <md:URI>https://en.wikipedia.org/wiki/Standard_deviation</md:URI>
+      </md:term>
+    </md:parameter>
+    <md:method id="col11.ds12370682.method8421">
+      <md:name>Spectrophotometer NanoDrop (Thermo Fisher Scientific Inc)</md:name>
+      <md:term id="col11.ds12370682.method8421.term68027" terminologyId="3" terminologyLabel="PAN-M&amp;D">
+        <md:name>Chromatographs &amp; spectrometers</md:name>
+      </md:term>
+      <md:term id="col11.ds12370682.method8421.term2299583" semanticURI="SDN:L05::LAB20" terminologyId="21" terminologyLabel="NERC-L05-L22">
+        <md:name>spectrophotometers</md:name>
+        <md:URI>http://vocab.nerc.ac.uk/collection/L05/current/LAB20/</md:URI>
+      </md:term>
+    </md:method>
+    <md:PI id="col11.ds12370682.pi36644">
+      <md:lastName>Sokoll</md:lastName>
+      <md:firstName>Sarah</md:firstName>
+      <md:eMail>ssokoll@mpi-bremen.de</md:eMail>
+      <md:orcid>0000-0001-9324-9523</md:orcid>
+    </md:PI>
+    <md:caption>Std dev [±] (Spectrophotometer NanoDrop (T...)</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="12" format="###0.00" id="col12.ds12370683" source="data" type="numeric">
+    <md:parameter id="col12.ds12370683.param134118">
+      <md:name>Anammox nirS, per unit sediment mass</md:name>
+      <md:shortName>Anammox nirS/sed</md:shortName>
+      <md:unit>gene copies/mg</md:unit>
+      <md:term id="col12.ds12370683.param134118.term44024" terminologyId="13" terminologyLabel="PAN-Quantity">
+        <md:name>Abundance per Mass</md:name>
+      </md:term>
+    </md:parameter>
+    <md:method id="col12.ds12370683.method8290">
+      <md:name>Real-time quantitative polymerase chain reaction (qPCR)</md:name>
+      <md:URI>https://en.wikipedia.org/wiki/Real-time_polymerase_chain_reaction</md:URI>
+    </md:method>
+    <md:PI id="col12.ds12370683.pi36644">
+      <md:lastName>Sokoll</md:lastName>
+      <md:firstName>Sarah</md:firstName>
+      <md:eMail>ssokoll@mpi-bremen.de</md:eMail>
+      <md:orcid>0000-0001-9324-9523</md:orcid>
+    </md:PI>
+    <md:comment>using the primer Scnir372F/Scnir845R</md:comment>
+    <md:caption>Anammox nirS/sed [gene copies/mg] (using the primer Scnir372F/Sc...)</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="13" format="#0.00" id="col13.ds12370684" source="data" type="numeric">
+    <md:parameter id="col13.ds12370684.param21027">
+      <md:name>Standard deviation</md:name>
+      <md:shortName>Std dev</md:shortName>
+      <md:unit>±</md:unit>
+      <md:term endOffset="18" fragment="1" id="col13.ds12370684.param21027.term37764" startOffset="0" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>standard deviation</md:name>
+        <md:optionalName>std dev</md:optionalName>
+        <md:URI>https://en.wikipedia.org/wiki/Standard_deviation</md:URI>
+      </md:term>
+    </md:parameter>
+    <md:method id="col13.ds12370684.method8290">
+      <md:name>Real-time quantitative polymerase chain reaction (qPCR)</md:name>
+      <md:URI>https://en.wikipedia.org/wiki/Real-time_polymerase_chain_reaction</md:URI>
+    </md:method>
+    <md:PI id="col13.ds12370684.pi36644">
+      <md:lastName>Sokoll</md:lastName>
+      <md:firstName>Sarah</md:firstName>
+      <md:eMail>ssokoll@mpi-bremen.de</md:eMail>
+      <md:orcid>0000-0001-9324-9523</md:orcid>
+    </md:PI>
+    <md:caption>Std dev [±] (Real-time quantitative polyme...)</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="14" format="###0.00" id="col14.ds12370685" source="data" type="numeric">
+    <md:parameter id="col14.ds12370685.param134119">
+      <md:name>Denitrifier nirS, per unit sediment mass</md:name>
+      <md:shortName>Denitrifier nirS/sed</md:shortName>
+      <md:unit>gene copies/mg</md:unit>
+      <md:term id="col14.ds12370685.param134119.term44024" terminologyId="13" terminologyLabel="PAN-Quantity">
+        <md:name>Abundance per Mass</md:name>
+      </md:term>
+    </md:parameter>
+    <md:method id="col14.ds12370685.method8290">
+      <md:name>Real-time quantitative polymerase chain reaction (qPCR)</md:name>
+      <md:URI>https://en.wikipedia.org/wiki/Real-time_polymerase_chain_reaction</md:URI>
+    </md:method>
+    <md:PI id="col14.ds12370685.pi36644">
+      <md:lastName>Sokoll</md:lastName>
+      <md:firstName>Sarah</md:firstName>
+      <md:eMail>ssokoll@mpi-bremen.de</md:eMail>
+      <md:orcid>0000-0001-9324-9523</md:orcid>
+    </md:PI>
+    <md:comment>using the primer cd3aF/R3cd</md:comment>
+    <md:caption>Denitrifier nirS/sed [gene copies/mg] (using the primer cd3aF/R3cd, ...)</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="15" format="#0.00" id="col15.ds12370686" source="data" type="numeric">
+    <md:parameter id="col15.ds12370686.param21027">
+      <md:name>Standard deviation</md:name>
+      <md:shortName>Std dev</md:shortName>
+      <md:unit>±</md:unit>
+      <md:term endOffset="18" fragment="1" id="col15.ds12370686.param21027.term37764" startOffset="0" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>standard deviation</md:name>
+        <md:optionalName>std dev</md:optionalName>
+        <md:URI>https://en.wikipedia.org/wiki/Standard_deviation</md:URI>
+      </md:term>
+    </md:parameter>
+    <md:method id="col15.ds12370686.method8290">
+      <md:name>Real-time quantitative polymerase chain reaction (qPCR)</md:name>
+      <md:URI>https://en.wikipedia.org/wiki/Real-time_polymerase_chain_reaction</md:URI>
+    </md:method>
+    <md:PI id="col15.ds12370686.pi36644">
+      <md:lastName>Sokoll</md:lastName>
+      <md:firstName>Sarah</md:firstName>
+      <md:eMail>ssokoll@mpi-bremen.de</md:eMail>
+      <md:orcid>0000-0001-9324-9523</md:orcid>
+    </md:PI>
+    <md:caption>Std dev [±] (Real-time quantitative polyme...)</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="16" format="#0.00" id="col16.ds12370687" source="data" type="numeric">
+    <md:parameter id="col16.ds12370687.param134120">
+      <md:name>Anammox rates</md:name>
+      <md:shortName>Anammox rate</md:shortName>
+      <md:unit>nmol/cm**3/day</md:unit>
+      <md:URI>https://en.wikipedia.org/wiki/Anammox</md:URI>
+      <md:term id="col16.ds12370687.param134120.term44031" terminologyId="13" terminologyLabel="PAN-Quantity">
+        <md:name>Reaction Rate</md:name>
+      </md:term>
+    </md:parameter>
+    <md:method id="col16.ds12370687.method8512">
+      <md:name>15N-stable Isotpe pairing technique, GC-IRMS</md:name>
+    </md:method>
+    <md:PI id="col16.ds12370687.pi34022">
+      <md:lastName>Holtappels</md:lastName>
+      <md:firstName>Moritz</md:firstName>
+      <md:eMail>moritz.holtappels@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/moritz-holtappels.html</md:URI>
+      <md:orcid>0000-0003-3682-1903</md:orcid>
+    </md:PI>
+    <md:caption>Anammox rate [nmol/cm**3/day] (15N-stable Isotpe pairing tec...)</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="17" format="#0.00" id="col17.ds12370688" source="data" type="numeric">
+    <md:parameter id="col17.ds12370688.param21027">
+      <md:name>Standard deviation</md:name>
+      <md:shortName>Std dev</md:shortName>
+      <md:unit>±</md:unit>
+      <md:term endOffset="18" fragment="1" id="col17.ds12370688.param21027.term37764" startOffset="0" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>standard deviation</md:name>
+        <md:optionalName>std dev</md:optionalName>
+        <md:URI>https://en.wikipedia.org/wiki/Standard_deviation</md:URI>
+      </md:term>
+    </md:parameter>
+    <md:method id="col17.ds12370688.method8512">
+      <md:name>15N-stable Isotpe pairing technique, GC-IRMS</md:name>
+    </md:method>
+    <md:PI id="col17.ds12370688.pi34022">
+      <md:lastName>Holtappels</md:lastName>
+      <md:firstName>Moritz</md:firstName>
+      <md:eMail>moritz.holtappels@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/moritz-holtappels.html</md:URI>
+      <md:orcid>0000-0003-3682-1903</md:orcid>
+    </md:PI>
+    <md:caption>Std dev [±] (15N-stable Isotpe pairing tec...)</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="18" format="##0.00" id="col18.ds12370689" source="data" type="numeric">
+    <md:parameter id="col18.ds12370689.param134121">
+      <md:name>Denitrification rates</md:name>
+      <md:shortName>Denitrifi rate</md:shortName>
+      <md:unit>nmol/cm**3/day</md:unit>
+      <md:term id="col18.ds12370689.param134121.term44031" terminologyId="13" terminologyLabel="PAN-Quantity">
+        <md:name>Reaction Rate</md:name>
+      </md:term>
+    </md:parameter>
+    <md:method id="col18.ds12370689.method8512">
+      <md:name>15N-stable Isotpe pairing technique, GC-IRMS</md:name>
+    </md:method>
+    <md:PI id="col18.ds12370689.pi34022">
+      <md:lastName>Holtappels</md:lastName>
+      <md:firstName>Moritz</md:firstName>
+      <md:eMail>moritz.holtappels@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/moritz-holtappels.html</md:URI>
+      <md:orcid>0000-0003-3682-1903</md:orcid>
+    </md:PI>
+    <md:caption>Denitrifi rate [nmol/cm**3/day] (15N-stable Isotpe pairing tec...)</md:caption>
+  </md:matrixColumn>
+  <md:matrixColumn col="19" format="#0.00" id="col19.ds12370690" source="data" type="numeric">
+    <md:parameter id="col19.ds12370690.param21027">
+      <md:name>Standard deviation</md:name>
+      <md:shortName>Std dev</md:shortName>
+      <md:unit>±</md:unit>
+      <md:term endOffset="18" fragment="1" id="col19.ds12370690.param21027.term37764" startOffset="0" terminologyId="18" terminologyLabel="PAN-MicroBio">
+        <md:name>standard deviation</md:name>
+        <md:optionalName>std dev</md:optionalName>
+        <md:URI>https://en.wikipedia.org/wiki/Standard_deviation</md:URI>
+      </md:term>
+    </md:parameter>
+    <md:method id="col19.ds12370690.method8512">
+      <md:name>15N-stable Isotpe pairing technique, GC-IRMS</md:name>
+    </md:method>
+    <md:PI id="col19.ds12370690.pi34022">
+      <md:lastName>Holtappels</md:lastName>
+      <md:firstName>Moritz</md:firstName>
+      <md:eMail>moritz.holtappels@awi.de</md:eMail>
+      <md:URI>https://www.awi.de/en/about-us/organisation/staff/single-view/moritz-holtappels.html</md:URI>
+      <md:orcid>0000-0003-3682-1903</md:orcid>
+    </md:PI>
+    <md:caption>Std dev [±] (15N-stable Isotpe pairing tec...)</md:caption>
+  </md:matrixColumn>
+  <md:keywords>
+    <md:techKeyword type="autoGenerated">citable</md:techKeyword>
+    <md:techKeyword id="keywords.term33871" type="fromDatabase">deNBIchemical</md:techKeyword>
+    <md:techKeyword id="keywords.term33409" type="fromDatabase">deNBIMolEcol</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author20299</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author25781</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author28498</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author29093</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author30670</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author34022</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author36642</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author36644</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author38408</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author38912</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author39992</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author43270</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author47590</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author47591</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author50328</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author50838</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author50839</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author50840</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author50841</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author50842</md:techKeyword>
+    <md:techKeyword type="autoGenerated">author56</md:techKeyword>
+    <md:techKeyword type="autoGenerated">basis2</md:techKeyword>
+    <md:techKeyword type="autoGenerated">campaign32949</md:techKeyword>
+    <md:techKeyword type="autoGenerated">campaign3384055</md:techKeyword>
+    <md:techKeyword type="autoGenerated">event2581939</md:techKeyword>
+    <md:techKeyword type="autoGenerated">event2581946</md:techKeyword>
+    <md:techKeyword type="autoGenerated">event2581954</md:techKeyword>
+    <md:techKeyword type="autoGenerated">event2581967</md:techKeyword>
+    <md:techKeyword type="autoGenerated">geocode1</md:techKeyword>
+    <md:techKeyword type="autoGenerated">geocode1599</md:techKeyword>
+    <md:techKeyword type="autoGenerated">geocode1600</md:techKeyword>
+    <md:techKeyword type="autoGenerated">geocode1601</md:techKeyword>
+    <md:techKeyword type="autoGenerated">geocode8128</md:techKeyword>
+    <md:techKeyword type="autoGenerated">inst277</md:techKeyword>
+    <md:techKeyword type="autoGenerated">journal1291</md:techKeyword>
+    <md:techKeyword type="autoGenerated">journal16729</md:techKeyword>
+    <md:techKeyword type="autoGenerated">journal16730</md:techKeyword>
+    <md:techKeyword type="autoGenerated">journal5572</md:techKeyword>
+    <md:techKeyword type="autoGenerated">license101</md:techKeyword>
+    <md:techKeyword type="autoGenerated">method10668</md:techKeyword>
+    <md:techKeyword type="autoGenerated">method4646</md:techKeyword>
+    <md:techKeyword type="autoGenerated">method8290</md:techKeyword>
+    <md:techKeyword type="autoGenerated">method8421</md:techKeyword>
+    <md:techKeyword type="autoGenerated">method8512</md:techKeyword>
+    <md:techKeyword type="autoGenerated">param134117</md:techKeyword>
+    <md:techKeyword type="autoGenerated">param134118</md:techKeyword>
+    <md:techKeyword type="autoGenerated">param134119</md:techKeyword>
+    <md:techKeyword type="autoGenerated">param134120</md:techKeyword>
+    <md:techKeyword type="autoGenerated">param134121</md:techKeyword>
+    <md:techKeyword type="autoGenerated">param1548</md:techKeyword>
+    <md:techKeyword type="autoGenerated">param171883</md:techKeyword>
+    <md:techKeyword type="autoGenerated">param21027</md:techKeyword>
+    <md:techKeyword type="autoGenerated">param3</md:techKeyword>
+    <md:techKeyword type="autoGenerated">param4</md:techKeyword>
+    <md:techKeyword type="autoGenerated">param67</md:techKeyword>
+    <md:techKeyword type="autoGenerated">pi34022</md:techKeyword>
+    <md:techKeyword type="autoGenerated">pi36644</md:techKeyword>
+    <md:techKeyword type="autoGenerated">project4011</md:techKeyword>
+    <md:techKeyword type="autoGenerated">ref63114</md:techKeyword>
+    <md:techKeyword type="autoGenerated">ref63131</md:techKeyword>
+    <md:techKeyword type="autoGenerated">ref63132</md:techKeyword>
+    <md:techKeyword type="autoGenerated">ref63133</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term1073131</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term1074317</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term2299583</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term2299843</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term2663825</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term33409</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term33871</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term37764</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term38253</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term38263</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term38477</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term38548</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term38561</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term41056</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term43794</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term43863</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term44024</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term44031</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term44419</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term67625</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term68027</md:techKeyword>
+    <md:techKeyword type="autoGenerated">term77870</md:techKeyword>
+    <md:techKeyword type="autoGenerated">topotype3</md:techKeyword>
+  </md:keywords>
+  <md:technicalInfo>
+    <md:entry key="xmlLastModified" value="2026-09-03T08:47:01Z"/>
+    <md:entry key="lastModified" value="2019-09-06T12:41:46"/>
+    <md:entry key="filename" value="M74-2_C_N_rates"/>
+    <md:entry key="mimeType" value="text/tab-separated-values"/>
+    <md:entry key="status" value="published"/>
+    <md:entry key="status_num" value="4"/>
+    <md:entry key="DOIRegistryStatus" value="registered"/>
+    <md:entry key="DOIRegistryStatus_num" value="4"/>
+    <md:entry key="DOIRegistrationDate" value="2014-08-28T03:06:25"/>
+    <md:entry key="hierarchyLevel" value="child"/>
+    <md:entry key="loginOption" value="unrestricted"/>
+    <md:entry key="loginOption_num" value="1"/>
+  </md:technicalInfo>
+</md:MetaData>
