@@ -1,3 +1,4 @@
+import json
 import os
 import re
 import sys
@@ -18,7 +19,7 @@ class PanDarwinCoreArchiveExporter(PanExporter):
     def __init__(self, *args, **kwargs):
         super(PanDarwinCoreArchiveExporter, self).__init__(*args, **kwargs)
 
-        self.dwcnames = {'Event': 'EventID', 'Latitude': 'decimalLatitude', 'Longitude': 'decimalLongitude',
+        self.dwcnames = {'Event': 'eventID', 'Latitude': 'decimalLatitude', 'Longitude': 'decimalLongitude',
                     'Date/Time': 'eventDate','Depth water': 'minimumDepthInMeters', 'Elevation':'minimumElevationInMeters'}
         self.dwcfields = ['id', 'occurrenceID', 'occurrenceStatus', 'modified', 'institutionCode', 'CollectionCode', 'datasetID', 'basisOfRecord', 'catalogNumber',
                      'recordedBy', 'eventDate', 'scientificName', 'taxonID','phylum','kingdom', 'geodeticDatum', 'decimalLatitude',
@@ -45,11 +46,12 @@ class PanDarwinCoreArchiveExporter(PanExporter):
         events = self.pandataset.events
 
         self.KNOWN_SCALES = {
-            'Plus Scale' : {'present': ['+','++','+++','++++'], 'absent':['o','0']},
+            'Plus Scale' : {'present': ['+','++','+++','++++'], 'absent':['o','0', '-']},
             'Braun-Blanquet Scale' : {'present':['r','+','1','2','3','4', '5'], 'absent':['0','o']},
             'DAFOR Scale' : {'present':['D','A','F','O','R'], 'absent':[]},
             'ACFOR Scale' : {'present':['A','C','F','O','R'], 'absent':[]}
         }
+        self.data_preview = []
 
 
     def check_unit(self, unitexpr, paramname):
@@ -248,6 +250,10 @@ class PanDarwinCoreArchiveExporter(PanExporter):
         basisofrecord, geologicalcontextid = self.get_context_info()
         selectedcolumns = []
         geocolumns = list(self.pandataset.defaultparams)
+
+        if 'Event' in self.pandataset.data.columns:
+            self.dwcfields.append('eventID')
+
         if 'Depth water' in self.pandataset.data.columns:
             self.dwcfields.append('minimumDepthInMeters')
             geocolumns.append('Depth water')
@@ -293,20 +299,38 @@ class PanDarwinCoreArchiveExporter(PanExporter):
                 tempframe['occurrenceID'] = tempframe['row_id'].astype(str) + '_' + taxonframe['Colname'].apply(
                     lambda x: taxoncolumns.get(x).get('colno')).astype(str)
 
+                ### method needed for the apply call later
+                def get_sampling_protocol(row):
+                    if pd.isna(row.get("Event")) or row["Event"] not in self.pandataset.events:
+                        return None
+
+                    event = self.pandataset.events[row["Event"]]
+                    event_method = getattr(event, "method", None)
+
+                    taxon = taxoncolumns.get(row["Colname"], {})
+                    taxon_method = taxon.get("method")
+
+                    parts = []
+
+                    if event_method is not None:
+                        name = getattr(event_method, "name", None)
+                        if name is not None:
+                            parts.append(f"Used method: {name}")
+
+                    if taxon_method is not None:
+                        name = getattr(taxon_method, "name", None)
+                        if name is not None:
+                            parts.append(f"in particular: {name}")
+
+                    return " ".join(parts) if parts else None
+
                 try:
-                    tempframe['samplingProtocol'] = taxonframe.apply(
-                        lambda row:
-                        f'Used method: {self.pandataset.events[row["Event"]].method.name} '
-                        f'in particular: {taxoncolumns.get(row["Colname"], {}).get("method").name}'
-                        if (
-                                pd.notna(row.get('Event'))
-                                and row['Event'] in self.pandataset.events
-                        )
-                        else None,
+                    tempframe["samplingProtocol"] = taxonframe.apply(
+                        get_sampling_protocol,
                         axis=1
                     )
-                except AttributeError:
-                    self.logging.append({'WARNING': 'No Sampling Protocol could be identified'})
+                except AttributeError as e :
+                    self.logging.append({'WARNING': 'No Sampling Protocol could be identified'+str(e)})
                     # Sampling protocol cannot be constructed because method metadata is missing
                     pass
 
@@ -371,6 +395,13 @@ class PanDarwinCoreArchiveExporter(PanExporter):
                 taxonframe = taxonframe[taxonframe['organismQuantity'].notna()]
 
                 dwcdata = taxonframe.to_csv(index=False,sep='|',lineterminator='\n',date_format ='%Y-%m-%dT%H:%M:%S', encoding='utf-8')
+
+                self.data_preview =  self.data_preview = json.loads(
+                    taxonframe.head(2).to_json(
+                        orient="records",
+                        date_format="iso"
+                    )
+                )
 
             except Exception as e2:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -484,6 +515,10 @@ class PanDarwinCoreArchiveExporter(PanExporter):
                 if (self.pandataset.data[datacolumns.keys()]== 0).all().all():
                     hasTaxonData = False
                     self.logging.append({'WARNING': 'All Taxon Data Values equal Zero!, DwC-A verification failed'})
+
+                if data:
+                    self.logging.append(
+                        {'PREVIEW' : self.data_preview})
 
             except Exception as e:
                     self.logging.append({'ERROR':'DwC-A verification failed: '+str(e)})
