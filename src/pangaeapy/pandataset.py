@@ -1311,7 +1311,7 @@ class PanDataSet:
 
             if r.status_code == 404:
                 self.log(logging.ERROR, f"Data set does not exist, 404: {id}")
-                return None
+                return None, None
 
             r.raise_for_status()
 
@@ -1328,7 +1328,7 @@ class PanDataSet:
         except Exception as e:
             self.log(logging.ERROR, f"HTTP request error: {e}")
 
-        return None
+        return None, None
 
     def setMetadata(self):
         """
