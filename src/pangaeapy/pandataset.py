@@ -1,422 +1,22 @@
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-import datetime
-import io
+from io import StringIO
 import json
 import logging
-from pathlib import Path, PurePosixPath
-import pickle
+import os
+from pathlib import Path
 import re
-import sqlite3 as sl
-import textwrap
-import time
-from urllib.parse import unquote, urlparse
-import zipfile
+import xml.etree.ElementTree as ET
 
-import aiohttp
-import lxml.etree as ET
 import numpy as np
 import pandas as pd
 import requests
+from requests.exceptions import RequestException
 
-from pangaeapy._core import CURRENT_VERSION, get_request, get_xml_content
-from pangaeapy.exporter.pan_dwca_exporter import PanDarwinCoreArchiveExporter
-from pangaeapy.exporter.pan_frictionless_exporter import PanFrictionlessExporter
-from pangaeapy.exporter.pan_netcdf_exporter import PanNetCDFExporter
+from .exporter import PanDarwinCoreArchiveExporter, PanFrictionlessExporter, PanNetCDFExporter
+from .models import PanAuthor, PanBasis, PanCampaign, PanEvent, PanLicence, PanMethod, PanParam, PanProject
+from .pandataharvester import PanDataHarvester
+from .utils import get_id, load_data, load_metadata, load_terms
 
 logger = logging.getLogger(__name__)
-
-
-class PanMethod:
-    """PANGAEA Method Class
-    This class creates objects which contain the method context information for e.g. parameters and events
-
-    Parameters
-    ----------
-    id : str
-        The method id internally used in PANGAEA
-    name : str
-        The full name of the method
-    terms: list
-        a list of dictionaries containing al related terms for this method
-        example : {'id': 38477, 'name': 'carbon', 'semantic_uri': 'http://purl.obolibrary.org/obo/CHEBI_27594', 'ontology': 18}
-
-
-    Attributes
-    ----------
-    id : str
-        The method id internally used in PANGAEA
-    name : str
-        The full name of the method
-    terms: list
-        a list of dictionaries containing al related terms for this method
-    """
-
-    def __init__(self, id, name, terms = []):
-        self.id = id
-        self.name = name
-        self.terms = terms
-
-
-class PanProject:
-    """PANGAEA Project Class
-    This class creates objects which contain the project context information for each dataset
-
-    Parameters
-    ----------
-    acronym : str
-        The project acronym
-    title : str
-        The full title of the project
-    URL : str
-        The project website
-    awardURI : str
-        The unique identifier of the award e.g. a CORDIS URI
-    id : int
-        internal project id
-
-
-
-    Attributes
-    ----------
-    acronym : str
-        The project acronym
-    title : str
-        The full title of the project
-    URL : str
-        The project website
-    awardURI : str
-        The unique identifier of the award e.g. a CORDIS URI
-    id : int
-        internal project id
-
-    """
-    def __init__(self, label, name, URL=None, awardURI=None, id=None):
-        self.label = label
-        self.name = name
-        self.URL = URL
-        self.awardURI = awardURI
-        self.id = id
-
-class PanLicence:
-    """PANGAEA Licence Class
-    This class contains the licence information for each dataset
-    """
-    def __init__(self, label, name, URI=None):
-        self.label = label
-        self.name = name
-        self.URI = URI
-
-class PanAuthor:
-    """PANGAEA Author Class.
-    A simple helper class to declare 'author' objects which are associated as part of the metadata of a given PANGAEA dataset object
-
-    Parameters
-    ----------
-    lastname : str
-        The author's first name
-    firstname : str
-        The authors's last name
-    ORCID : str
-        The unique ORCID identifier assigned by orcid.org
-    id : int
-        The PANGAEA internal id
-
-    Attributes
-    ----------
-    lastname : str
-        The author's first name
-    firstname : str
-        The authors's last name
-    fullname : str
-        Combination of lastname, firstname. This attribute is created by the constructor
-    ORCID : str
-        The unique ORCID identifier assigned by orcid.org
-    id : int
-        The PANGAEA internal id
-    """
-    def __init__(self, lastname, firstname=None, orcid=None, id=None, affiliations=None):
-        self.lastname = lastname
-        self.firstname = firstname
-        self.fullname = self.lastname
-        self.ORCID = orcid
-        self.id = id
-        if affiliations:
-            self.affiliations = affiliations
-        if firstname:
-            self.fullname += ", " + self.firstname
-
-class PanEvent:
-    """PANGAEA Event Class.
-    An Event can be regarded as a named entity which is defined by the usage of a distinct method or device at a distinct location during a given time interval for scientific purposes.
-    More infos on PANGAEA's Evenmts can be found here: https://wiki.pangaea.de/wiki/Event
-
-    Parameters
-    ----------
-    label : str
-        A label which is used to name the event
-    latitude : float
-        The latitude of the event location
-    longitude : float
-        The longitude of the event location
-    elevation : float
-        The elevation (relative to sea level) of the event location
-    datetime : str
-        The date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
-    device : str
-        The device which was used during the event
-
-    Attributes
-    ----------
-    label : str
-        A label which is used to name the event
-    latitude : float
-        The start latitude of the event location
-    longitude : float
-        The start longitude of the event location
-    latitude2 : float
-        The end latitude of the event location
-    longitude2 : float
-        The end longitude of the event location
-    elevation : float
-        The elevation (relative to sea level) of the event location
-    datetime : str
-        The start date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
-    datetime2 : str
-        The end date and time of the event in ´%Y/%m/%dT%H:%M:%S´ format
-    device : str
-        The device which was used during the event
-    basis : PanBasis
-        The basis or platform which was used during the event e.g. a ship
-    location : str
-        The location of the event
-    campaign : PanCampaign
-        The campaign during which the event was performed
-    optionalLabel : str
-        Another label the event is known by, e.g. its station on the campaign (md:optionalLabel)
-    """
-    def __init__(self,
-                 label,
-                 latitude=None,
-                 longitude=None,
-                 latitude2=None,
-                 longitude2=None,
-                 elevation=None,
-                 datetime=None,
-                 datetime2=None,
-                 basis=None,
-                 location=None,
-                 campaign=None,
-                 id = None,
-                 method = None,
-                 optionalLabel = None):
-        self.label = label
-        self.optionalLabel = optionalLabel
-        self.id = id
-        if latitude is not None:
-            self.latitude = float(latitude)
-        else:
-            self.latitude = None
-        if longitude is not None:
-            self.longitude = float(longitude)
-        else:
-            self.longitude = None
-        if latitude2 is not None:
-            self.latitude2 = float(latitude2)
-        else:
-            self.latitude2 = None
-        if longitude2 is not None:
-            self.longitude2 = float(longitude2)
-        else:
-            self.longitude2 = None
-        if elevation is not None:
-            self.elevation = float(elevation)
-        else:
-            self.elevation = None
-        if isinstance(method, PanMethod):
-            self.device = method.name
-            self.deviceid = method.id
-            self.method = method
-        else:
-            self.device, self.deviceid, self.method = None, None, None
-        self.basis = basis
-        # -- NEED TO CARE ABOUT datetime2!!!
-        self.datetime = datetime
-        self.datetime2 = datetime2
-        self.location = location
-        self.campaign = campaign
-
-class PanBasis:
-    """PANGAEA Basis class
-    The basis or platform which was used during the event e.g. a ship
-
-    name : str
-        The name of the platform
-    URI : str
-        The platform URI
-    callSign : str
-        A unique identifier of the platform(alphabet)
-    IMOnumber : str
-        A seven digit unique identifier for the platform
-    """
-    def __init__(self, name=None, URI=None, callSign=None, IMOnumber=None):
-        self.name = name
-        self.URI = URI
-        self.callSign = callSign
-        self.IMOnumber = IMOnumber
-
-class PanCampaign:
-    """PANGAEA Campaign class
-    The campaign during which the event took place, e.g. a ship cruise or observatory deployment
-
-    name : str
-        The name of the campaign (md:label; md:name in older records)
-    URI : str
-        The campaign URI
-    start : str
-        The start date of the campaign (md:dateTime, e.g. 2018-05-08T00:00:00; md:start, e.g.
-        2018-05-08, in older records)
-    end : str
-        The end date of the campaign (md:dateTime2; md:end in older records)
-    startlocation : str
-        The start location of the campaign, e.g. a port (md:location; the attribute
-        "Start location" in older records)
-    endlocation : str
-        The end location of the campaign (md:location2; the attribute "End location" in older
-        records)
-    BSHID : str
-        The BSH ID for the campaign
-    expeditionprogram: str
-        URL of the campaign report
-    optionalLabel : str
-        Another label the campaign is known by, e.g. ANT-XXXIII/4 for PS113 (md:optionalLabel;
-        md:optionalName in older records)
-    """
-    def __init__(self, name=None, URI=None, start=None, end=None, startlocation=None, endlocation=None, BSHID=None, expeditionprogram=None, optionalLabel=None):
-        self.name = name
-        self.URI = URI
-        self.start = start
-        self.end = end
-        self.startlocation = startlocation
-        self.endlocation = endlocation
-        self.BSHID = BSHID
-        self.expeditionprogram = expeditionprogram
-        self.optionalLabel = optionalLabel
-
-class PanParam:
-    """PANGAEA Parameter
-    Shoud be used to create PANGAEA parameter objects. Parameter is used here to represent 'measured variables'
-
-    Parameters
-    ----------
-    id : int
-        the identifier for the parameter
-    name : str
-        A long name or title used for the parameter
-    shortName : str
-        A short name or label to identify the parameter
-    param_type : str
-        indicates the data type of the parameter (string, numeric, datetime etc..)
-    source : str
-        defines the category or source for a parameter (e.g. geocode, data, event)... very PANGAEA specific ;)
-    unit : str
-        the unit of measurement used with this parameter (e.g. m/s, kg etc..)
-    terms : list
-        a list of dictionaries containing all related terms for this parameter structure:
-        example: [{'id': 38477, 'name': 'carbon', 'semantic_uri': 'http://purl.obolibrary.org/obo/CHEBI_27594', 'ontology': 18}, {'id': 44419, 'name': 'organic', 'semantic_uri': None, 'ontology': 18}, {'id': 44029, 'name': 'Molar Flux', 'semantic_uri': None, 'ontology': 13}]
-
-    comment : str
-        an optional comment explaining some details of the parameter
-    PI : dict
-        the responsible PI name of the parameter
-    dataseries : int
-        the dataseries (column id)
-    colno : int
-        the column number
-    method : PanMethod
-        the used method or device
-
-
-
-    Attributes
-    ----------
-    id : int
-        the identifier for the parameter
-    name : str
-        A long name or title used for the parameter
-    shortName : str
-        A short name or label to identify the parameter
-    synonym : dict
-        A dictionary of synonyms for the parameter whcih e.g. is used by other archives or communities.
-        The dict key indicates the namespace (possible values currently are CF and OS)
-    type : str
-        indicates the data type of the parameter (string, numeric, datetime etc..)
-    source : str
-        defines the category or source for a parameter (e.g. geocode, data, event)... very PANGAEA specific ;)
-    unit : str
-        the unit of measurement used with this parameter (e.g. m/s, kg etc..)
-    format: str
-        the number format string given by PANGAEA e.g ##.000 which defines the displayed precision of the number
-    terms : list
-        a list of dictionaries containing all related terms for this parameter
-    comment : str
-        an optional comment explaining some details of the parameter
-    PI : dict
-        the responsible PI name of the parameter
-    dataseries : int
-        the dataseries (column id)
-    colno : int
-        the column number
-    methodid : int
-        the id of the used method or device (legacy only)
-    method : PanMethod
-        the  method (object) used
-
-
-
-    """
-    def __init__(self, id, name, shortName, param_type, source, unit = None, unit_id = None, format = None, terms = [], comment = None, PI = dict(), dataseries = None, colno = None, method = None):
-        self.id = id
-        self.methodid = None
-        self.method = method
-        if isinstance(method, PanMethod):
-            self.methodid = method.id
-        self.name=name
-        self.shortName=shortName
-        # Synonym namespace dict predefined keys are CF: CF variables (), OS:OceanSites, SD:SeaDataNet abbreviations (TEMP, PSAL etc..)
-        ns=('CF','OS','SD')
-        self.synonym=dict.fromkeys(ns)
-        self.type=param_type
-        self.source=source
-        self.unit=unit
-        self.unit_id = unit_id
-        self.format=format
-        self.terms =terms
-        self.comment = comment
-        self.PI = PI
-        self.dataseries = dataseries
-        self.colno = colno
-
-    def addSynonym(self,ns, name, uri=None, id=None, unit=None, unit_id = None):
-        """
-        Creates a new synonym for a parameter which is valid within the given name space. Synonyms are stored in the synonym attribute which is a dictionary
-
-        Parameters
-        ----------
-        name : str
-            the name of the synonym
-        id : str
-            the internal ID of the term used at its auhority ontology
-        uri : str
-            the URI (ideally actionable) leading to its auhority ontology entry/web page
-        ns : str
-            the namespace indicator for the sysnonym
-        unit : str
-            in case another unit expression is used for the synonym parameter within its namespace
-        unit_id : str
-            the id, UI or URN for the unit
-        """
-        self.synonym[ns] = {"name": name, "id": id, "uri": uri, "unit": unit, "unit_id": unit_id}
 
 class PanDataSet:
     """PANGAEA DataSet
@@ -493,513 +93,300 @@ class PanDataSet:
         auto-generated ones are ignored right now.
 
     """
-    def __init__(self, id=None, paramlist=None, deleteFlag='', enable_cache=False,
-                 cachedir=None, include_data=True, expand_terms=[],
-                 auth_token=None, cache_expiry_days=1):
-        self.module_dir = Path(__file__).parent
-        self.id = None
+    def __init__(
+        self,
+        id: int | str | None = None,
+        paramlist: list[str] | None = None,
+        deleteFlag: str | None = None,
+        enable_cache: bool = False,
+        cachedir: str | os.PathLike = Path(Path.home(), ".pangaeapy_cache"),
+        include_data: bool = True,
+        expand_terms: int | list[int] | None = None,
+        auth_token: str | None = None,
+        cache_expiry_days: int = 1,
+    ) -> None:
         self.logging = []
         self.logger = logger
-        self._xml_root = None
-        ### The constructor allows the initialisation of a PANGAEA dataset object either by using an integer dataset id or a DOI
-        self.setID(id)
-        self.ns = {"md": "http://www.pangaea.de/MetaData"}
-        # Mapping should be moved to e.g. netCDF class/module??
-        #moddir = os.path.dirname(os.path.abspath(__file__))
-        #self.CFmapping=pd.read_csv(moddir+'\\PANGAEA_CF_mapping.txt',delimiter='\t',index_col='ID')
-        # setting up the cache directory in the users home folder if no path is given
-        if cachedir is None:
-            self.cachedir = Path(Path.home(), ".pangaeapy_cache")
-        else:
-            self.cachedir = Path(cachedir)
-        self.cachedir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.id = int(str(id).split(".")[-1])
+        except ValueError:
+            self.log(logging.ERROR, f"Invalid identifier or DOI: {id}")
+            self.id = None
         self.cache = enable_cache
-        self.cache_expiry_days = cache_expiry_days
-        self.isCollection = False
-        self.params = dict()
-        self.parameters = self.params
-        self.defaultparams = ["Latitude", "Longitude", "Event", "Elevation", "Date/Time"]
+        self.cachedir = Path(cachedir)
+        self.cache_expiry_days = int(max(cache_expiry_days, 1))
+        if self.id is not None and enable_cache:
+            try:
+                cachedir.mkdir(parents=True, exist_ok=True)
+            except OSError:
+                self.log(logging.WARNING, "Unable to initialize cache")
+                self.cache = False
+        self.expand_terms = [expand_terms] if isinstance(expand_terms, int) else expand_terms if isinstance(expand_terms, list) else []
+        self.include_data = include_data
+        self.auth_token = auth_token
         self.paramlist = paramlist
+        self.deleteFlag = deleteFlag if deleteFlag is not None else ""
+        self.setMetadata()
+        self.defaultparams = ["Latitude", "Longitude", "Event", "Elevation", "Date/Time"]
         self.paramlist_index = []
-        self.events = {}
-        self.projects = []
-        self.licence = None
-        # allowed geocodes for netcdf generation which are used as xarray dimensions not needed in the moment
-        self._geocodes = {1599: "Date_Time", 1600: "Latitude", 1601: "Longitude", 1619: "Depth water"}
         self.data = pd.DataFrame()
         self.qcdata = pd.DataFrame()
-        self.citation = None
-
-        self.authors = []
-        self.terms_cache = {}  # temporary cache for terms
-        self.terms_conn = sl.connect(Path(self.cachedir, "terms.db"))
-        self.supplement_to = {}  # If this dataset is supllementary to another publication, give that publications title and URI here.
-        self.relations = []  # list of relations as given in
-        try:
-            sql = "create table if not exists terms (term_id integer PRIMARY KEY, term_name text, term_json text, entry_date datetime default current_timestamp)"
-            self.terms_conn.execute(sql)
-            self.terms_conn.commit()
-        except Exception as e:
-            print("DB INIT ERROR: " + str(e))
-        # replacing error list
-
-        self.allowNetCDF = True
-        self.eventInMatrix = False
-        self.deleteFlag = deleteFlag
-        self.collection_members = []
-        self.include_data = include_data
-        if isinstance(expand_terms, int):
-            expand_terms = [expand_terms]
-        if not isinstance(expand_terms, list):
-            expand_terms = []
-        self.expand_terms = expand_terms
-        self.metaxml = None
-        self.auth_token = auth_token
-
-        # no symbol = valid(default)
-        # ? = questionable(?0.345)
-        # / = not valid( / 23.56)
-        # * = unknown(*0.999)
-        # = individual definition (#999)
-        #self.logger.info('Test')
-        self.quality_flags={'ok':'valid','?':'questionable','/':'not_valid','*':'unknown'}
-        self.quality_flag_replace={'ok':0,'?':1,'/':2,'*':3}
+        self.quality_flags = {"ok": "valid", "?": "questionable", "/": "not_valid", "*": "unknown"}
+        self.quality_flag_replace = {"ok": 0, "?": 1, "/": 2, "*": 3}
         if self.id is not None:
-            gotData = False
-
-            if self.cache:
-                # self.logging.append({'INFO':'Caching activated..trying to load data and metadata from cache'})
-                self.log(logging.INFO, "Caching activated..trying to load data and metadata from cache")
-                if self.check_pickle():
-                    gotData = self.from_pickle()
-                else:
-                    self.drop_pickle()
-                    gotData = False
+            if (self.loginstatus == "unrestricted" or self.auth_token) and not self.isCollection:
+                self.setData()
+                self.defaultparams = [s for s in self.defaultparams if s in self.params.keys()]
+                if self.paramlist is not None:
+                    if len(self.paramlist) != len(self.paramlist_index):
+                        self.log(logging.WARNING, f"Inconsistent number of detected parameters, expected: {len(self.paramlist)} vs {len(self.paramlist_index)}")
             else:
-                # delete existing cache
-                self.drop_pickle()
-            if not gotData:
-                # print('trying to load data and metadata from PANGAEA')
-                # check if title is already there, otherwise load metadata
-                if not self.title:
-                    self.setMetadata()
-                if (self.loginstatus == "unrestricted" or self.auth_token) and not self.isCollection:
-                    self.setData()
-                    self.defaultparams = [s for s in self.defaultparams if s in self.params.keys()]
-                    if self.paramlist is not None:
-                        if len(self.paramlist) != len(self.paramlist_index):
-                            # self.logging.append({'WARNING':'Inconsistent number of detected parameters, expected: '+str(len(self.paramlist))+' vs '+str(len(self.paramlist_index))})
-                            self.log(logging.WARNING, "Inconsistent number of detected parameters, expected: " + str(len(self.paramlist)) + " vs " + str(len(self.paramlist_index)))
-                    if self.cache:
-                        self.to_pickle()
-                else:
-                    self.log(logging.WARNING, 'Dataset is either restricted or of type "collection"')
-        else:
-            # self.logging.append({'ERROR':'Dataset id missing, could not initialize PanDataSet object for: '+str(id)})
-            self.log(logging.ERROR, "Dataset id missing, could not initialize PanDataSet object for: " + str(id))
+                self.log(logging.WARNING, "Dataset is either restricted or of type 'collection'")
 
-    def log(self, level, message):
-        message += " - " + str(self.doi)
-        loglevel = logging.getLevelName(level)
-        self.logging.append({loglevel: message})
-        self.logger.log(level=level, msg=message)
+    def log(self, level: int, message: str) -> None:
+        message = f"{message} - {getattr(self, 'doi', '')}"
+        self.logging.append({logging.getLevelName(level): message})
+        self.logger.log(level, message)
 
-    def get_pickle_path(self):
-        dirs = textwrap.wrap(str(self.id).zfill(8), 2)
-        dirpath = Path(self.cachedir, *dirs)
-        return Path(dirpath, str(self.id) + "_data.pik")
+    def find(self, match: str, root: ET.Element | None = None) -> ET.Element | None:
+        return (self._xml_root if root is None else root).find(match, namespaces=self.ns) if self._xml_root is not None else None
 
-    def check_pickle(self):
-        """
-        Verifies if a cached pickle files needs to be refreshed (reloaded)
-        Files are checked after 24 hrs earliest but only updated in case the metadata indicates changes occured
+    def findall(self, match: str, root: ET.Element | None = None) -> list[ET.Element]:
+        return (self._xml_root if root is None else root).findall(match, namespaces=self.ns) if self._xml_root is not None else []
 
-        Parameters
-        ----------
-        expirydays
+    def findtext(self, match: str, default: str | None = None, root: ET.Element | None = None) -> str | None:
+        return (self._xml_root if root is None else root).findtext(match, default=default, namespaces=self.ns) if self._xml_root is not None else default
 
-        Returns bool
-        -------
+    def findattrib(self, match: str, key: str, default: str | None = None, root: ET.Element | None = None) -> str | None:
+        return node.get(key, default=default) if (node := self.find(match, root)) is not None else default
 
-        """
-        ret = True
-        pickle_location = self.get_pickle_path()
-        if pickle_location.exists():
-            pickle_time = pickle_location.stat().st_mtime
-            if int(time.time()) - int(pickle_time) >= (self.cache_expiry_days * 86400):
-
-                self.setMetadata()
-                # 2016-10-08T05:40:17
-                try:
-                    # print('LAST UPDATE: ',self.doi, self.lastupdate, self.cache_expiry_days)
-                    lastupdatets = time.mktime(datetime.datetime.strptime(self.lastupdate, "%Y-%m-%dT%H:%M:%S").timetuple())
-                    # print(int(lastupdatets) , int(pickle_time))
-                    if int(lastupdatets) >= int(pickle_time):
-                        ret = False
-                        # self.logging.append(
-                        #    {'INFO': 'Dataset cache expired, refreshing cache'})
-                        self.log(logging.INFO, "Dataset cache expired, refreshing cache")
-                except Exception as e:
-                    print(e)
-                    ret = False
-                    pass
-            return ret
-
-    def drop_pickle(self):
-        self.get_pickle_path().unlink(missing_ok=True)
-
-    def from_pickle(self):
-        """
-        Reads a PanDataSet object from a pickle file
-
-        """
-        ret = False
-        pickle_path = self.get_pickle_path()
-        if pickle_path.exists():
+    def setMetadata(self) -> None:
+        self.metaxml = None
+        self.citation = None
+        if self.id is not None:
             try:
-                with open(pickle_path, "rb") as f:
-                    tmp_dict = pickle.load(f)
-                tmp_dict["logging"] = []
-                tmp_dict["_xml_root"] = ET.fromstring(tmp_dict["metaxml"].encode())
-                self.__dict__.update(tmp_dict)
-                # self.logging.append({'INFO':'Loading data and metadata from cache: '+str(pickle_path)})
-                self.log(logging.INFO, "Loading data and metadata from cache: " + str(pickle_path))
-                ret = True
-            except:
-                # self.logging.append({'WARNING':'Loading data and metadata from cache failed'})
-                self.log(logging.WARNING, "Loading data and metadata from cache failed")
-                ret = False
-        else:
-            ret = False
-        return ret
-
-    def to_pickle(self):
-        """
-        Writes a PanDataSet object to a pickle file
-
-        """
-        if not self.data.empty:
-            state = self.__dict__.copy()
-            del state["terms_conn"]
-            del state["_xml_root"]
-            pickle_path = self.get_pickle_path()
+                self.metaxml, self.citation = load_metadata(
+                    self.id,
+                    self.cache,
+                    self.cachedir,
+                    self.cache_expiry_days,
+                )
+            except IndexError:
+                self.log(logging.ERROR, f"Dataset does not exist: {self.id}")
+                self.id = None
+            except RequestException as exc:
+                self.log(logging.ERROR, f"An error occurred while trying to load metadata: {exc}")
+        self._xml_root = ET.fromstring(self.metaxml) if self.metaxml is not None else None
+        self.ns = {"md": "http://www.pangaea.de/MetaData"}
+        self.abstract = self.findtext("./md:abstract")
+        self.allowNetCDF = True
+        self.authors = [
+            PanAuthor(
+                self.findtext("./md:lastName", root=author),
+                self.findtext("./md:firstName", root=author),
+                self.findtext("./md:orcid", root=author),
+                get_id(author, cast=True),
+                [
+                    get_id(affiliation)
+                    for affiliation in self.findall("./md:affiliation", root=author)
+                ],
+            )
+            for author in self.findall("./md:citation/md:author")
+        ]
+        self.collection_members = [
+            f"doi:10.1594/PANGAEA.{child[1:]}"
+            for child in self.findattrib("./md:technicalInfo/md:entry[@key='collectionChilds']", "value", default="").split(",")
+            if child
+        ]
+        self.comment = self.findtext("./md:comment")
+        self.curationlevel = self.findtext("./md:status/md:curationLevel/md:name")
+        self.datastatus = self.findattrib("./md:technicalInfo/md:entry[@key='status']", "value")
+        self.date = self.findtext("./md:citation/md:dateTime")
+        self.doi = self.uri = self.findtext("./md:citation/md:URI", default="")
+        self.eventInMatrix = any(short_name.text == "Event" for short_name in self.findall("./md:matrixColumn/md:parameter/md:shortName"))
+        self.events = {
+            self.findtext("./md:label", root=event): PanEvent(
+                self.findtext("./md:label", root=event),
+                self.findtext("./md:latitude", root=event),
+                self.findtext("./md:longitude", root=event),
+                self.findtext("./md:latitude2", root=event),
+                self.findtext("./md:longitude2", root=event),
+                self.findtext("./md:elevation", root=event),
+                self.findtext("./md:dateTime", root=event),
+                self.findtext("./md:dateTime2", root=event),
+                PanBasis(
+                    self.findtext("./md:name", root=basis),
+                    self.findtext("./md:URI", root=basis),
+                    self.findtext("./md:callSign", root=basis),
+                    self.findtext("./md:IMOnumber", root=basis),
+                ) if (basis := self.find("./md:basis", root=event)) is not None else None,
+                self.findtext("./md:location/md:name", root=event),
+                PanCampaign(
+                    self.findtext("./md:label", root=campaign),
+                    self.findtext("./md:URI", root=campaign),
+                    self.findtext("./md:dateTime", root=campaign),
+                    self.findtext("./md:dateTime2", root=campaign),
+                    self.findtext("./md:location/md:name", root=campaign),
+                    self.findtext("./md:location2/md:name", root=campaign),
+                    self.findtext("./md:attribute[@name='BSH ID']", root=campaign),
+                    self.findtext("./md:attribute[@name='Expedition Program']", root=campaign),
+                    self.findtext("./md:optionalLabel", root=campaign),
+                ) if (campaign := self.find("./md:campaign", root=event)) is not None else None,
+                get_id(event),
+                PanMethod(
+                    get_id(method),
+                    self.findtext("./md:name", root=method),
+                    [
+                        {
+                            "id": get_id(term, cast=True),
+                            "name": self.findtext("./md:name", root=term),
+                            "semantic_uri": term.get("semanticURI"),
+                            "ontology": int(term.get("terminologyId")),
+                        }
+                        for term in self.findall("./md:term", root=method)
+                    ],
+                ) if (method := self.find("./md:method", root=event)) is not None else None,
+                self.findtext("./md:optionalLabel", root=event),
+            )
+            for event in self.findall("./md:event")
+        }
+        self.geometryextent = {
+            key: val
+            for key in (
+                "westBoundLongitude",
+                "eastBoundLongitude",
+                "southBoundLatitude",
+                "northBoundLatitude",
+                "meanLongitude",
+                "meanLatitude",
+            )
+            if (val := self.findtext(f"./md:extent/md:geographic/md:{key}")) is not None
+        }
+        self.isCollection = self.find("./md:technicalInfo/md:entry[@key='collectionType']") is not None
+        self.keywords = [keyword.text for keyword in self.findall("./md:keywords/md:keyword")]
+        self.lastupdate = self.findattrib("./md:technicalInfo/md:entry[@key='lastModified']", "value", default=self.date)
+        self.licence = PanLicence(
+            self.findtext("./md:label", root=licence),
+            self.findtext("./md:name", root=licence),
+            self.findtext("./md:URI", root=licence),
+        ) if (licence := self.find("./md:license")) is not None else None
+        self.loginstatus = self.findattrib("./md:technicalInfo/md:entry[@key='loginOption']", "value", default="unrestricted")
+        self.maxtimeextent = self.findtext("./md:extent/md:temporal/md:maxDateTime")
+        self.mintimeextent = self.findtext("./md:extent/md:temporal/md:minDateTime")
+        self.moratorium = self.findattrib("./md:technicalInfo/md:entry[@key='moratoriumUntil']", "value")
+        self.params = self.parameters = {
+            f"{self.findtext('./md:parameter/md:shortName', root=matrix_column)}_{count}"
+            if (count := list(map(
+                lambda el: el.text, self.findall("./md:matrixColumn/md:parameter/md:shortName")
+            ))[:i+1].count(self.findtext("./md:parameter/md:shortName", root=matrix_column))) > 1
+            else self.findtext("./md:parameter/md:shortName", root=matrix_column): PanParam(
+                get_id(self.find("./md:parameter", root=matrix_column), cast=True),
+                self.findtext("./md:parameter/md:name", root=matrix_column),
+                self.findtext("./md:parameter/md:shortName", root=matrix_column),
+                matrix_column.get("type"),
+                matrix_column.get("source"),
+                self.findtext("./md:parameter/md:unit", root=matrix_column),
+                matrix_column.get("format"),
+                [{
+                    "id": get_id(term, cast=True),
+                    "name": self.findtext("./md:name", root=term),
+                    "semantic_uri": term.get("semanticURI"),
+                    "ontology": int(term.get("terminologyId")),
+                } for term in self.findall("./md:parameter/md:term", root=matrix_column)],
+                self.findtext("./md:comment", root=matrix_column),
+                {
+                    "id": get_id(pi),
+                    "name": self.findtext("./md:lastName", root=pi) + f", {first_name}" if (first_name := self.findtext("./md:firstName", root=pi)) is not None else "",
+                    "last_name": self.findtext("./md:lastName", root=pi),
+                    "first_name": self.findtext("./md:firstName", root=pi),
+                } if (pi := self.find("./md:PI", root=matrix_column)) is not None else None,
+                get_id(matrix_column, cast=True) if self.findattrib("./md:parameter", "id", root=matrix_column) is not None else None,
+                matrix_column.get("col"),
+                PanMethod(
+                    get_id(method),
+                    self.findtext("./md:name", root=method),
+                    [
+                        {
+                            "id": get_id(term, cast=True),
+                            "name": self.findtext("./md:name", root=term),
+                            "semantic_uri": term.get("semanticURI"),
+                            "ontology": int(term.get("terminologyId")),
+                        }
+                        for term in self.findall("./md:term", root=method)
+                    ],
+                ) if (method := self.find("./md:method", root=matrix_column)) is not None else None,
+            )
+            for i, matrix_column in enumerate(self.findall("./md:matrixColumn"))
+        }
+        self.processinglevel = self.findtext("./md:status/md:processingLevel/md:name")
+        self.projects = [
+            PanProject(
+                self.findtext("./md:label", root=project),
+                self.findtext("./md:name", root=project),
+                self.findtext("./md:URI", root=project),
+                self.findtext("./md:award/md:URI", root=project),
+                get_id(project, cast=True),
+            )
+            for project in self.findall("./md:project")
+        ]
+        self.registrystatus = self.findattrib("./md:technicalInfo/md:entry[@key='DOIRegistryStatus']", "value")
+        self.relations = [
+            {
+                "id": reference.get("id"),
+                "title": self.findtext("./md:title", root=reference),
+                "uri": self.findtext("./md:URI", root=reference),
+                "type": reference.get("relationType"),
+            }
+            for reference in self.findall("./md:reference")
+        ]
+        self.supplement_to = {
+            "id": supplement_to.get("id"),
+            "title": self.findtext("./md:title", root=supplement_to),
+            "uri": self.findtext("./md:URI", root=supplement_to),
+            "year": self.findtext("./md:year", root=supplement_to),
+        } if (supplement_to := self.find("./md:citation/md:supplementTo")) is not None else {}
+        self.title = self.findtext("./md:citation/md:title")
+        self.topotype = self.findtext("./md:extent/md:topoType")
+        self.year = self.findtext("./md:citation/md:year")
+        if self.id is not None:
+            if self.datastatus is None or self.datastatus in {"deleted", "draft"}:
+                self.log(logging.ERROR, f"Dataset is deleted, a draft or of unknown status: {self.datastatus}")
+            if self.loginstatus != "unrestricted" and not self.auth_token:
+                self.log(logging.WARNING, "Dataset is protected")
+            if self.isCollection:
+                self.log(logging.WARNING, "Dataset is of type collection, please select one of its child datasets")
+        if self.datastatus is not None and self.datastatus not in {"deleted", "draft"} and self.expand_terms:
             try:
-                pickle_path.parent.mkdir(parents=True)
-            except Exception as e:
-                pass
-            with open(pickle_path, "wb") as f:
-                pickle.dump(state, f, 2)
-            # self.logging.append({'INFO': 'Saved cache (pickle) file at: ' + str(self.get_pickle_path())})
-            self.log(logging.INFO, "Saved cache (pickle) file at: " + str(self.get_pickle_path()))
-        else:
-            self.log(logging.WARNING, "Skipped saving cache (pickle) since the dataset contains no data")
-
-    def setID(self, id):
-        """
-        Initialize the ID of a data set in case it was not defined in the constructur
-        Parameters
-        ----------
-        id : str
-            The identifier of a PANGAEA dataset. An integer number or a DOI is accepted here
-        """
-        try:
-            self.id = int(re.fullmatch(
-                r"(?:(?:(?:https?://)?(?:dx\.)?doi\.org/|doi:)?10\.1594/PANGAEA\.)?(\d+)",
-                str(id).strip(),
-            ).group(1))
-        except AttributeError:
-            self.log(logging.ERROR, "Invalid Identifier or DOI: " + str(id))
-
-    def _getIDParts(self, idstr):
-        # returns dict extracted from panmd id strings e.g
-        # col13.ds10866878.param7387
-        ret = dict()
-        if isinstance(idstr, str):
-            idmatches = re.findall(r"([a-z]+)([0-9]+)", idstr)
-            if idmatches:
-                ret = dict(idmatches)
-        return ret
-
-    def _setEvents(self, panXMLEvents):
-        """
-        Initializes the list of Events from a metadata XML file for a given pangaea dataset.
-        """
-        for event in panXMLEvents:
-            eventElevation = eventDateTime = eventDateTime2 = None
-            eventDevice = eventLabel = None
-            eventDeviceID = None
-            basis_name = basis_URI = basis_callsign = basis_imonumber = None
-            campaign_name = campaign_URI = campaign_start = campaign_end = None
-            eventLongitude = eventLatitude = eventLatitude2 = eventLongitude2 = eventLocation = None
-            startlocation = endlocation = BSHID = expeditionprogram = None
-
-            eventID = self._getIDParts(event.get("id")).get("event")
-
-            if event.find("md:elevation",self.ns) is not None:
-                eventElevation=event.find("md:elevation",self.ns).text
-            if event.find("md:dateTime",self.ns) is not None:
-                eventDateTime= event.find("md:dateTime",self.ns).text
-            if event.find("md:dateTime2",self.ns) is not None:
-                eventDateTime2= event.find("md:dateTime2",self.ns).text
-            if event.find("md:longitude",self.ns) is not None:
-                eventLongitude= event.find("md:longitude",self.ns).text
-            if event.find("md:latitude",self.ns) is not None:
-                eventLatitude= event.find("md:latitude",self.ns).text
-            if event.find("md:longitude2",self.ns) is not None:
-                eventLongitude2= event.find("md:longitude2",self.ns).text
-            if event.find("md:latitude2",self.ns) is not None:
-                eventLatitude2= event.find("md:latitude2",self.ns).text
-            if event.find("md:label",self.ns) is not None:
-                eventLabel= event.find("md:label",self.ns).text
-            eventOptionalLabel = get_xml_content(event, "md:optionalLabel", self.ns)
-            if event.find("md:location/md:name",self.ns) is not None:
-                eventLocation= event.find("md:location/md:name",self.ns).text
-            if event.find("md:method/md:name",self.ns) is not None:
-                eventDeviceTerms =[]
-                eventDevice= event.find("md:method/md:name",self.ns).text
-                eventDeviceID = self._getIDParts(event.find("md:method",self.ns).get("id")).get("method")
-                for terminfo in event.findall("md:method/md:term", self.ns):
-                    eventDeviceTerms.append(self._getTermInfo(terminfo))
-                eventMethod = PanMethod(eventDeviceID, eventDevice,eventDeviceTerms)
+                terms_info = {
+                    int(term): [
+                        topic
+                        for topics in topics_dict.values()
+                        for topic in ([topics] if isinstance(topics, str) else topics)
+                    ]
+                    for term, topics_dict in load_terms(
+                        sorted({
+                            get_id(term)
+                            for term in self.findall(".//md:term")
+                            if int(term.get("terminologyId")) in self.expand_terms
+                        }),
+                        self.cache,
+                        self.cachedir,
+                        self.cache_expiry_days,
+                    ).items()
+                }
+            except RequestException:
+                self.log(logging.WARNING, "Failed to load extended term info")
             else:
-                eventMethod = None
-            if event.find("md:basis",self.ns) is not None:
-                basis= event.find("md:basis",self.ns)
-                if basis.find("md:name",self.ns) is not None:
-                    basis_name= basis.find("md:name",self.ns).text
-                else:
-                    basis_name = None
-                if basis.find("md:URI", self.ns) is not None:
-                    basis_URI = basis.find("md:URI", self.ns).text
-                else:
-                    basis_URI = None
-                if basis.find("md:callSign", self.ns) is not None:
-                    basis_callsign = basis.find("md:callSign", self.ns).text
-                else:
-                    basis_callsign = None
-                if basis.find("md:IMOnumber", self.ns) is not None:
-                    basis_imonumber = basis.find("md:IMOnumber", self.ns).text
-                else:
-                    basis_imonumber = None
-                eventBasis = PanBasis(basis_name, basis_URI, basis_callsign, basis_imonumber)
-            else:
-                eventBasis = None
-            if event.find("md:campaign", self.ns) is not None:
-                campaign = event.find("md:campaign", self.ns)
-                # md:label, md:dateTime(2) and md:location(2) are the current elements;
-                # md:name, md:start, md:end and the attributes "Start location" and "End location"
-                #   are deprecated, and only read for records without the current ones
-                campaign_name = (
-                    get_xml_content(campaign, "md:label", self.ns) or
-                    get_xml_content(campaign, "md:name", self.ns)
-                )
-                if campaign.find("md:URI", self.ns) is not None:
-                    campaign_URI = campaign.find("md:URI", self.ns).text
-                campaign_start = (
-                    get_xml_content(campaign, "md:dateTime", self.ns) or
-                    get_xml_content(campaign, "md:start", self.ns)
-                )
-                campaign_end = (
-                    get_xml_content(campaign, "md:dateTime2", self.ns) or
-                    get_xml_content(campaign, "md:end", self.ns)
-                )
-                startlocation = (
-                    get_xml_content(campaign, "md:location/md:name", self.ns) or
-                    get_xml_content(campaign, 'md:attribute[@name="Start location"]', self.ns)
-                )
-                endlocation = (
-                    get_xml_content(campaign, "md:location2/md:name", self.ns) or
-                    get_xml_content(campaign, 'md:attribute[@name="End location"]', self.ns)
-                )
-                if campaign.find('md:attribute[@name="BSH ID"]', self.ns) is not None:
-                    BSHID = campaign.find('md:attribute[@name="BSH ID"]', self.ns).text
-                if campaign.find('md:attribute[@name="Expedition Program"]', self.ns) is not None:
-                    expeditionprogram = campaign.find('md:attribute[@name="Expedition Program"]', self.ns).text
-                else:
-                    expeditionprogram = None
-                # md:optionalName is the deprecated form of md:optionalLabel
-                campaign_optional_label = (
-                    get_xml_content(campaign, "md:optionalLabel", self.ns) or
-                    get_xml_content(campaign, "md:optionalName", self.ns)
-                )
-                eventCampaign = PanCampaign(
-                    campaign_name,
-                    campaign_URI,
-                    campaign_start, campaign_end,
-                    startlocation, endlocation,
-                    BSHID,
-                    expeditionprogram,
-                    optionalLabel=campaign_optional_label,
-                )
-            else:
-                eventCampaign = None
+                for param in self.params.values():
+                    for term in getattr(param.method, "terms", []):
+                        term["classification"] = terms_info.get(term["id"], [])
+                    for term in param.terms:
+                        term["classification"] = terms_info.get(term["id"], [])
+                for event in self.events.values():
+                    for term in getattr(event.method, "terms", []):
+                        term["classification"] = terms_info.get(term["id"], [])
 
-            self.events[eventLabel] = PanEvent(eventLabel,
-                                        eventLatitude,
-                                        eventLongitude,
-                                        eventLatitude2,
-                                        eventLongitude2,
-                                        eventElevation,
-                                        eventDateTime,
-                                        eventDateTime2,
-                                        eventBasis,
-                                        eventLocation,
-                                        eventCampaign,
-                                        eventID,
-                                        eventMethod,
-                                        optionalLabel=eventOptionalLabel
-                                        )
-
-
-    def _getExtendedTermInfo(self, termid):
-        termJSON = None
-        try:
-            selsql = "select * from terms where term_id=" + str(termid)
-            tres = self.terms_conn.execute(selsql)
-            found_term = tres.fetchone()
-            if found_term:
-                termJSON = json.loads(found_term[2])
-        except Exception as e:
-            print("getTermInfo ERROR I : ", e)
-        if not termJSON:
-            try:
-                termr = get_request(f"https://ws.pangaea.de/es/pangaea-terms/term/{termid}")
-                termJSON = termr.json()
-                term_name = termJSON["_source"]["name"]
-                inssql = "insert into terms (term_id, term_name, term_json) values (?,?,?)"
-                self.terms_conn.execute(inssql, (termid, term_name, json.dumps(termJSON)))
-                self.terms_conn.commit()
-            except Exception as e:
-                print("getTermInfo ERROR II: ", e, inssql)
-        return termJSON
-
-    def _getTermInfo(self,terminfo, terminology_id = None):
-        """
-        Uses terms webservice to enrich the parameter info with linked terms and their classification
-        terminology_id: restrict to given terminology
-        """
-        termret = {}
-        termid = None
-        termname = None
-        if terminfo.find("md:name", self.ns) is not None:
-            termname = terminfo.find("md:name", self.ns).text
-            termidparts = self._getIDParts(str(terminfo.get("id")))
-            if termidparts.get("term"):
-                termid = int(termidparts.get("term"))
-            terminologyid = int(terminfo.get("terminologyId"))
-            termuri = terminfo.get("semanticURI")
-        try:
-            if self.expand_terms and (terminologyid in self.expand_terms):
-                if isinstance(termid, int):
-                    if termid not in self.terms_cache:
-                        try:
-                            termJSON = self._getExtendedTermInfo(termid)
-                            if termJSON.get("_source"):
-                                self.terms_cache[termid] = []
-                                if termJSON["_source"].get("main_topics"):
-                                    if isinstance(termJSON["_source"].get("main_topics"), list):
-                                        self.terms_cache[termid].extend(termJSON["_source"].get("main_topics"))
-                                    else:
-                                        self.terms_cache[termid].append(termJSON["_source"].get("main_topics"))
-                                if termJSON["_source"].get("topics"):
-                                    if isinstance(termJSON["_source"].get("topics"), list):
-                                        self.terms_cache[termid].extend(termJSON["_source"].get("topics"))
-                                    else:
-                                        self.terms_cache[termid].append(termJSON["_source"].get("topics"))
-                        except Exception as e:
-                            # self.logging.append({'WARNING': 'Failed loading and parsing PANGAEA Term JSON: ' + str(e)})
-                            self.log(logging.WARNING, "Failed loading and parsing PANGAEA Term JSON: " + str(e))
-            if self.expand_terms:
-                if self.terms_cache.get(termid):
-                    classification = self.terms_cache.get(termid)
-                else:
-                    classification = []
-                # print(termid, classification)
-                termret = {"id": termid, "name": str(termname), "semantic_uri": termuri, "ontology": terminologyid, "classification": classification}
-            else:
-                termret = {"id": termid, "name": str(termname), "semantic_uri": termuri, "ontology": terminologyid}
-        except Exception as e:
-            # self.logging.append({'WARNING': 'Failed to expand terms ' + (str(e))})
-            self.log(logging.WARNING, "Failed to expand terms " + (str(e)))
-        return termret
-
-    def _setParameters(self, panXMLMatrixColumn):
-        """
-        Initializes the list of parameter objects from the metadata XML info
-        """
-        coln = dict()
-        if panXMLMatrixColumn is not None:
-            panGeoCode = []
-            for matrix in panXMLMatrixColumn:
-                panparCFName = None
-                colno = matrix.get("col")
-                paramstr = matrix.find("md:parameter", self.ns)
-                # panparID=int(self._getID(str(paramstr.get('id'))))
-                paramidparts = self._getIDParts(str(paramstr.get("id")))
-                panparID = None
-                dataseriesID = None
-                if paramidparts.get("param"):
-                    panparID = int(paramidparts.get("param"))
-                elif paramidparts.get("geocode"):
-                    panparID = int(paramidparts.get("geocode"))
-                if paramidparts.get("ds"):
-                    dataseriesID = int(paramidparts.get("ds"))
-                panparShortName = ""
-                if paramstr.find("md:shortName", self.ns) is not None:
-                    panparShortName = paramstr.find("md:shortName", self.ns).text
-                    panparIndex = panparShortName
-                    # Rename duplicate column headers
-                    if panparShortName in coln:
-                        coln[panparShortName] += 1
-                        panparIndex = panparShortName + "_" + str(coln[panparShortName])
-                    else:
-                        coln[panparShortName] = 1
-                panparType=matrix.get("type")
-                panparUnit = None
-                if(paramstr.find("md:unit",self.ns) is not None):
-                    panparUnit=paramstr.find("md:unit",self.ns).text
-                panparComment=None
-                if(matrix.find("md:comment",self.ns) is not None):
-                    panparComment=matrix.find("md:comment",self.ns).text
-                panparMethod = None
-                if (matrix.find("md:method", self.ns) is not None):
-                    panparMethodTerms = []
-                    panparMethodName = ""
-                    if (matrix.find("md:method/md:name", self.ns) is not None):
-                        panparMethodName = matrix.find("md:method/md:name", self.ns).text
-                    panparMethodID = self._getIDParts(matrix.find("md:method", self.ns).get('id')).get('method')
-                    for pmterminfo in matrix.findall("md:method/md:term", self.ns):
-                        panparMethodTerms.append(self._getTermInfo(pmterminfo))
-                    panparMethod = PanMethod(panparMethodID, panparMethodName,panparMethodTerms)
-                panparPI = None
-                panparPI_firstname, panparPI_lastname = None, None
-                if matrix.find("md:PI", self.ns) is not None:
-                    panparPI_ID = self._getIDParts(matrix.find("md:PI", self.ns).get("id")).get("pi")
-                    if matrix.find("md:PI/md:firstName", self.ns) is not None:
-                        panparPI_firstname = matrix.find("md:PI/md:firstName", self.ns).text
-                    panparPI_lastname = matrix.find("md:PI/md:lastName", self.ns).text
-                    panparPI_fullname = ", ".join(filter(None, [panparPI_lastname, panparPI_firstname]))
-                    panparPI = {"id": panparPI_ID, "name": panparPI_fullname, "last_name": panparPI_lastname, "first_name": panparPI_firstname}
-                panparFormat = matrix.get("format")
-                if panparShortName == "Event":
-                    self.eventInMatrix = True
-                # if panparID in self.CFmapping.index:
-                #    panparCFName=self.CFmapping.at[panparID,'STDNAME']
-                # Add information about terms/ontologies used:
-                termlist = []
-                for terminfo in paramstr.findall("md:term", self.ns):
-                    termlist.append(self._getTermInfo(terminfo))
-                self.params[panparIndex] = PanParam(id=panparID,name=paramstr.find('md:name',self.ns).text,shortName=panparShortName,param_type=panparType,source=matrix.get('source'),unit=panparUnit,format=panparFormat,terms=termlist, comment=panparComment,PI =panparPI, dataseries = dataseriesID, colno = colno, method = panparMethod)
-                self.parameters = self.params
-                if panparType == "geocode":
-                    if panparShortName in panGeoCode:
-                        self.allowNetCDF = False
-                        # self.logging.append({'WARNING': 'Data set contains duplicate Geocodes'})
-                        self.log(logging.WARNING, "Data set contains duplicate Geocodes")
-                    else:
-                        panGeoCode.append(panparShortName)
-
-    def getEventsAsFrame(self):
+    def getEventsAsFrame(self) -> pd.DataFrame:
         """
         For more convenient handling of event info, this method returns a dataframe containing all events with their attributes as columns
         Please note that this version just takes campaign names, not other campaign attributes
@@ -1012,7 +399,7 @@ class PanDataSet:
             pass
         return df
 
-    def setData(self, addEventColumns=True):
+    def setData(self, addEventColumns: bool = True) -> None:
         """
         This method populates the data DataFrame with data from a PANGAEA dataset.
         In addition to the data given in the tabular ASCII file delivered by PANGAEA.
@@ -1024,8 +411,6 @@ class PanDataSet:
             the setData could add these columns to the dataframe using the information given in the metadata for Event. Default is 'True'
 
         """
-        # converting list of parameters` short names (from user input) to the list of parameters` indexes
-        # the list of parameters` indexes is an argument for pd.read_csv
         if self.paramlist is not None:
             self.paramlist += self.defaultparams
             for parameter in self.paramlist:
@@ -1035,157 +420,110 @@ class PanDataSet:
                         self.paramlist_index.append(iter)
                     iter += 1
             if len(self.paramlist) != len(self.paramlist_index):
-                # self.logging.append({'WARNING': 'Error entering parameters`short names, inconsitent number of parameters'})
                 self.log(logging.WARNING, "Error entering parameters`short names, inconsitent number of parameters")
         else:
             self.paramlist_index = None
         if self.include_data:
             try:
-                dataResponse = get_request(
-                    f"https://doi.pangaea.de/10.1594/PANGAEA.{self.id}",
-                    accepted_type="text/tab-separated-values",
-                    auth_token=self.auth_token,
-                )
+                panData = load_data(self.id, self.cache, self.cachedir, self.cache_expiry_days, self.auth_token)
+                self.data = pd.read_csv(StringIO(panData), index_col=False, on_bad_lines="skip", sep="\t", usecols=self.paramlist_index, names=list(self.params.keys()), skiprows=[0], low_memory=False)
+                if addEventColumns:
+                    if len(self.events.items()) == 1:
+                        if "Event" not in self.data.columns:
+                            self.data["Event"] = list(self.events.values())[0].label
+                            self.params["Event"] = PanParam(0, "Event", "Event", "string", "data", None)
+                    if len(self.events.items()) >= 1:
+                        addEvLat = addEvLon = addEvEle = addEvDat = False
+                        if "Event" in self.data.columns:
+                            newcols = {}
+                            if "Latitude" not in self.data.columns:
+                                addEvLat = True
+                                newcols["Latitude"] = np.nan
+                                self.params["Latitude"] = PanParam(
+                                    1600, "Latitude", "Latitude", "numeric", "event", "deg"
+                                )
+                            if "Longitude" not in self.data.columns:
+                                addEvLon = True
+                                newcols["Longitude"] = np.nan
+                                self.params["Longitude"] = PanParam(
+                                    1601, "Longitude", "Longitude", "numeric", "event", "deg"
+                                )
+                            if "Elevation" not in self.data.columns:
+                                addEvEle = True
+                                newcols["Elevation"] = np.nan
+                                self.params["Elevation"] = PanParam(
+                                    8128, "Elevation", "Elevation", "numeric", "event", "m"
+                                )
+                            if "Date/Time" not in self.data.columns:
+                                addEvDat = True
+                                newcols["Date/Time"] = pd.NaT
+                                self.params["Date/Time"] = PanParam(
+                                    1599, "Date/Time", "Date/Time", "datetime", "event", ""
+                                )
+                            if newcols:
+                                self.data = pd.concat(
+                                    [self.data, pd.DataFrame(newcols, index=self.data.index)],
+                                    axis=1
+                                )
+                            for iev, pevent in self.events.items():
+                                if pevent.latitude is not None and addEvLat:
+                                    self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Latitude"].isnull()), ["Latitude"]] = self.events[iev].latitude
+                                if pevent.longitude is not None and addEvLon:
+                                    self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Longitude"].isnull()), ["Longitude"]] = self.events[iev].longitude
+                                if pevent.elevation is not None and addEvEle:
+                                    self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Elevation"].isnull()), ["Elevation"]] = self.events[iev].elevation
+                                if pevent.datetime is not None and addEvDat:
+                                    self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Date/Time"].isna()), ["Date/Time"]] = self.events[iev].datetime
+                if self.deleteFlag != "":
+                    if self.deleteFlag == "?" or self.deleteFlag == "*":
+                        self.deleteFlag = "\\" + self.deleteFlag
+                    self.data.replace(regex=r"^" + self.deleteFlag + "{1}.*", value="", inplace=True)
+                self.data = self.data.dropna(axis=1, how="all")
+                for paramcolumn in list(self.params.keys()):
+                    if paramcolumn not in self.data.columns:
+                        del self.params[paramcolumn]
+                self.setQCDataFrame()
+                self.data.replace(regex=r"^[\?/\*#\<\>]", value="", inplace=True)
+                for col in self.data:
+                    if col == "Date/Time":
+                        continue
+                    try:
+                        self.data[col] = pd.to_numeric(self.data[col])
+                    except (ValueError, TypeError):
+                        pass
+                try:
+                    if "Date/Time" in self.data.columns:
+                        self.data["Date/Time"] = pd.to_datetime(self.data["Date/Time"], format="ISO8601")
+                except Exception as e:
+                    self.data["Date/Time"] = pd.to_datetime(self.data["Date/Time"].replace({r"^.*([0-9]{4}){1}.*$": r"\1"}, regex=True), format="%Y", errors="coerce")
+                    self.log(logging.WARNING, "Date/Time transformation failed: " + (str(e)))
+                    pass
+            except RequestException as exc:
+                match getattr(exc.response, "status_code", -1):
+                    case 401:
+                        self.log(logging.WARNING, "Data access failed, a valid authentication token is needed")
+                    case 406:
+                        self.log(logging.WARNING, "Data access failed, no tabular data available")
+                    case _:
+                        self.log(logging.WARNING, f"Failed to load data: {exc}")
 
-                panDataTxt = dataResponse.text
-                if int(dataResponse.status_code) == 200:
-                    if "text" in str(dataResponse.headers.get("Content-Type")):
-                        panData = re.sub(r"/\*(.*)\*/", "", panDataTxt, count=1, flags=re.DOTALL).strip()
-                        # Read in PANGAEA Data
-                        self.data = pd.read_csv(io.StringIO(panData), index_col=False, on_bad_lines="skip", sep="\t", usecols=self.paramlist_index, names=list(self.params.keys()), skiprows=[0])
-                        # add geocode/dimension columns from Event
-
-                        # if addEventColumns==True and self.topotype!="not specified":
-                        if addEventColumns:
-                            if len(self.events.items()) == 1:
-                                if "Event" not in self.data.columns:
-                                    self.data["Event"] = list(self.events.values())[0].label
-                                    self.params["Event"] = PanParam(0, "Event", "Event", "string", "data", None)
-                            if len(self.events.items()) >= 1:
-                                addEvLat = addEvLon = addEvEle = addEvDat = False
-                                if "Event" in self.data.columns:
-                                    newcols = {}
-                                    if "Latitude" not in self.data.columns:
-                                        addEvLat = True
-                                        newcols["Latitude"] = np.nan
-                                        self.params["Latitude"] = PanParam(
-                                            1600, "Latitude", "Latitude", "numeric", "event", "deg"
-                                        )
-
-                                    if "Longitude" not in self.data.columns:
-                                        addEvLon = True
-                                        newcols["Longitude"] = np.nan
-                                        self.params["Longitude"] = PanParam(
-                                            1601, "Longitude", "Longitude", "numeric", "event", "deg"
-                                        )
-
-                                    if "Elevation" not in self.data.columns:
-                                        addEvEle = True
-                                        newcols["Elevation"] = np.nan
-                                        self.params["Elevation"] = PanParam(
-                                            8128, "Elevation", "Elevation", "numeric", "event", "m"
-                                        )
-
-                                    if "Date/Time" not in self.data.columns:
-                                        addEvDat = True
-                                        newcols["Date/Time"] = pd.NaT
-                                        self.params["Date/Time"] = PanParam(
-                                            1599, "Date/Time", "Date/Time", "datetime", "event", ""
-                                        )
-
-                                    if newcols:
-                                        self.data = pd.concat(
-                                            [self.data, pd.DataFrame(newcols, index=self.data.index)],
-                                            axis=1
-                                        )
-
-                                    for iev, pevent in self.events.items():
-                                        if pevent.latitude is not None and addEvLat:
-                                            self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Latitude"].isnull()), ["Latitude"]] = self.events[iev].latitude
-                                        if pevent.longitude is not None and addEvLon:
-                                            self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Longitude"].isnull()), ["Longitude"]] = self.events[iev].longitude
-                                        if pevent.elevation is not None and addEvEle:
-                                            self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Elevation"].isnull()), ["Elevation"]] = self.events[iev].elevation
-                                        if pevent.datetime is not None and addEvDat:
-                                            self.data.loc[(self.data["Event"] == pevent.label) & (self.data["Date/Time"].isna()), ["Date/Time"]] = self.events[iev].datetime
-                        # -- delete values with given QC flags
-                        if self.deleteFlag != "":
-                            if self.deleteFlag == "?" or self.deleteFlag == "*":
-                                self.deleteFlag = "\\" + self.deleteFlag
-                            self.data.replace(regex=r"^" + self.deleteFlag + "{1}.*", value="", inplace=True)
-
-                        # --- Delete empty columns
-                        self.data = self.data.dropna(axis=1, how="all")
-                        # --- Preserve QC Flags in self.qcdata DataDrame and
-                        # --- Replace Quality Flags for numeric columns
-
-                        for paramcolumn in list(self.params.keys()):
-                            if paramcolumn not in self.data.columns:
-                                del self.params[paramcolumn]
-
-                        self.setQCDataFrame()
-                        self.data.replace(regex=r"^[\?/\*#\<\>]", value="", inplace=True)
-
-                        # --- Adjust Column Data Types
-                        for col in self.data:
-                            if col == "Date/Time":
-                                continue
-                            try:
-                                self.data[col] = pd.to_numeric(self.data[col])
-                            except (ValueError, TypeError):
-                                pass
-                        try:
-                            if "Date/Time" in self.data.columns:
-                                self.data["Date/Time"] = pd.to_datetime(self.data["Date/Time"], format="ISO8601")
-                                # self.data['Date/Time'] = pd.to_datetime(self.data['Date/Time'], format='%Y-%m-%dT%H:%M:%S')
-                        except Exception as e:
-                            # try to preserve the year at least:
-                            self.data["Date/Time"] = pd.to_datetime(self.data["Date/Time"].replace({r"^.*([0-9]{4}){1}.*$": r"\1"}, regex=True), format="%Y", errors="coerce")
-                            self.log(logging.WARNING, "Date/Time transformation failed: " + (str(e)))
-                            pass
-
-                    else:
-                        # self.logging.append({'WARNING': 'Dataset seems to be a binary file which cannot be handled by pangaeapy'})
-                        self.log(logging.WARNING, "Dataset seems to be a binary file which cannot be handled by pangaeapy")
-                elif int(dataResponse.status_code) == 401:
-                    if self.auth_token:
-                        # self.logging.append({'WARNING': 'Data access failed, invalid auth token'})
-                        self.log(logging.WARNING, "Data access failed, invalid auth token")
-                    else:
-                        # self.logging.append({'WARNING': 'Data access failed, authorisation failed '})
-                        self.log(logging.WARNING, "Data access failed, authorisation failed ")
-                elif int(dataResponse.status_code) == 406:
-                    self.log(logging.WARNING, "Data access failed, no tabular data available")
-                else:
-                    # self.logging.append({'WARNING': 'Data access failed, response code '+(str(dataResponse.status_code))})
-                    self.log(logging.WARNING, "Data access failed, response code " + (str(dataResponse.status_code)))
-            except Exception as e:
-                 #self.logging.append({'ERROR':'Loading data failed, reason: '+str(e)})
-                self.log(logging.ERROR, "Loading data failed, reason: " + str(e))
-
-    def setQCDataFrame(self):
+    def setQCDataFrame(self) -> None:
         tmp_qc_column_list = []
         try:
             for paramcolumn in list(self.params.keys()):
                 if self.params[paramcolumn].type in ["numeric", "datetime"]:
                     tmp_qc_series = self.data[paramcolumn].astype(str).str.extract(r"(^[\*/\?])?(.+)")[0].astype(str)
-                    # self.qcdata[paramcolumn] = self.data[paramcolumn].astype(
-                    #    str).str.extract(r'(^[\*/\?])?(.+)')[0]
-                    # self.qcdata[paramcolumn].fillna(value='ok', inplace=True)
                     tmp_qc_series.replace(to_replace={key: str(val) for key, val in self.quality_flag_replace.items()}, inplace=True)
                     tmp_qc_series = pd.to_numeric(tmp_qc_series, errors="coerce")
                     tmp_qc_column_list.append(tmp_qc_series)
-                    # self.qcdata[paramcolumn].replace(to_replace=self.quality_flag_replace, inplace=True)
             self.qcdata = pd.concat(tmp_qc_column_list, axis=1)
             self.qcdata = self.qcdata.dropna(how="all")
             self.qcdata.fillna(0, inplace=True)
         except Exception as e:
-            # self.logging.append({'WARNING': 'Could not create QC flag dataframe'})
             self.log(logging.WARNING, "Could not create QC flag dataframe")
 
-    def addQCParamsAndColumns(self, qc_suffix="_QC", excludeColumns=[]):
-        # self.data.replace(regex=r'^[\?/\*#\<\>]', value='', inplace=True)
-        if excludeColumns:
+    def addQCParamsAndColumns(self, qc_suffix: str = "_QC", excludeColumns: list[str] | None = None) -> None:
+        if excludeColumns is not None:
             joincolumns = list(set(self.data.columns) & set(set(self.qcdata.columns) - set(excludeColumns)))
         else:
             joincolumns = self.data.columns
@@ -1194,167 +532,34 @@ class PanDataSet:
             if self.params[paramcolumn].source == "data":
                 ptype = "qc"
             else:
-                # geocodeqc
                 ptype = "gqc"
             self.data[paramcolumn + qc_suffix].fillna(0)
             self.params[paramcolumn + qc_suffix] = PanParam(self.params[paramcolumn].id + 1000000000, self.params[paramcolumn].name + qc_suffix, self.params[paramcolumn].shortName + qc_suffix, source="pangaeapy", param_type=ptype)
 
-    def _setCitation(self):
-        r = get_request(
-            f"https://doi.pangaea.de/10.1594/PANGAEA.{self.id}",
-            accepted_type="text/x-bibliography",
-            auth_token=self.auth_token,
-        )
-        if r.status_code != 404:
-            self.citation = r.text
-        else:
-            # self.logging.append({'WARNING':'Could not retrieve citation info from PANGAEA'})
-            self.log(logging.WARNING, "Could not retrieve citation info from PANGAEA")
-
-    def find(self, path, key=None):
-        """Find a single XML node.
-
-        Parameters
-        ----------
-        path : str
-            XPath expression to search for
-        key : str
-            node attribute to fetch instead of its text
-
-        Returns
-        -------
-        str or None
-            node attribute or text
-        """
-        return get_xml_content(self._xml_root, path, namespaces=self.ns, key=key)
-
-    def findall(self, path, key=None):
-        """Find XML nodes.
-
-        Parameters
-        ----------
-        path : str
-            XPath expression to search for
-        key : str
-            node attribute to fetch instead of its text
-
-        Returns
-        -------
-        list of str or None
-            list of node attributes or texts
-        """
-        return get_xml_content(self._xml_root, path, namespaces=self.ns, key=key, multiple=True)
-
-    @property
-    def abstract(self):
-        return self.find("./md:abstract")
-
-    @property
-    def comment(self):
-        return self.find("./md:comment")
-
-    @property
-    def curationlevel(self):
-        return self.find("./md:status/md:curationLevel/md:name")
-
-    @property
-    def datastatus(self):
-        return self.find('./md:technicalInfo/md:entry[@key="status"]', key="value")
-
-    @property
-    def date(self):
-        return self.find("./md:citation/md:dateTime")
-
-    @property
-    def doi(self):
-        return "" if (val := self.find("./md:citation/md:URI")) is None else val
-
-    @property
-    def geometryextent(self):
-        extent = {
-            "westBoundLongitude": self.find("./md:extent/md:geographic/md:westBoundLongitude"),
-            "eastBoundLongitude": self.find("./md:extent/md:geographic/md:eastBoundLongitude"),
-            "southBoundLatitude": self.find("./md:extent/md:geographic/md:southBoundLatitude"),
-            "northBoundLatitude": self.find("./md:extent/md:geographic/md:northBoundLatitude"),
-            "meanLongitude": self.find("./md:extent/md:geographic/md:meanLongitude"),
-            "meanLatitude": self.find("./md:extent/md:geographic/md:meanLatitude"),
-        }
-        return {key: val for key, val in extent.items() if val is not None}
-
-    @property
-    def keywords(self):
-        return self.findall("./md:keywords/md:keyword")
-
-    @property
-    def lastupdate(self):
-        return self.date if (val := self.find('./md:technicalInfo/md:entry[@key="lastModified"]', key="value")) is None else val
-
-    @property
-    def loginstatus(self):
-        return "unrestricted" if (val := self.find('./md:technicalInfo/md:entry[@key="loginOption"]', key="value")) is None else val
-
-    @property
-    def maxtimeextent(self):
-        return self.find("./md:extent/md:temporal/md:maxDateTime")
-
-    @property
-    def mintimeextent(self):
-        return self.find("./md:extent/md:temporal/md:minDateTime")
-
-    @property
-    def moratorium(self):
-        return self.find('./md:technicalInfo/md:entry[@key="moratoriumUntil"]', key="value")
-
-    @property
-    def processinglevel(self):
-        return self.find("./md:status/md:processingLevel/md:name")
-
-    @property
-    def registrystatus(self):
-        return self.find('./md:technicalInfo/md:entry[@key="DOIRegistryStatus"]', key="value")
-
-    @property
-    def title(self):
-        return self.find("./md:citation/md:title")
-
-    @property
-    def topotype(self):
-        return self.find("./md:extent/md:topoType")
-
-    @property
-    def uri(self):
-        return self.doi
-
-    @property
-    def year(self):
-        return self.find("./md:citation/md:year")
-
-    def getMetadataFormats(self):
-        # returns a dict of mime types representing alternate metadata formats the dataset is also describedby
+    def getMetadataFormats(self) -> list[str]:
         formats = []
-        linksetjson, linksetfilename = self.getMetadata('application/linkset+json')
+        linksetjson, linksetfilename = self.getMetadata("application/linkset+json")
         linksetdict = json.loads(linksetjson)
-        if linksetdict.get('linkset'):
-            for describedby in linksetdict['linkset'][0].get('describedby', []):
+        if linksetdict.get("linkset"):
+            for describedby in linksetdict["linkset"][0].get("describedby", []):
                 formats.append(describedby.get("type"))
         return formats
 
-    def getMetadata(self, accept="application/vnd.pangaea.metadata+xml"):
-        # retrieves the dataset's metadata (or content in general) of given accept type
+    def getMetadata(self, accept: str = "application/vnd.pangaea.metadata+xml") -> tuple[str, str | None] | None:
         id = self.id
         try:
-            r = get_request(
+            r = requests.get(
                 f"https://doi.pangaea.de/10.1594/PANGAEA.{id}",
-                accepted_type=accept,
-                auth_token=self.auth_token,
+                headers= {
+                    "Accept": accept,
+                    "Authorization": f"Bearer {self.auth_token}" if self.auth_token is not None else None,
+                },
+                timeout=(3.05, 10),
             )
-
             if r.status_code == 404:
                 self.log(logging.ERROR, f"Data set does not exist, 404: {id}")
                 return None
-
             r.raise_for_status()
-
             filename = None
             cd = r.headers.get("Content-Disposition")
             if cd:
@@ -1362,134 +567,13 @@ class PanDataSet:
                 if m:
                     filename = m.group(1)
             return r.text, filename
-
-        except requests.exceptions.HTTPError as e:
+        except RequestException as e:
             self.log(logging.ERROR, f"Failed to retrieve metadata information: {e}")
         except Exception as e:
             self.log(logging.ERROR, f"HTTP request error: {e}")
-
         return None
 
-    def setMetadata(self):
-        """
-        The method initializes the metadata of the PanDataSet object using the information of a PANGAEA metadata XML file.
-
-        """
-        metadata, metafilename = self.getMetadata()
-
-        if metadata:
-            try:
-                xmlText = metadata
-                self.metaxml = xmlText
-                xml = ET.fromstring(xmlText.encode())
-                self._xml_root = xml
-                if self.datastatus not in ["deleted", None]:
-                    if self.loginstatus != "unrestricted":
-                        if self.auth_token:
-                            # self.logging.append({'INFO': 'Trying to load protected dataset using the given auth token'})
-                            self.log(logging.INFO, "Trying to load protected dataset using the given auth token")
-                        else:
-                            # self.logging.append({'WARNING': 'Data set is protected'})
-                            self.log(logging.WARNING, "Data set is protected")
-                    if xml.find('./md:technicalInfo/md:entry[@key="collectionType"]', self.ns) is not None:
-                        self.log(logging.WARNING, "Data set is of type collection, please select one of its child datasets")
-                        self.isCollection = True
-                        self.collection_members = [
-                            f"doi:10.1594/PANGAEA.{el[1:]}"
-                            for el in xml.find(
-                                './md:technicalInfo/md:entry[@key="collectionChilds"]', self.ns
-                            ).get("value").split(",")
-                        ]
-                    for author in xml.findall("./md:citation/md:author", self.ns):
-                        lastname = None
-                        firstname = None
-                        orcid = None
-                        if author.find("md:lastName", self.ns) is not None:
-                            lastname = author.find("md:lastName", self.ns).text
-                        if author.find("md:firstName", self.ns) is not None:
-                            firstname = author.find("md:firstName", self.ns).text
-                        if author.find("md:orcid", self.ns) is not None:
-                            orcid = author.find("md:orcid", self.ns).text
-                        # if author.find("md:affiliation", self.ns)!=None:
-                        authoraffiliations = []
-                        for affiliations in author.findall("md:affiliation", self.ns):
-                            afm = re.search(r"\.inst([0-9]+)$", str(affiliations.get("id")))
-                            if afm:
-                                authoraffiliations.append(afm[1])
-                        # print(authoraffiliations)
-                        authorid = author.get("id")
-                        if authorid:
-                            authorid = int(authorid.replace("dataset.author", ""))
-                        self.authors.append(PanAuthor(lastname, firstname, orcid, authorid, authoraffiliations))
-                    for project in xml.findall("./md:project", self.ns):
-                        label = None
-                        name = None
-                        URI = None
-                        awardURI = None
-                        if project.find("md:label", self.ns) is not None:
-                            label = project.find("md:label", self.ns).text
-                        if project.find("md:name", self.ns) is not None:
-                            name = project.find("md:name", self.ns).text
-                        if project.find("md:URI", self.ns) is not None:
-                            URI = project.find("md:URI", self.ns).text
-                        if project.find("md:award/md:URI", self.ns) is not None:
-                            awardURI = project.find("md:award/md:URI", self.ns).text
-                        if project.get("id"):
-                            projectid = str(project.get("id")).replace("project", "")
-                        self.projects.append(PanProject(label, name, URI, awardURI, int(projectid)))
-                    if xml.find("./md:license", self.ns) is not None:
-                        license = xml.find("./md:license", self.ns)
-                        label = None
-                        name = None
-                        URI = None
-                        if license.find("md:label", self.ns) is not None:
-                            label = license.find("md:label", self.ns).text
-                        if license.find("md:name", self.ns) is not None:
-                            name = license.find("md:name", self.ns).text
-                        if license.find("md:URI", self.ns) is not None:
-                            URI = license.find("md:URI", self.ns).text
-                        self.licence = PanLicence(label, name, URI)
-                    for reference in xml.findall("./md:reference", self.ns):
-                        refURI = None
-                        reftitle = None
-                        reftype = reference.get("relationType")
-                        refid = reference.get("id")
-                        if reference.find("md:URI", self.ns) is not None:
-                            refURI = reference.find("md:URI", self.ns).text
-                        if reference.find("md:title", self.ns) is not None:
-                            reftitle = reference.find("md:title", self.ns).text
-                        self.relations.append({"id": refid, "title": reftitle, "uri": refURI, "type": reftype})
-                    if xml.find("./md:citation/md:supplementTo", self.ns) is not None:
-                        suppl = xml.find("./md:citation/md:supplementTo", self.ns)
-                        suppURI = None
-                        supptitle = None
-                        suppyear = None
-                        suppid = suppl.get("id")
-                        if suppl.find("md:year", self.ns) is not None:
-                            suppyear = suppl.find("md:year", self.ns).text
-                        if suppl.find("md:title", self.ns) is not None:
-                            supptitle = suppl.find("md:title", self.ns).text
-                        if suppl.find("md:URI", self.ns) is not None:
-                            suppURI = suppl.find("md:URI", self.ns).text
-                        self.supplement_to = {"id": suppid, "title": supptitle, "uri": suppURI, "year": suppyear}
-                    panXMLMatrixColumn = xml.findall("./md:matrixColumn", self.ns)
-                    self._setParameters(panXMLMatrixColumn)
-                    panXMLEvents=xml.findall("./md:event", self.ns)
-                    self._setEvents(panXMLEvents)
-                    self._setCitation()
-                else:
-                    # self.logging.append({'ERROR': 'Dataset is deleted or of unknown status: ' + str(self.datastatus)})
-                    self.log(logging.ERROR, "Dataset is deleted or of unknown status: " + str(self.datastatus))
-            except ET.ParseError as e:
-                # self.logging.append({'ERROR': 'Failed to parse metadata information: '+str(e)})
-                self.log(logging.ERROR, "Failed to parse metadata information: " + str(e))
-                # print( str(xmlText))
-
-        else:
-            self.id = None
-            self.log(logging.ERROR, "No metadata object received for: " + str(self.id))
-
-    def getGeometry(self):
+    def getGeometry(self) -> int | str:
         """
         Sometimes the topotype attribute has not been set correctly during the curation process.
         This method returns the real geometry (topographic type) of the dataset based on the x,y,z and t information of the data frame content.
@@ -1501,7 +585,6 @@ class PanDataSet:
         locgrp = ["Latitude", "Longitude"]
         p = pz = pt = len(self.data.groupby(locgrp))
         t = z = None
-
         if "Date_Time" in self.data.columns:
             t = "Date_Time"
         if "Depth_water" in self.data.columns:
@@ -1512,7 +595,6 @@ class PanDataSet:
             z = "Depth_ice_snow"
         elif "Depth_soil" in self.data.columns:
             z = "Depth_soil"
-
         if t is not None:
             tgroup.append(t)
             pt = len(self.data.groupby(tgroup))
@@ -1538,7 +620,7 @@ class PanDataSet:
                 geotype = "trajectoryProfile"
         return geotype
 
-    def getParamDict(self):
+    def getParamDict(self) -> dict[str, list[str | None]]:
         """The method returns translates the parameter object list into a dictionary"""
         paramdict = {"shortName": [], "name": [], "unit": [], "type": [], "format": []}
         for param_key, param_value in self.params.items():
@@ -1549,7 +631,7 @@ class PanDataSet:
             paramdict["format"].append(param_value.format)
         return paramdict
 
-    def info(self):
+    def info(self) -> None:
         """The method returns a set of basic information about the PANGAEA dataset"""
         print("Citation:")
         print(self.citation)
@@ -1564,7 +646,7 @@ class PanDataSet:
         print("Data: (first 5 rows)")
         print(self.data.head(5))
 
-    def rename_column(self, old_name, new_name):
+    def rename_column(self, old_name: str, new_name: str) -> None:
         if self.params.get(old_name):
             self.params[new_name] = self.params.pop(old_name)
             self.params[new_name].name = new_name
@@ -1572,7 +654,7 @@ class PanDataSet:
             self.data.rename(columns={old_name: new_name}, inplace=True)
             self.qcdata.rename(columns={old_name: new_name}, inplace=True)
 
-    def to_netcdf(self, filelocation=None, save=True, type="sdn"):
+    def to_netcdf(self, filelocation: str | os.PathLike | None = None, save: bool = True, type: str = "sdn") -> bool | None:
         """
         This method creates a NetCDF file using PANGAEA data. It offers two different flavors: SeaDataNet NetCDF and an
         experimental internal format using NetCDF 4 groups.
@@ -1598,7 +680,7 @@ class PanDataSet:
             netcdfexporter.save()
         return ret
 
-    def to_frictionless(self, filelocation=None, save=True):
+    def to_frictionless(self, filelocation: str | os.PathLike | None = None, save: bool = True) -> bool | None:
         """
         This method creates a frictionless data package (https://specs.frictionlessdata.io/data-package) file using PANGAEA metadata and data.
         A package will be saved as directory
@@ -1617,7 +699,7 @@ class PanDataSet:
             frictionless_exporter.save()
         return ret
 
-    def to_dwca(self, save=True):
+    def to_dwca(self, save: bool = True) -> bool | None:
         """
         This method creates a Darwin Core Archive file using PANGAEA metadata and data.
         A package will be saved as directory
@@ -1634,11 +716,10 @@ class PanDataSet:
         ret = dwca_exporter.create()
         if save:
             dwca_exporter.save()
-        # print(dwca_exporter.logging)
         self.logging.extend(dwca_exporter.logging)
         return ret
 
-    def download(self, indices: list = None, columns: list[str] = None, timeout: int = 600):
+    def download(self, indices: list[int] | None = None, columns: list[str] | None = None, timeout: int = 600) -> list[Path | None]:
         """Download binary data if available; otherwise, save dataframe as CSV.
 
         Downloads can be very large. Consider explicitly defining the pangaeapy cache when calling PanDataSet.
@@ -1657,228 +738,29 @@ class PanDataSet:
         -------
             List of downloaded or saved filenames
         """
-
         if self.data.empty:
             raise ValueError(f"Dataset has no available data to download!\n"
                              f"Check {self.doi} for more information on dataset.")
-
-        # possible names for binary column(s) in the data table of a data set
         binary_columns = ["binary", "netcdf", "image", "video", "text", "url", "csv"]
-        # case-insensitive matching of any column starting with one of the possible binary column names
-        # (?!.*\() -> negative look ahead assertion to skip columns with "("
-        # such columns mostly contain additional information about the binary file (e.g. Binary (Size))
         pattern = "(?i)^(" + "|".join(binary_columns) + r")(?!.*\()"
         column_names = self.data.filter(regex=pattern).columns.tolist()
-
         if column_names:
             self.log(logging.INFO, f"Downloading files to {self.cachedir}")
             self.columns = columns if columns else column_names
             self.data_index = indices if indices else []
             self.timeout = timeout
-
-            # double check input
             if not all([x in column_names for x in self.columns]):
                 raise ValueError(f"Not all given columns ({self.columns}) are available!\n"
                                  f"Please select one or all of {column_names}.")
-            # raise error if an index is larger than the available row numbers
             if any([x >= self.data.shape[0] for x in self.data_index]):
                 raise ValueError(f"Index out of range!\n"
                                  f"Possible index range: 0 - {self.data.shape[0]}.")
-
             harvester = PanDataHarvester(self)
             return harvester.run_download()
         else:
             self.log(logging.INFO, "Info: No binary data available.")
             self.log(logging.INFO, f"The dataset will be saved as a CSV file to {self.cachedir}")
-
             csv_path = Path(self.cachedir, f"{self.id}_data.csv")
             self.data.to_csv(csv_path, index=False)
             print(f"Dataset saved to {csv_path}")
             return [csv_path]
-
-
-class PanDataHarvester:
-    """
-    Downloads binary data from the PANGAEA tape archive.
-
-    Parameters
-    ----------
-    dataset: PanDataSet
-        The dataset, which initiates the PanDataHarvester.
-
-
-    This class bundles the download functionality of pangaeapy.
-    When initiated via PanDataSet.download(), the selected files are downloaded asynchronously.
-    They are stored in the local cache in their original file format and under their original name.
-    The Harvester will check if the file already exists before downloading.
-
-    """
-
-    def __init__(self, dataset):
-        self.id = dataset.id
-        self.auth_token = dataset.auth_token
-        self.data = dataset.data
-        self.cachedir = dataset.cachedir
-        self.cachedir.mkdir(parents=True, exist_ok=True)
-        self.columns = dataset.columns  # list of column names
-        self.data_index = dataset.data_index
-        self.semaphore = asyncio.Semaphore(5)  # Limit concurrent downloads
-        self.timeout = aiohttp.ClientTimeout(total=dataset.timeout)  # set connection timeout
-
-
-    def _list_available_data(self):
-        """List available binary data (filenames) in the dataset.
-
-        Returns
-        -------
-            List of filenames
-        """
-        if self.data_index:
-            available_data = (self.data
-                              .iloc[self.data_index][self.columns]  # select rows and columns
-                              .to_numpy().flatten().tolist())  # extract values and reduce dimensions
-        else:
-            # If no index is supplied return all rows
-            available_data = self.data[self.columns].to_numpy().flatten().tolist()
-        return available_data
-
-    async def _download_file(self, session, url, filename, max_retries=4):
-        """Download a single file asynchronously, handling 503 errors."""
-        filepath = Path(self.cachedir, filename)
-
-        attempt = 0
-        async with self.semaphore:
-            while attempt < max_retries:
-                try:
-                    async with session.get(url) as response:
-                        size = int(response.headers.get('content-length', 0))
-                        if filepath.exists() and (filepath.stat().st_size >= size):
-                            print(f"File {filename} already exists, skipping.")
-                            return filepath
-
-                        if response.status == 429:
-                            wait_time = response.headers.get('retry-after', 0)
-                            wait_time = int(wait_time) if wait_time != 0 else 10
-                            print(f"Got response status 429 (Too many connections) while trying to download {filename}.\n"
-                                  f" Retrying in {wait_time} seconds.")
-                            await asyncio.sleep(wait_time)
-                            attempt += 1
-                            continue
-
-                        if response.status == 503:
-                            sleep = 30 * (attempt + 1)
-                            print(f"{filename} is being retrieved from tape. Retrying in {sleep} seconds...")
-                            await asyncio.sleep(sleep)  # Wait 2 minutes before retrying
-                            attempt += 1
-                            continue
-
-                        with open(filepath, "wb") as f:
-                            async for chunk in response.content.iter_any():
-                                f.write(chunk)
-
-                    print(f"Downloaded {filename} successfully!")
-                    return filepath
-
-                except aiohttp.ClientResponseError as e:
-                    attempt += 1
-                    if attempt == max_retries:
-                        raise e
-                    print(f"Error {e.status} encountered. Retrying ({attempt}/{max_retries})...")
-
-            print(f"Exceeded maximum number of retries ({max_retries}). Cancel download.")
-            return None
-
-
-    async def download_files(self):
-        """Download all binary files asynchronously."""
-        binary_files = self._list_available_data()
-        dataset_id = self.id
-
-        async with aiohttp.ClientSession(timeout=self.timeout) as session:
-            session.headers.update({"Authorization": f"Bearer {self.auth_token}",
-                                    "User-Agent": f"pangaeapy/{CURRENT_VERSION}"})
-            tasks = []
-            for filename in binary_files:
-                if filename.startswith("https:"):
-                    url = filename
-                    parsed_url = urlparse(url)
-                    # extract filename from url and decode special characters
-                    filename = PurePosixPath(unquote(parsed_url.path)).name
-                else:
-                    url = f"https://download.pangaea.de/dataset/{dataset_id}/files/{filename}"
-
-                tasks.append(self._download_file(session, url, filename))
-
-            results = await asyncio.gather(*tasks)
-            downloaded_files = [result for result in results if result]
-
-        return downloaded_files
-
-
-    def run_download(self):
-        """Start asynchronous file download for single file downloads or download
-         the zip file and extract its contents if the whole data set is requested.
-         This requires a valid auth_token (also called Bearer Token).
-
-         Returns
-         -------
-            List of downloaded files
-         """
-        if (self.data_index == []) and (all(["URL" not in column for column in self.columns])):
-            # User wants the whole binary data set
-            # Download the data set via the ZIP link, which requires a valid auth_token
-            # Data sets with a URL binary column do not have a zip download available
-            downloaded_files = self.download_zip_file()
-        else:
-            with ThreadPoolExecutor(max_workers=1) as pool:
-                downloaded_files = pool.submit(asyncio.run, self.download_files()).result()
-        return downloaded_files
-
-
-    def download_zip_file(self):
-        """Download a complete binary data set via the ZIP link.
-        Requires a valid auth_token (also called Bearer Token), which can be found at https://www.pangaea.de/user/.
-        """
-        url = f"https://download.pangaea.de/dataset/{self.id}/allfiles.zip"
-        zip_path = Path(self.cachedir, "allfiles.zip")
-        extract_dir = Path(self.cachedir)
-        url_headers = {
-            "Authorization": f"Bearer {self.auth_token}",
-            "User-Agent": f"pangaeapy/{CURRENT_VERSION}"
-        }
-        try:
-            with requests.get(url, stream=True, headers=url_headers) as r:
-                if r.status_code == 401:
-                    print(
-                        "401 Client Error: Unauthorized access.\n"
-                        "Please provide a valid auth_token when opening the data set.\n"
-                        "You can find your auth_token (Bearer Token) on your PANGAEA user page at https://www.pangaea.de/user/"
-                    )
-                    return []
-                r.raise_for_status()
-
-                # Stream download to disk
-                with open(zip_path, "wb") as f:
-                    for chunk in r.iter_content(chunk_size=8192):
-                        if chunk:
-                            f.write(chunk)
-
-            # Extract and collect filenames
-            with zipfile.ZipFile(zip_path, "r") as zip_file:
-                downloaded_files = [Path(self.cachedir, f) for f in zip_file.namelist()]
-                zip_file.extractall(extract_dir)
-
-            return downloaded_files
-
-        except requests.exceptions.RequestException as e:
-            print(f"Download failed: {e}")
-            return []
-        except zipfile.BadZipFile as e:
-            print(f"Extraction failed: {e}")
-            return []
-        finally:
-            if zip_path.exists():
-                try:
-                    zip_path.unlink()
-                except Exception as e:
-                    print(f"Failed to delete ZIP file: {e}")

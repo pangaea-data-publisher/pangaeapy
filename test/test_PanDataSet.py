@@ -47,9 +47,6 @@ def mock_pandataset(mocker, tmp_path, filenames):
 
 def test_default_cachedir(mocker):
     mock_makedirs = mocker.patch("pathlib.Path.mkdir")
-    # mock functionalities, which rely on cachedir
-    mock_connect = mocker.patch("sqlite3.connect")
-    mocker.patch.object(PanDataSet, "get_pickle_path")
 
     ds = PanDataSet(968912, enable_cache=True)
     expected_default = Path(Path.home(), ".pangaeapy_cache")
@@ -61,7 +58,6 @@ def test_default_cachedir(mocker):
 def test_custom_cachedir(tmp_path):
     ds = PanDataSet(968912, enable_cache=True, cachedir=tmp_path)
     assert ds.cachedir == tmp_path
-    ds.terms_conn.close()  # explicitly close the sqlite database
 
 
 @pytest.mark.parametrize(
